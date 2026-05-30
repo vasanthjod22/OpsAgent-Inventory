@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────── */
+:root {
+  --primary:        #2563EB;
+  --primary-light:  #EFF6FF;
+  --primary-dark:   #1D4ED8;
+  --success:        #16A34A;
+  --success-light:  #F0FDF4;
+  --warning:        #D97706;
+  --warning-light:  #FFFBEB;
+  --danger:         #DC2626;
+  --danger-light:   #FEF2F2;
+  --bg-main:        #F8FAFC;
+  --bg-card:        #FFFFFF;
+  --bg-sidebar:     #0F172A;
+  --border:         #E2E8F0;
+  --text-primary:   #0F172A;
+  --text-secondary: #64748B;
+  --text-muted:     #94A3B8;
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-dropdown: 0 10px 40px rgba(0,0,0,0.12);
+  --shadow-btn:     0 4px 12px rgba(37,99,235,0.3);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ─── Fade In (panel switch) ─────────────────────────────────────────────── */
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadein { animation: fadein 0.18s ease forwards; }
+
+/* ─── Skeleton / Shimmer ─────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Dot Bounce (typing indicator) ──────────────────────────────────────── */
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%           { transform: translateY(-6px); }
+}
+.dot-bounce-1 { animation: dotBounce 1.2s ease-in-out 0s   infinite; }
+.dot-bounce-2 { animation: dotBounce 1.2s ease-in-out 0.2s infinite; }
+.dot-bounce-3 { animation: dotBounce 1.2s ease-in-out 0.4s infinite; }
+
+/* ─── Pulsing green dot ───────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(1.3); }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* ─── Toast slide-in ─────────────────────────────────────────────────────── */
+@keyframes toastIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.toast-in { animation: toastIn 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+/* ─── Modal ──────────────────────────────────────────────────────────────── */
+@keyframes modalIn {
+  from { transform: scale(0.94) translateY(8px); opacity: 0; }
+  to   { transform: scale(1)    translateY(0);   opacity: 1; }
+}
+.modal-in { animation: modalIn 0.2s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+
+/* ─── Card hover lift ─────────────────────────────────────────────────────── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+/* ─── Button press ───────────────────────────────────────────────────────── */
+.btn-press { transition: transform 0.1s ease; }
+.btn-press:active { transform: scale(0.97); }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ─── Focus ring ─────────────────────────────────────────────────────────── */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+  border-color: var(--primary) !important;
+}
+
+/* ─── Input base ─────────────────────────────────────────────────────────── */
+.input-base {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+}
+.input-base:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+.input-base::placeholder { color: var(--text-muted); }
+.input-base:disabled { background: #F8FAFC; color: var(--text-muted); cursor: not-allowed; }
+
+/* ─── Glass & Modern UI ──────────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+}
+
+.hover-up {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-up:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ─── Table ──────────────────────────────────────────────────────────────── */
+.data-table { border-collapse: collapse; width: 100%; }
+.data-table th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: #F8FAFC;
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background 0.1s; }
+.data-table tbody tr:hover td { background: #F8FAFC; }
+
+/* ─── Badge ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge-green  { background: #DCFCE7; color: #15803D; }
+.badge-red    { background: #FEE2E2; color: #B91C1C; }
+.badge-amber  { background: #FEF3C7; color: #92400E; }
+.badge-gray   { background: #F1F5F9; color: #475569; }
+
+/* ─── Auth Animations ────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* SVG Checkmark Draw */
+@keyframes circleGrow {
+  from { stroke-dasharray: 0 157; }
+  to   { stroke-dasharray: 157 0; }
+}
+@keyframes checkDraw {
+  from { stroke-dashoffset: 48; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Progress Bar Fill */
+@keyframes progressFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* Auth Page Slide Up (exit) */
+@keyframes slideUp {
+  from { transform: translateY(0);      opacity: 1; }
+  to   { transform: translateY(-100vh); opacity: 0; }
+}
+.animate-slideUp {
+  animation: slideUp 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Dashboard Slide In from Bottom (entry) */
+@keyframes slideInFromBottom {
+  from { transform: translateY(100vh); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+.animate-slideInFromBottom {
+  animation: slideInFromBottom 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Confetti Fly */
+@keyframes confettiFly {
+  0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--tx),var(--ty)) rotate(var(--rot)); opacity: 0; }
+}
+
+/* Scale bounce (emoji / checkmark icon) */
+@keyframes scaleBounce {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.15); }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.animate-scaleBounce {
+  animation: scaleBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* Fade-up reveal (success card fields) */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeUp {
+  animation: fadeUp 0.3s ease forwards;
+}
+
+/* Panel bg transition helper */
+.auth-panel-transition {
+  transition: background-color 0.8s ease;
+}
+
+/* Step row fade-in */
+@keyframes stepFadeIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Countdown number pop */
+@keyframes countPop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  50%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Sparkle twinkle */
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50%       { opacity: 1; transform: scale(1); }
+}
+
+/* Reduced motion override */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
