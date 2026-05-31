@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import {
   Search, Plus, X, Package, Trash2, Edit2,
   AlertTriangle, AlertCircle, Upload, Download,
@@ -23,12 +24,11 @@ const downloadTemplate = () => {
   URL.revokeObjectURL(url)
 }
 
-/* ─── CSV Parser ─────────────────────────────────────────────── */
-const parseInventoryCSV = (csvText) => {
-  const lines = csvText.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))
-  if (lines.length < 2) throw new Error('CSV file is empty or has no data rows')
+/* ─── Parse rows (shared by CSV + XLSX) ─────────────────────── */
+const parseRows = (rawRows) => {
+  if (!rawRows || rawRows.length < 2) throw new Error('File is empty or has no data rows')
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+  const headers = rawRows[0].map(h => String(h ?? '').trim().toLowerCase())
   const headerMap = {
     sku:      ['sku', 'item code', 'code', 'id'],
     name:     ['item name', 'name', 'description', 'item'],
@@ -57,31 +57,31 @@ const parseInventoryCSV = (csvText) => {
     max:      getIndex(headerMap.max),
   }
 
-  if (col.sku === -1) throw new Error('Could not find SKU column. Please use our template.')
+  if (col.sku === -1)  throw new Error('Could not find SKU column. Please use our template.')
   if (col.name === -1) throw new Error('Could not find Item Name column. Please use our template.')
 
-  return lines.slice(1).map((line) => {
-    const values = (line.match(/(".*?"|[^,]+)(?=,|$)/g) || line.split(','))
-    const vals = values.map(v => v.replace(/^"|"$/g, '').trim())
+  return rawRows.slice(1).map((vals) => {
+    const g = (i, fallback = '') => i !== -1 ? String(vals[i] ?? fallback).trim() : fallback
+    const n = (i, fallback = 0) => i !== -1 ? Number(vals[i] ?? fallback) : fallback
 
     const row = {
-      sku:       col.sku !== -1      ? vals[col.sku] || ''      : '',
-      name:      col.name !== -1     ? vals[col.name] || ''     : '',
-      category:  col.category !== -1 ? vals[col.category] || 'General' : 'General',
-      qty:       col.qty !== -1      ? Number(vals[col.qty])    : 0,
-      unit:      col.unit !== -1     ? vals[col.unit] || 'Nos'  : 'Nos',
-      min:       col.min !== -1      ? Number(vals[col.min])    : 0,
-      max:       col.max !== -1      ? Number(vals[col.max])    : 100,
+      sku:       g(col.sku),
+      name:      g(col.name),
+      category:  g(col.category, 'General') || 'General',
+      qty:       n(col.qty),
+      unit:      g(col.unit, 'Nos') || 'Nos',
+      min:       n(col.min),
+      max:       n(col.max, 100),
       rowErrors: [],
     }
 
-    if (!row.sku)                          row.rowErrors.push('SKU is required')
-    if (!row.name)                         row.rowErrors.push('Item Name is required')
-    if (isNaN(row.qty) || row.qty < 0)     row.rowErrors.push('Invalid quantity')
-    if (isNaN(row.min))                    row.rowErrors.push('Invalid min level')
-    if (isNaN(row.max))                    row.rowErrors.push('Invalid max level')
+    if (!row.sku)                           row.rowErrors.push('SKU is required')
+    if (!row.name)                          row.rowErrors.push('Item Name is required')
+    if (isNaN(row.qty) || row.qty < 0)      row.rowErrors.push('Invalid quantity')
+    if (isNaN(row.min))                     row.rowErrors.push('Invalid min level')
+    if (isNaN(row.max))                     row.rowErrors.push('Invalid max level')
     if (!isNaN(row.min) && !isNaN(row.max) && row.min > row.max)
-                                           row.rowErrors.push('Min cannot be greater than Max')
+                                            row.rowErrors.push('Min cannot be greater than Max')
     return row
   })
 }
@@ -113,8 +113,10 @@ function ImportModal({ onClose, inventory, setInventory, showToast }) {
   const [parseError, setParseError] = useState(null)
 
   const processFile = useCallback((f) => {
-    if (!f || !f.name.endsWith('.csv')) {
-      setParseError('Please upload a valid .csv file')
+    if (!f) return
+    const ext = f.name.split('.').pop().toLowerCase()
+    if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+      setParseError('Please upload a valid .csv or .xlsx file')
       setParsedRows(null)
       setFile(null)
       return
@@ -122,16 +124,37 @@ function ImportModal({ onClose, inventory, setInventory, showToast }) {
     setFile(f)
     setParseError(null)
     const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const rows = parseInventoryCSV(e.target.result)
-        setParsedRows(rows)
-      } catch (err) {
-        setParseError(err.message)
-        setParsedRows(null)
+
+    if (ext === 'csv') {
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result
+          const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))
+          const rawRows = lines.map(line => {
+            const values = (line.match(/(".*?"|[^,]+)(?=,|$)/g) || line.split(','))
+            return values.map(v => v.replace(/^"|"$/g, '').trim())
+          })
+          setParsedRows(parseRows(rawRows))
+        } catch (err) {
+          setParseError(err.message)
+          setParsedRows(null)
+        }
       }
+      reader.readAsText(f)
+    } else {
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'array' })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+          setParsedRows(parseRows(rawRows))
+        } catch (err) {
+          setParseError(err.message)
+          setParsedRows(null)
+        }
+      }
+      reader.readAsArrayBuffer(f)
     }
-    reader.readAsText(f)
   }, [])
 
   const handleDrop = (e) => {
@@ -187,7 +210,7 @@ function ImportModal({ onClose, inventory, setInventory, showToast }) {
             </div>
             <div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>Import Inventory from CSV</div>
-              <div style={{ fontSize: '12px', color: '#94A3B8' }}>Upload a CSV file to add or update inventory items</div>
+              <div style={{ fontSize: '12px', color: '#94A3B8' }}>Upload a CSV or XLSX file to add or update inventory items</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '4px' }}>
@@ -203,7 +226,7 @@ function ImportModal({ onClose, inventory, setInventory, showToast }) {
               <FileText size={16} color="#2563EB" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#1E40AF' }}>Download our CSV template</div>
-                <div style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px' }}>Ensure your data imports correctly by using the official format</div>
+                <div style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px' }}>Ensure your data imports correctly by using the official format — works with CSV and Excel</div>
               </div>
             </div>
             <button onClick={downloadTemplate} style={{ height: '34px', padding: '0 14px', borderRadius: '8px', background: 'white', color: '#2563EB', border: '1.5px solid #93C5FD', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, whiteSpace: 'nowrap' }}>
@@ -229,13 +252,13 @@ function ImportModal({ onClose, inventory, setInventory, showToast }) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <CloudUpload size={36} color={dragOver ? '#2563EB' : '#94A3B8'} />
-                  <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>Drop your CSV file here</div>
+                  <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>Drop your CSV or Excel file here</div>
                   <div style={{ fontSize: '13px', color: '#64748B' }}>or <span style={{ color: '#2563EB', textDecoration: 'underline' }}>click to browse</span></div>
-                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Only .csv files accepted</div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Accepts .csv and .xlsx files</div>
                 </div>
               )}
             </div>
-            <input ref={fileRef} type="file" accept=".csv" onChange={handleFileChange} style={{ display: 'none' }} />
+            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} style={{ display: 'none' }} />
           </div>
 
           {/* Parse Error */}
