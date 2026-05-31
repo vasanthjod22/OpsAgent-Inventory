@@ -56,13 +56,20 @@ const makeItem = () => ({
   quantity: '',
   unit: 'Nos',
   rate: '',
+  gstPercent: '',
   amount: 0,
   inventorySku: null,
 })
 
 const recalcSno = (items) => items.map((item, i) => ({ ...item, sno: i + 1 }))
 
-const calcAmount = (quantity, rate) => (parseFloat(quantity) || 0) * (parseFloat(rate) || 0)
+const calcAmount = (quantity, rate, gst) => {
+  const q = parseFloat(quantity) || 0
+  const r = parseFloat(rate) || 0
+  const g = parseFloat(gst) || 0
+  const base = q * r
+  return base + (base * g / 100)
+}
 
 /* ─── PDF Generator ───────────────────────────────────────── */
 const generateBillPDF = (bill, company) => {
@@ -133,13 +140,14 @@ const generateBillPDF = (bill, company) => {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(255, 255, 255)
-  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 70, qty: mg + 98, unit: mg + 114, rate: mg + 134, amt: W - mg - 2 }
+  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 65, qty: mg + 85, unit: mg + 100, rate: mg + 116, gst: mg + 136, amt: W - mg - 2 }
   doc.text('#', cols.sno, y + 5.5)
   doc.text('Description', cols.desc, y + 5.5)
   doc.text('HSN', cols.hsn, y + 5.5)
   doc.text('Quantity', cols.qty, y + 5.5)
   doc.text('Unit', cols.unit, y + 5.5)
   doc.text('Rate', cols.rate, y + 5.5)
+  doc.text('GST%', cols.gst, y + 5.5)
   doc.text('Amount', cols.amt, y + 5.5, { align: 'right' })
   y += 8
 
@@ -159,6 +167,7 @@ const generateBillPDF = (bill, company) => {
     doc.text(item.quantity ? String(item.quantity) : '-', cols.qty, y + 5.5)
     doc.text(item.unit || '', cols.unit, y + 5.5)
     doc.text(fmtINR(item.rate), cols.rate, y + 5.5)
+    doc.text(item.gstPercent ? `${item.gstPercent}%` : '0%', cols.gst, y + 5.5)
     doc.setFont('helvetica', 'bold')
     doc.text(fmtINR(item.amount), cols.amt, y + 5.5, { align: 'right' })
     y += rowH
@@ -180,18 +189,11 @@ const generateBillPDF = (bill, company) => {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(100, 116, 139)
-  doc.text('Subtotal:', totX, y)
+  doc.text('Subtotal (GST inclusive):', totX, y)
   doc.setTextColor(15, 23, 42)
   doc.text(`Rs. ${fmtINR(bill.subtotal)}`, totRight, y, { align: 'right' })
   y += 6
 
-  if (bill.gstPercent > 0) {
-    doc.setTextColor(100, 116, 139)
-    doc.text(`GST (${bill.gstPercent}%):`, totX, y)
-    doc.setTextColor(15, 23, 42)
-    doc.text(`Rs. ${fmtINR(bill.gstAmount)}`, totRight, y, { align: 'right' })
-    y += 6
-  }
   if (bill.discount > 0) {
     doc.setTextColor(100, 116, 139)
     doc.text('Discount:', totX, y)
@@ -422,7 +424,8 @@ function LineItemsTable({ items, setItems, inventory }) {
       const updated = { ...item, [field]: value }
       updated.amount = calcAmount(
         field === 'quantity' ? value : item.quantity,
-        field === 'rate' ? value : item.rate
+        field === 'rate' ? value : item.rate,
+        field === 'gstPercent' ? value : item.gstPercent
       )
       return updated
     }))
@@ -443,7 +446,7 @@ function LineItemsTable({ items, setItems, inventory }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
           <thead>
             <tr style={{ background: '#0F172A' }}>
-              {[['#', '40px'], ['Description', '1fr'], ['HSN', '100px'], ['Quantity', '90px'], ['Unit', '100px'], ['Rate', '110px'], ['Amount', '110px'], ['', '36px']].map(([h, w]) => (
+              {[['#', '40px'], ['Description', '1fr'], ['HSN', '80px'], ['Quantity', '80px'], ['Unit', '80px'], ['Rate', '90px'], ['GST %', '80px'], ['Amount', '100px'], ['', '36px']].map(([h, w]) => (
                 <th key={h} style={{ padding: '9px 10px', textAlign: 'left', color: 'white', fontSize: '12px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -482,9 +485,15 @@ function LineItemsTable({ items, setItems, inventory }) {
                       <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder="0.00" />
                       <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>{getRateLabel(item.unit)}</div>
                     </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                      <input style={inp} type="number" min="0" max="100" step="0.01" value={item.gstPercent} onChange={e => updateItem(item.id, 'gstPercent', e.target.value)} placeholder="0" />
+                    </td>
                     <td style={{ padding: '6px 10px', textAlign: 'right', verticalAlign: 'top' }}>
                       <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
                         {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
+                      </div>
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>
+                        {parseFloat(item.gstPercent) > 0 ? `Incl. ${item.gstPercent}% GST` : 'Qty × Rate'}
                       </div>
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'top' }}>
@@ -662,7 +671,6 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
   const [items, setItems] = useState([makeItem()])
-  const [gstPercent, setGstPercent] = useState(18)
   const [discount, setDiscount] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('Unpaid')
   const [amountPaid, setAmountPaid] = useState('')
@@ -673,9 +681,8 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
 
   // Derived totals
   const subtotal = items.reduce((s, i) => s + (i.amount || 0), 0)
-  const gstAmount = subtotal * (gstPercent || 0) / 100
   const discountVal = Number(discount || 0)
-  const grandTotal = subtotal + gstAmount - discountVal
+  const grandTotal = subtotal - discountVal
   const balanceDue = grandTotal - Number(amountPaid || 0)
 
   const inp = { width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', color: '#0F172A', outline: 'none', background: 'white', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }
@@ -692,8 +699,6 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
     customerAddress,
     items: items.filter(i => i.description),
     subtotal,
-    gstPercent,
-    gstAmount,
     discount: discountVal,
     grandTotal,
     paymentStatus,
@@ -817,17 +822,6 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
                 <span>Subtotal</span>
                 <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(subtotal)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B' }}>
-                <span>GST</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <select value={gstPercent} onChange={e => setGstPercent(Number(e.target.value))}
-                    style={{ border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', padding: '3px 6px', outline: 'none', background: 'white' }}>
-                    {GST_OPTIONS.map(g => <option key={g}>{g}</option>)}
-                  </select>
-                  <span style={{ fontSize: '12px' }}>%</span>
-                  <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(gstAmount)}</span>
-                </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B' }}>
                 <span>Discount</span>
