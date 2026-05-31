@@ -8,6 +8,7 @@ import GRNPanel from './components/panels/GRNPanel'
 import InventoryPanel from './components/panels/InventoryPanel'
 import ChatPanel from './components/panels/ChatPanel'
 import SettingsPanel from './components/panels/SettingsPanel'
+import QuotationPanel from './components/panels/QuotationPanel'
 import AuthPage from './components/AuthPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
@@ -18,6 +19,7 @@ const panels = {
   finance: FinancePanel,
   grn: GRNPanel,
   inventory: InventoryPanel,
+  quotation: QuotationPanel,
   chat: ChatPanel,
   settings: SettingsPanel,
 }
@@ -140,7 +142,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
   const [transactions, setTransactions] = useLocalStorage(STORAGE_KEYS.FINANCE_RAW, isDemo ? FINANCE_SEED : [])
   const [inventory, setInventory]       = useLocalStorage(STORAGE_KEYS.INVENTORY, isDemo ? INVENTORY_SEED : [])
   const [grnHistory, setGrnHistory]     = useLocalStorage(STORAGE_KEYS.GRN_HISTORY, isDemo ? GRN_HISTORY_SEED : [])
-  const [chatMessages, setChatMessages] = useState([]) // session-only — clears on logout/reload
+  const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, []) // persists chat history
 
   const handleUpdateStock = (grnNumber, items) => {
     setInventory(prev => {

@@ -5,9 +5,11 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
   const [adding, setAdding] = useState(false)
+  const [editingItemSku, setEditingItemSku] = useState(null)
   const [newItem, setNewItem] = useState({ sku: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '' })
 
-  const categories = ['Raw Materials', 'Finished Goods', 'Packaging', 'Consumables']
+  const defaultCategories = ['Raw Materials', 'Finished Goods', 'Packaging', 'Consumables']
+  const categories = Array.from(new Set([...defaultCategories, ...inventory.map(i => i.category).filter(Boolean)]))
 
   const getStatus = (item) => {
     if (item.qty < item.min) return 'Low Stock'
@@ -27,12 +29,32 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
     return true
   })
 
+  const handleAddClick = () => {
+    setNewItem({ sku: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '' })
+    setEditingItemSku(null)
+    setAdding(true)
+  }
+
+  const handleEditClick = (item) => {
+    setNewItem({ ...item })
+    setEditingItemSku(item.sku)
+    setAdding(true)
+  }
+
   const handleAdd = () => {
     if (!newItem.sku || !newItem.name) return showToast?.('SKU and Name are required', 'error')
-    setInventory(prev => [{ ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 }, ...prev])
+    
+    if (editingItemSku) {
+      setInventory(prev => prev.map(i => i.sku === editingItemSku ? { ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 } : i))
+      showToast?.('Item updated successfully', 'success')
+    } else {
+      setInventory(prev => [{ ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 }, ...prev])
+      showToast?.('Item added successfully', 'success')
+    }
+    
     setAdding(false)
+    setEditingItemSku(null)
     setNewItem({ sku: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '' })
-    showToast?.('Item added successfully', 'success')
   }
 
   return (
@@ -48,7 +70,7 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
             <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input type="text" placeholder="Search items..." value={search} onChange={e => setSearch(e.target.value)} className="input-base" style={{ paddingLeft: '36px' }} />
           </div>
-          <button onClick={() => setAdding(true)} className="btn-press" style={{ height: '40px', padding: '0 16px', background: '#2563EB', color: 'white', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}><Plus size={16} /> Add Item</button>
+          <button onClick={handleAddClick} className="btn-press" style={{ height: '40px', padding: '0 16px', background: '#2563EB', color: 'white', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}><Plus size={16} /> Add Item</button>
         </div>
       </div>
 
@@ -102,7 +124,10 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
                     <td style={{ color: '#94A3B8', fontSize: '13px' }}>{item.min} / {item.max}</td>
                     <td style={{ textAlign: 'center' }}><span className={`badge ${isLow ? 'badge-red' : item.status === 'Overstock' ? 'badge-amber' : 'badge-green'}`}>{item.status}</span></td>
                     <td style={{ textAlign: 'right' }}>
-                      <button onClick={() => handleDelete(item.sku)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '4px' }} onMouseEnter={e => e.currentTarget.style.color = '#DC2626'} onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}><Trash2 size={16} /></button>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                        <button onClick={() => handleEditClick(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '4px' }} onMouseEnter={e => e.currentTarget.style.color = '#2563EB'} onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}><Edit2 size={16} /></button>
+                        <button onClick={() => handleDelete(item.sku)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '4px' }} onMouseEnter={e => e.currentTarget.style.color = '#DC2626'} onMouseLeave={e => e.currentTarget.style.color = '#CBD5E1'}><Trash2 size={16} /></button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -117,8 +142,8 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
         <div className="modal-in" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A' }}>Add New Item</h3>
-              <button onClick={() => setAdding(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={20} /></button>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A' }}>{editingItemSku ? 'Edit Item' : 'Add New Item'}</h3>
+              <button onClick={() => { setAdding(false); setEditingItemSku(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={20} /></button>
             </div>
             <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div style={{ gridColumn: 'span 2' }}>
@@ -128,7 +153,10 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
               <div><label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>SKU / Code</label><input type="text" className="input-base" value={newItem.sku} onChange={e => setNewItem({...newItem, sku: e.target.value})} /></div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Category</label>
-                <select className="input-base" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})}>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <input list="category-options" className="input-base" value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="Select or type..." />
+                <datalist id="category-options">
+                  {categories.map(c => <option key={c} value={c} />)}
+                </datalist>
               </div>
               <div><label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Current Qty</label><input type="number" className="input-base" value={newItem.qty} onChange={e => setNewItem({...newItem, qty: e.target.value})} /></div>
               <div><label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Unit</label><input type="text" className="input-base" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} /></div>
@@ -136,8 +164,8 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
               <div><label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Max Level</label><input type="number" className="input-base" value={newItem.max} onChange={e => setNewItem({...newItem, max: e.target.value})} /></div>
             </div>
             <div style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => setAdding(false)} className="btn-press" style={{ padding: '0 16px', height: '40px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontWeight: 600, fontSize: '13px', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleAdd} className="btn-press" style={{ padding: '0 16px', height: '40px', borderRadius: '8px', border: 'none', background: '#2563EB', fontWeight: 600, fontSize: '13px', color: 'white', cursor: 'pointer' }}>Add Item</button>
+              <button onClick={() => { setAdding(false); setEditingItemSku(null) }} className="btn-press" style={{ padding: '0 16px', height: '40px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontWeight: 600, fontSize: '13px', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleAdd} className="btn-press" style={{ padding: '0 16px', height: '40px', borderRadius: '8px', border: 'none', background: '#2563EB', fontWeight: 600, fontSize: '13px', color: 'white', cursor: 'pointer' }}>{editingItemSku ? 'Save Changes' : 'Add Item'}</button>
             </div>
           </div>
         </div>

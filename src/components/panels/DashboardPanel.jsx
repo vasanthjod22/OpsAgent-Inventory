@@ -1,7 +1,9 @@
-import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive } from 'lucide-react'
+import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock } from 'lucide-react'
 import SummaryCard from '../SummaryCard'
 
 export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [] }) {
+  const quotations = (() => { try { return JSON.parse(localStorage.getItem('opsagent_quotations') || '[]') } catch { return [] } })()
+  const pendingApproval = quotations.filter(q => q.status === 'Sent').length
   const lowStockItems = inventory.filter(item => item.qty < item.min)
   const overstockItems = inventory.filter(item => item.qty > item.max)
   const stockAlerts = lowStockItems.length + overstockItems.length
@@ -43,6 +45,22 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
       value: String(openGrns),
       trend: openGrns > 0 ? 'up' : 'neutral', trendValue: `${openGrns} pending`,
       colors: { bg: '#F0FDF4', text: '#16A34A' }
+    },
+    {
+      id: 'card-quotations',
+      icon: FileText,
+      title: 'Total Quotations',
+      value: String(quotations.length),
+      trend: quotations.length > 0 ? 'up' : 'neutral', trendValue: quotations.length > 0 ? 'All time' : '0',
+      colors: { bg: '#F5F3FF', text: '#7C3AED' }
+    },
+    {
+      id: 'card-pending-approval',
+      icon: Clock,
+      title: 'Pending Approval',
+      value: String(pendingApproval),
+      trend: pendingApproval > 0 ? 'up' : 'neutral', trendValue: pendingApproval > 0 ? 'Awaiting' : '0',
+      colors: { bg: '#FFF7ED', text: '#EA580C' }
     },
   ]
 
@@ -91,6 +109,31 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
                 </div>
              )}
           </div>
+
+          {/* Recent Quotations */}
+          {quotations.length > 0 && (
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Recent Quotations</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {quotations.slice(0, 3).map((q, i) => {
+                  const statusColors = { Draft: '#64748B', Sent: '#2563EB', Approved: '#16A34A', Rejected: '#DC2626' }
+                  const statusBgs = { Draft: '#F1F5F9', Sent: '#EFF6FF', Approved: '#F0FDF4', Rejected: '#FEF2F2' }
+                  return (
+                    <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(248,250,252,0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB' }}>{q.quotationNumber}</p>
+                        <p style={{ fontSize: '11px', color: '#64748B' }}>{q.customerName}</p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>₹{Number(q.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 0 })}</p>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: statusBgs[q.status] || '#F1F5F9', color: statusColors[q.status] || '#64748B' }}>{q.status}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', md: {flexDirection: 'row'} }}>
             <div style={{ flex: 1, padding: '20px 24px', borderRight: '1px solid #F1F5F9' }}>

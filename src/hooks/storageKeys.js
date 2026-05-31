@@ -6,4 +6,6 @@ export const STORAGE_KEYS = {
   CHAT_MESSAGES: 'opsagent_chat',
   API_KEY: 'opsagent_api_key',
   SETTINGS: 'opsagent_settings',
+  QUOTATIONS: 'opsagent_quotations',
+  COMPANY: 'opsagent_company',
 };

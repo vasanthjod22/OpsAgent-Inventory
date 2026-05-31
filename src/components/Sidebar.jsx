@@ -3,6 +3,7 @@ import {
   DollarSign,
   Upload,
   Package,
+  FileText,
   MessageSquare,
   Settings,
   LogOut,
@@ -21,6 +22,7 @@ const navGroups = [
     items: [
       { id: 'grn',       label: 'GRN Upload', icon: Upload },
       { id: 'inventory', label: 'Inventory',  icon: Package },
+      { id: 'quotation', label: 'Quotation',  icon: FileText },
     ]
   },
   {
