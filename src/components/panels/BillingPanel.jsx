@@ -53,8 +53,7 @@ const makeItem = () => ({
   sno: 1,
   description: '',
   hsnCode: '',
-  nos: '',
-  qty: '',
+  quantity: '',
   unit: 'Nos',
   rate: '',
   amount: 0,
@@ -63,15 +62,7 @@ const makeItem = () => ({
 
 const recalcSno = (items) => items.map((item, i) => ({ ...item, sno: i + 1 }))
 
-const calcAmount = (nos, qty, rate) => {
-  const n = parseFloat(nos) || 0
-  const q = parseFloat(qty) || 0
-  const r = parseFloat(rate) || 0
-  if (!nos && !qty) return 0
-  if (nos && !qty) return n * r
-  if (!nos && qty) return q * r
-  if (nos && qty) return n * r
-}
+const calcAmount = (quantity, rate) => (parseFloat(quantity) || 0) * (parseFloat(rate) || 0)
 
 /* ─── PDF Generator ───────────────────────────────────────── */
 const generateBillPDF = (bill, company) => {
@@ -142,12 +133,11 @@ const generateBillPDF = (bill, company) => {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(255, 255, 255)
-  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 60, nos: mg + 78, qty: mg + 95, unit: mg + 115, rate: mg + 135, amt: W - mg - 2 }
+  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 70, qty: mg + 98, unit: mg + 114, rate: mg + 134, amt: W - mg - 2 }
   doc.text('#', cols.sno, y + 5.5)
   doc.text('Description', cols.desc, y + 5.5)
   doc.text('HSN', cols.hsn, y + 5.5)
-  doc.text('Nos', cols.nos, y + 5.5)
-  doc.text('Qty', cols.qty, y + 5.5)
+  doc.text('Quantity', cols.qty, y + 5.5)
   doc.text('Unit', cols.unit, y + 5.5)
   doc.text('Rate', cols.rate, y + 5.5)
   doc.text('Amount', cols.amt, y + 5.5, { align: 'right' })
@@ -162,12 +152,11 @@ const generateBillPDF = (bill, company) => {
     doc.setFontSize(8)
     doc.setTextColor(15, 23, 42)
     doc.text(String(item.sno), cols.sno, y + 5.5)
-    doc.text((item.description || '').substring(0, 25), cols.desc, y + 5.5)
+    doc.text((item.description || '').substring(0, 30), cols.desc, y + 5.5)
     doc.setTextColor(100, 116, 139)
     doc.text(item.hsnCode || '-', cols.hsn, y + 5.5)
     doc.setTextColor(15, 23, 42)
-    doc.text(item.nos ? String(item.nos) : '-', cols.nos, y + 5.5)
-    doc.text(item.qty ? String(item.qty) : '-', cols.qty, y + 5.5)
+    doc.text(item.quantity ? String(item.quantity) : '-', cols.qty, y + 5.5)
     doc.text(item.unit || '', cols.unit, y + 5.5)
     doc.text(fmtINR(item.rate), cols.rate, y + 5.5)
     doc.setFont('helvetica', 'bold')
@@ -290,15 +279,15 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
   const matchedItems = items.filter(it => {
     if (!it.inventorySku) return false
     const inv = inventory.find(i => i.sku === it.inventorySku)
-    return inv && Number(it.nos) > 0
+    return inv && Number(it.quantity) > 0
   }).map(it => {
     const inv = inventory.find(i => i.sku === it.inventorySku)
     return {
       name: it.description,
       sku: it.inventorySku,
-      billedQty: Number(it.nos),
+      billedQty: Number(it.quantity),
       currentStock: inv.qty,
-      afterStock: inv.qty - Number(it.nos),
+      afterStock: inv.qty - Number(it.quantity),
       unit: inv.unit,
       min: inv.min,
     }
@@ -407,9 +396,9 @@ function DescriptionInput({ value, onChange, inventory, onSelectItem, inputRef }
   )
 }
 
-const getQtyLabel = (unit) => {
-  const map = { Nos: 'Qty', Sqft: 'Sqft', Sqmt: 'Sqmt', Kg: 'Weight (Kg)', Gram: 'Weight (g)', Metre: 'Length (m)', Litre: 'Volume (L)', Set: 'Qty', Box: 'Qty', Bag: 'Qty' }
-  return map[unit] || 'Qty'
+const getRateLabel = (unit) => {
+  const simple = ['Set', 'Box', 'Bag']
+  return simple.includes(unit) ? 'Rate / Unit' : `Rate / ${unit}`
 }
 
 /* ─── Line Items Table ───────────────────────────────────── */
@@ -432,8 +421,7 @@ function LineItemsTable({ items, setItems, inventory }) {
       if (item.id !== id) return item
       const updated = { ...item, [field]: value }
       updated.amount = calcAmount(
-        field === 'nos' ? value : item.nos,
-        field === 'qty' ? value : item.qty,
+        field === 'quantity' ? value : item.quantity,
         field === 'rate' ? value : item.rate
       )
       return updated
@@ -452,10 +440,10 @@ function LineItemsTable({ items, setItems, inventory }) {
   return (
     <div>
       <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '850px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
           <thead>
             <tr style={{ background: '#0F172A' }}>
-              {[['#', '40px'], ['Description', '1fr'], ['HSN', '90px'], ['Nos', '80px'], ['Qty', '80px'], ['Unit', '90px'], ['Rate', '100px'], ['Amount', '110px'], ['', '36px']].map(([h, w]) => (
+              {[['#', '40px'], ['Description', '1fr'], ['HSN', '100px'], ['Quantity', '90px'], ['Unit', '100px'], ['Rate', '110px'], ['Amount', '110px'], ['', '36px']].map(([h, w]) => (
                 <th key={h} style={{ padding: '9px 10px', textAlign: 'left', color: 'white', fontSize: '12px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -463,7 +451,7 @@ function LineItemsTable({ items, setItems, inventory }) {
           <tbody>
             {items.map((item, idx) => {
               const invItem = item.inventorySku ? inventory.find(i => i.sku === item.inventorySku) : null
-              const overStock = invItem && Number(item.qty || item.nos) > invItem.qty
+              const overStock = invItem && Number(item.quantity) > invItem.qty
               return (
                 <div key={item.id} style={{ display: 'contents' }}>
                   <tr style={{ borderBottom: '1px solid #F1F5F9', background: idx % 2 === 0 ? 'white' : '#FAFBFC' }}>
@@ -483,12 +471,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                       <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="Optional" />
                     </td>
                     <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" step="0.01" value={item.nos} onChange={e => updateItem(item.id, 'nos', e.target.value)} placeholder="Optional" />
-                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>Nos</div>
-                    </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" step="0.01" value={item.qty} onChange={e => updateItem(item.id, 'qty', e.target.value)} placeholder="Qty" />
-                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>{getQtyLabel(item.unit)}</div>
+                      <input style={inp} type="number" min="0" step="0.01" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
                     </td>
                     <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
                       <select style={inp} value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)}>
@@ -496,14 +479,12 @@ function LineItemsTable({ items, setItems, inventory }) {
                       </select>
                     </td>
                     <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder={`Per ${item.unit}`} />
+                      <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder="0.00" />
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>{getRateLabel(item.unit)}</div>
                     </td>
                     <td style={{ padding: '6px 10px', textAlign: 'right', verticalAlign: 'top' }}>
                       <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
                         {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
-                      </div>
-                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>
-                        {!item.nos && !item.qty ? '-' : item.nos && !item.qty ? 'Nos × Rate' : !item.nos && item.qty ? 'Qty × Rate' : 'Nos × Rate'}
                       </div>
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'top' }}>
@@ -517,7 +498,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                   </tr>
                   {overStock && (
                     <tr style={{ background: '#FFFBEB' }}>
-                      <td colSpan={9} style={{ padding: '3px 12px 5px', fontSize: '11px', color: '#92400E' }}>
+                      <td colSpan={8} style={{ padding: '3px 12px 5px', fontSize: '11px', color: '#92400E' }}>
                         ⚠ Only {invItem.qty} {invItem.unit} in stock
                       </td>
                     </tr>
@@ -734,7 +715,7 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
     showToast?.(`${generateBillFilename(customerName)} downloaded!`, 'success', 'Bill Generated')
 
     // Check for inventory items to deduct
-    const invItems = items.filter(i => i.inventorySku && Number(i.nos) > 0)
+    const invItems = items.filter(i => i.inventorySku && Number(i.quantity) > 0)
     if (invItems.length > 0) {
       setStockModal({ bill, items: invItems })
     } else {
