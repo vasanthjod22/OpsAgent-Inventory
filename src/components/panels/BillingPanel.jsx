@@ -54,6 +54,7 @@ const makeItem = () => ({
   description: '',
   hsnCode: '',
   nos: '',
+  qty: '',
   unit: 'Nos',
   rate: '',
   amount: 0,
@@ -62,7 +63,15 @@ const makeItem = () => ({
 
 const recalcSno = (items) => items.map((item, i) => ({ ...item, sno: i + 1 }))
 
-const calcAmount = (nos, rate) => (parseFloat(nos) || 0) * (parseFloat(rate) || 0)
+const calcAmount = (nos, qty, rate) => {
+  const n = parseFloat(nos) || 0
+  const q = parseFloat(qty) || 0
+  const r = parseFloat(rate) || 0
+  if (!nos && !qty) return 0
+  if (nos && !qty) return n * r
+  if (!nos && qty) return q * r
+  if (nos && qty) return n * r
+}
 
 /* ─── PDF Generator ───────────────────────────────────────── */
 const generateBillPDF = (bill, company) => {
@@ -104,7 +113,6 @@ const generateBillPDF = (bill, company) => {
   doc.setTextColor(180, 195, 210)
   doc.text(`Bill No: ${bill.billNumber}`, W - mg, 21, { align: 'right' })
   doc.text(`Date: ${fmtDate(bill.date)}`, W - mg, 27, { align: 'right' })
-  if (bill.importedFrom) doc.text(`Ref: ${bill.importedFrom}`, W - mg, 33, { align: 'right' })
 
   y = 52
 
@@ -134,11 +142,12 @@ const generateBillPDF = (bill, company) => {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(255, 255, 255)
-  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 70, nos: mg + 98, unit: mg + 114, rate: mg + 134, amt: W - mg - 2 }
+  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 60, nos: mg + 78, qty: mg + 95, unit: mg + 115, rate: mg + 135, amt: W - mg - 2 }
   doc.text('#', cols.sno, y + 5.5)
   doc.text('Description', cols.desc, y + 5.5)
   doc.text('HSN', cols.hsn, y + 5.5)
   doc.text('Nos', cols.nos, y + 5.5)
+  doc.text('Qty', cols.qty, y + 5.5)
   doc.text('Unit', cols.unit, y + 5.5)
   doc.text('Rate', cols.rate, y + 5.5)
   doc.text('Amount', cols.amt, y + 5.5, { align: 'right' })
@@ -153,11 +162,12 @@ const generateBillPDF = (bill, company) => {
     doc.setFontSize(8)
     doc.setTextColor(15, 23, 42)
     doc.text(String(item.sno), cols.sno, y + 5.5)
-    doc.text((item.description || '').substring(0, 30), cols.desc, y + 5.5)
+    doc.text((item.description || '').substring(0, 25), cols.desc, y + 5.5)
     doc.setTextColor(100, 116, 139)
     doc.text(item.hsnCode || '-', cols.hsn, y + 5.5)
     doc.setTextColor(15, 23, 42)
-    doc.text(String(item.nos || ''), cols.nos, y + 5.5)
+    doc.text(item.nos ? String(item.nos) : '-', cols.nos, y + 5.5)
+    doc.text(item.qty ? String(item.qty) : '-', cols.qty, y + 5.5)
     doc.text(item.unit || '', cols.unit, y + 5.5)
     doc.text(fmtINR(item.rate), cols.rate, y + 5.5)
     doc.setFont('helvetica', 'bold')
@@ -342,50 +352,6 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
   )
 }
 
-/* ─── Import from Quotation Modal ─────────────────────────── */
-function ImportQTModal({ onClose, onImport }) {
-  const quotations = (() => {
-    try { return JSON.parse(localStorage.getItem('opsagent_quotations') || '[]') } catch { return [] }
-  })()
-  const approved = quotations.filter(q => q.status === 'Approved')
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: 'white', borderRadius: '16px', maxWidth: '600px', width: '100%', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFBFC' }}>
-          <div style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>Import from Quotation</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={20} /></button>
-        </div>
-        <div style={{ padding: '20px 24px', maxHeight: '400px', overflowY: 'auto' }}>
-          {approved.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#94A3B8' }}>
-              <FileText size={36} style={{ marginBottom: '12px', opacity: 0.4 }} />
-              <p style={{ fontWeight: 600, color: '#64748B' }}>No approved quotations found.</p>
-              <p style={{ fontSize: '12px', marginTop: '6px' }}>Change quotation status to "Approved" in the Quotation panel first.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {approved.map((q, i) => (
-                <button key={i} onClick={() => onImport(q)}
-                  style={{ width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.background = '#EFF6FF' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: '#2563EB', fontSize: '14px' }}>{q.quotationNumber}</div>
-                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{q.customerName} · {fmtDate(q.date)}</div>
-                  </div>
-                  <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '14px' }}>₹{fmtINR0(q.grandTotal)}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ─── Inventory Autocomplete ─────────────────────────────── */
 function DescriptionInput({ value, onChange, inventory, onSelectItem, inputRef }) {
   const [query, setQuery] = useState(value)
@@ -441,6 +407,11 @@ function DescriptionInput({ value, onChange, inventory, onSelectItem, inputRef }
   )
 }
 
+const getQtyLabel = (unit) => {
+  const map = { Nos: 'Qty', Sqft: 'Sqft', Sqmt: 'Sqmt', Kg: 'Weight (Kg)', Gram: 'Weight (g)', Metre: 'Length (m)', Litre: 'Volume (L)', Set: 'Qty', Box: 'Qty', Bag: 'Qty' }
+  return map[unit] || 'Qty'
+}
+
 /* ─── Line Items Table ───────────────────────────────────── */
 function LineItemsTable({ items, setItems, inventory }) {
   const newRowRef = useRef(null)
@@ -461,8 +432,9 @@ function LineItemsTable({ items, setItems, inventory }) {
       if (item.id !== id) return item
       const updated = { ...item, [field]: value }
       updated.amount = calcAmount(
-        field === 'nos'  ? value : item.nos,
-        field === 'rate' ? value : item.rate,
+        field === 'nos' ? value : item.nos,
+        field === 'qty' ? value : item.qty,
+        field === 'rate' ? value : item.rate
       )
       return updated
     }))
@@ -480,10 +452,10 @@ function LineItemsTable({ items, setItems, inventory }) {
   return (
     <div>
       <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '850px' }}>
           <thead>
             <tr style={{ background: '#0F172A' }}>
-              {[['#', '40px'], ['Description', '1fr'], ['HSN', '100px'], ['Nos', '80px'], ['Unit', '100px'], ['Rate', '110px'], ['Amount', '110px'], ['', '36px']].map(([h, w]) => (
+              {[['#', '40px'], ['Description', '1fr'], ['HSN', '90px'], ['Nos', '80px'], ['Qty', '80px'], ['Unit', '90px'], ['Rate', '100px'], ['Amount', '110px'], ['', '36px']].map(([h, w]) => (
                 <th key={h} style={{ padding: '9px 10px', textAlign: 'left', color: 'white', fontSize: '12px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -491,12 +463,14 @@ function LineItemsTable({ items, setItems, inventory }) {
           <tbody>
             {items.map((item, idx) => {
               const invItem = item.inventorySku ? inventory.find(i => i.sku === item.inventorySku) : null
-              const overStock = invItem && Number(item.nos) > invItem.qty
+              const overStock = invItem && Number(item.qty || item.nos) > invItem.qty
               return (
-                <>
-                  <tr key={item.id} style={{ borderBottom: '1px solid #F1F5F9', background: idx % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                    <td style={{ padding: '6px 8px', color: '#94A3B8', fontSize: '13px', fontWeight: 600, textAlign: 'center', width: '40px' }}>{item.sno}</td>
-                    <td style={{ padding: '6px 8px' }}>
+                <div key={item.id} style={{ display: 'contents' }}>
+                  <tr style={{ borderBottom: '1px solid #F1F5F9', background: idx % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ padding: '6px 8px', color: '#94A3B8', fontSize: '13px', fontWeight: 600, textAlign: 'center', width: '40px', verticalAlign: 'top' }}>
+                      <div style={{ paddingTop: '8px' }}>{item.sno}</div>
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
                       <DescriptionInput
                         inputRef={idx === items.length - 1 ? newRowRef : undefined}
                         value={item.description}
@@ -505,26 +479,36 @@ function LineItemsTable({ items, setItems, inventory }) {
                         onSelectItem={inv => selectInventoryItem(item.id, inv)}
                       />
                     </td>
-                    <td style={{ padding: '6px 8px' }}>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
                       <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="Optional" />
                     </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <input style={inp} type="number" min="0.01" step="0.01" value={item.nos} onChange={e => updateItem(item.id, 'nos', e.target.value)} placeholder="0" />
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                      <input style={inp} type="number" min="0" step="0.01" value={item.nos} onChange={e => updateItem(item.id, 'nos', e.target.value)} placeholder="Optional" />
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>Nos</div>
                     </td>
-                    <td style={{ padding: '6px 8px' }}>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                      <input style={inp} type="number" min="0" step="0.01" value={item.qty} onChange={e => updateItem(item.id, 'qty', e.target.value)} placeholder="Qty" />
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>{getQtyLabel(item.unit)}</div>
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
                       <select style={inp} value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)}>
                         {UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
                       </select>
                     </td>
-                    <td style={{ padding: '6px 8px' }}>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
                       <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder={`Per ${item.unit}`} />
                     </td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
-                      {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
+                    <td style={{ padding: '6px 10px', textAlign: 'right', verticalAlign: 'top' }}>
+                      <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
+                        {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
+                      </div>
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>
+                        {!item.nos && !item.qty ? '-' : item.nos && !item.qty ? 'Nos × Rate' : !item.nos && item.qty ? 'Qty × Rate' : 'Nos × Rate'}
+                      </div>
                     </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                    <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'top' }}>
                       <button onClick={() => deleteItem(item.id)} title="Delete row"
-                        style={{ background: 'none', border: 'none', cursor: items.length <= 1 ? 'not-allowed' : 'pointer', color: items.length <= 1 ? '#E2E8F0' : '#FECACA', padding: '4px' }}
+                        style={{ marginTop: '5px', background: 'none', border: 'none', cursor: items.length <= 1 ? 'not-allowed' : 'pointer', color: items.length <= 1 ? '#E2E8F0' : '#FECACA', padding: '4px' }}
                         onMouseEnter={e => { if (items.length > 1) e.currentTarget.style.color = '#DC2626' }}
                         onMouseLeave={e => { if (items.length > 1) e.currentTarget.style.color = '#FECACA' }}>
                         <Trash2 size={15} />
@@ -532,13 +516,13 @@ function LineItemsTable({ items, setItems, inventory }) {
                     </td>
                   </tr>
                   {overStock && (
-                    <tr key={`warn-${item.id}`} style={{ background: '#FFFBEB' }}>
-                      <td colSpan={8} style={{ padding: '3px 12px 5px', fontSize: '11px', color: '#92400E' }}>
+                    <tr style={{ background: '#FFFBEB' }}>
+                      <td colSpan={9} style={{ padding: '3px 12px 5px', fontSize: '11px', color: '#92400E' }}>
                         ⚠ Only {invItem.qty} {invItem.unit} in stock
                       </td>
                     </tr>
                   )}
-                </>
+                </div>
               )
             })}
           </tbody>
@@ -630,7 +614,6 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563EB' }}>{b.billNumber}</td>
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ fontWeight: 600, color: '#0F172A' }}>{b.customerName}</div>
-                  {b.importedFrom && <div style={{ fontSize: '11px', color: '#7C3AED' }}>from {b.importedFrom}</div>}
                 </td>
                 <td style={{ padding: '12px 16px', color: '#64748B' }}>{fmtDate(b.date)}</td>
                 <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#0F172A' }}>₹{fmtINR0(b.grandTotal)}</td>
@@ -697,7 +680,6 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
-  const [importedFrom, setImportedFrom] = useState(null)
   const [items, setItems] = useState([makeItem()])
   const [gstPercent, setGstPercent] = useState(18)
   const [discount, setDiscount] = useState('')
@@ -706,7 +688,6 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
   const [notes, setNotes] = useState('')
   const [includeTerms, setIncludeTerms] = useState(false)
   const [terms, setTerms] = useState('')
-  const [showImportModal, setShowImportModal] = useState(false)
   const [stockModal, setStockModal] = useState(null)
 
   // Derived totals
@@ -722,31 +703,12 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>{children}</label>
   )
 
-  const handleImportQT = (q) => {
-    setCustomerName(q.customerName || '')
-    const newItems = (q.formData?.items || []).map((it, idx) => ({
-      ...makeItem(),
-      id: Date.now() + Math.random() + idx,
-      sno: idx + 1,
-      description: it.description || '',
-      nos: it.quantity || '',
-      unit: it.unit || 'Nos',
-      rate: it.rate || '',
-      amount: calcAmount(it.quantity, it.rate),
-    }))
-    setItems(newItems.length > 0 ? newItems : [makeItem()])
-    setImportedFrom(q.quotationNumber)
-    setShowImportModal(false)
-    showToast?.(`Imported from ${q.quotationNumber}`, 'success', 'Quotation Imported')
-  }
-
   const buildBillData = () => ({
     id: Date.now(),
     billNumber,
     customerName,
     customerPhone,
     customerAddress,
-    importedFrom,
     items: items.filter(i => i.description),
     subtotal,
     gstPercent,
@@ -817,21 +779,7 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
           <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: 0, fontFamily: "'Inter', sans-serif" }}>Billing</h2>
           <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Create tax invoices and manage payment history</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowImportModal(true)}
-            style={{ height: '38px', padding: '0 16px', borderRadius: '8px', background: 'white', color: '#2563EB', border: '1.5px solid #93C5FD', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={15} /> Import from Quotation
-          </button>
-        </div>
       </div>
-
-      {importedFrom && (
-        <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CheckCircle size={16} color="#16A34A" />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#15803D' }}>Imported from {importedFrom} ✓</span>
-          <button onClick={() => setImportedFrom(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#15803D', fontSize: '16px' }}>✕</button>
-        </div>
-      )}
 
       {/* Bill Form Card */}
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
@@ -969,7 +917,6 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
       <BillHistory bills={bills} setBills={setBills} inventory={inventory} setInventory={setInventory} company={company} showToast={showToast} />
 
       {/* Modals */}
-      {showImportModal && <ImportQTModal onClose={() => setShowImportModal(false)} onImport={handleImportQT} />}
       {stockModal && (
         <StockModal items={stockModal.items} inventory={inventory} onSkip={handleSkipStock} onConfirm={handleStockUpdate} />
       )}
