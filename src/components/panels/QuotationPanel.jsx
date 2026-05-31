@@ -37,8 +37,7 @@ const fmtDate = (iso) => {
   return `${d}/${m}/${y}`
 }
 
-const DEFAULT_TERMS =
-  `1. 50% advance payment before work begins.\n2. Balance payment within 7 days of completion.\n3. This quotation is valid for 10 days.\n4. Prices subject to change after validity period.\n5. GST extra as applicable.`
+const DEFAULT_TERMS = ''
 
 const UNIT_OPTIONS = ['Nos', 'Days', 'Hours', 'Kg', 'Ltrs', 'Set', 'Sqft', 'Rmt', 'Month']
 const GST_OPTIONS = [0, 5, 12, 18, 28]
@@ -775,11 +774,12 @@ export default function QuotationPanel({ apiKey, showToast }) {
 
             {/* Terms */}
             <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              <SectionHead icon={FileCheck} title="Terms & Conditions" color="#7C3AED" />
+              <SectionHead icon={FileCheck} title="Terms & Conditions (optional)" color="#7C3AED" />
               <textarea
                 style={{ ...inp, resize: 'vertical', minHeight: '120px', lineHeight: 1.7 }}
                 value={form.terms}
                 onChange={e => setField('terms', e.target.value)}
+                placeholder="Enter any terms and conditions here..."
                 rows={6}
               />
             </div>
