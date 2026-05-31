@@ -90,8 +90,6 @@ const generatePDF = (formData) => {
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(200, 210, 220)
   doc.text(`Ref: ${formData.quotationNumber}`, pageWidth - margin, 22, { align: 'right' })
-  doc.text(`Date: ${fmtDate(formData.date)}`, pageWidth - margin, 28, { align: 'right' })
-  doc.text(`Valid Until: ${fmtDate(formData.validUntil)}`, pageWidth - margin, 34, { align: 'right' })
 
   y = 48
 
@@ -307,8 +305,6 @@ function PreviewModal({ formData, onClose }) {
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '20px', fontWeight: 800, color: '#60A5FA', letterSpacing: '2px' }}>QUOTATION</div>
               <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '6px' }}>Ref: {formData.quotationNumber}</div>
-              <div style={{ fontSize: '12px', color: '#94A3B8' }}>Date: {fmtDate(formData.date)}</div>
-              <div style={{ fontSize: '12px', color: '#94A3B8' }}>Valid: {fmtDate(formData.validUntil)}</div>
             </div>
           </div>
         </div>
@@ -757,18 +753,10 @@ Return ONLY valid JSON (no markdown, no explanation):
             {/* Quotation Details */}
             <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <SectionHead icon={Hash} title="Quotation Details" color="#D97706" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
                 <div>
                   <Label>Quotation #</Label>
                   <input style={inp} value={form.quotationNumber} onChange={e => setField('quotationNumber', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Date</Label>
-                  <input type="date" style={inp} value={form.date} onChange={e => setField('date', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Valid Until</Label>
-                  <input type="date" style={inp} value={form.validUntil} onChange={e => setField('validUntil', e.target.value)} />
                 </div>
               </div>
             </div>
