@@ -14,9 +14,16 @@ const plusDays = (n) => {
   d.setDate(d.getDate() + n)
   return d.toISOString().split('T')[0]
 }
-const autoQTNumber = () => {
-  const n = Math.floor(1000 + Math.random() * 9000)
-  return `QT-${new Date().getFullYear()}-${n}`
+const generateQuotationNumber = () => {
+  try {
+    const existing = JSON.parse(localStorage.getItem('opsagent_quotations') || '[]')
+    const nextNumber = existing.length + 1
+    const padded = String(nextNumber).padStart(4, '0')
+    const year = new Date().getFullYear()
+    return `QT-${year}-${padded}`
+  } catch {
+    return `QT-${new Date().getFullYear()}-0001`
+  }
 }
 const generateFilename = (customerName, date) => {
   const cleanName = (customerName || 'Customer')
@@ -75,8 +82,11 @@ const generatePDF = (formData) => {
   const addrLines = doc.splitTextToSize(formData.companyAddress || '', pageWidth / 2 - margin)
   doc.text(addrLines[0] || '', margin, 21)
   doc.text(`Ph: ${formData.companyPhone || ''}  |  GSTIN: ${formData.gstin || ''}`, margin, 27)
-  if (formData.bankDetails) {
-    doc.text(formData.bankDetails.split('\n')[0], margin, 33)
+  const bankLine = formData.bankName
+    ? `Bank: ${formData.bankName}  |  A/C: ${formData.accountNumber || ''}  |  IFSC: ${formData.ifsc || ''}`
+    : (formData.bankDetails ? formData.bankDetails.split('\n')[0] : '')
+  if (bankLine) {
+    doc.text(bankLine.substring(0, 70), margin, 33)
   }
 
   // Quotation label
@@ -398,30 +408,33 @@ function StatusBadge({ status }) {
   )
 }
 
-/* ─── Main QuotationPanel ───────────────────────────────────────────────────── */
-export default function QuotationPanel({ apiKey, showToast }) {
+/* ─── Main QuotationPanel ──────────────────────────────────────────────── */
+export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
   // Company info from localStorage
   const [company, setCompany] = useState(() => {
     try { return JSON.parse(localStorage.getItem('opsagent_company') || '{}') } catch { return {} }
   })
 
-  const [form, setForm] = useState({
-    companyName: company.name || '',
-    companyAddress: company.address || '',
-    companyPhone: company.phone || '',
-    gstin: company.gstin || '',
-    bankDetails: company.bankDetails || '',
-    customerName: '',
-    customerAddress: '',
-    customerPhone: '',
-    quotationNumber: autoQTNumber(),
-    date: today(),
-    validUntil: plusDays(10),
-    items: [emptyItem()],
-    gstPercent: 18,
-    discount: '',
-    terms: DEFAULT_TERMS,
-    notes: '',
+  const [form, setForm] = useState(() => {
+    const c = company
+    return {
+      companyName: c.name || '',
+      companyAddress: c.address || '',
+      companyPhone: c.phone || '',
+      gstin: c.gstin || '',
+      bankDetails: c.bankDetails || '',
+      customerName: '',
+      customerAddress: '',
+      customerPhone: '',
+      quotationNumber: generateQuotationNumber(),
+      date: today(),
+      validUntil: plusDays(10),
+      items: [emptyItem()],
+      gstPercent: 18,
+      discount: '',
+      terms: DEFAULT_TERMS,
+      notes: '',
+    }
   })
 
   const [quotations, setQuotations] = useState(() => {
@@ -430,6 +443,7 @@ export default function QuotationPanel({ apiKey, showToast }) {
 
   const [showPreview, setShowPreview] = useState(false)
   const [tab, setTab] = useState('form') // 'form' | 'history'
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   // Persist quotations
   useEffect(() => {
@@ -444,11 +458,14 @@ export default function QuotationPanel({ apiKey, showToast }) {
         setCompany(c)
         setForm(prev => ({
           ...prev,
-          companyName: c.name || prev.companyName,
-          companyAddress: c.address || prev.companyAddress,
-          companyPhone: c.phone || prev.companyPhone,
-          gstin: c.gstin || prev.gstin,
-          bankDetails: c.bankDetails || prev.bankDetails,
+          companyName:    c.name         || prev.companyName,
+          companyAddress: c.address      || prev.companyAddress,
+          companyPhone:   c.phone        || prev.companyPhone,
+          gstin:          c.gstin        || prev.gstin,
+          bankDetails:    c.bankDetails  || prev.bankDetails,
+          bankName:       c.bankName     || prev.bankName,
+          accountNumber:  c.accountNumber|| prev.accountNumber,
+          ifsc:           c.ifsc         || prev.ifsc,
         }))
       } catch {}
     }
@@ -489,7 +506,7 @@ export default function QuotationPanel({ apiKey, showToast }) {
       customerName: '',
       customerAddress: '',
       customerPhone: '',
-      quotationNumber: autoQTNumber(),
+      quotationNumber: generateQuotationNumber(),
       date: today(),
       validUntil: plusDays(10),
       items: [emptyItem()],
@@ -547,7 +564,30 @@ export default function QuotationPanel({ apiKey, showToast }) {
   /* ──────────────────────────────────────────────────── */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0', paddingBottom: '60px' }}>
+      {/* Company profile not set banner */}
+      {!company.name && !bannerDismissed && (
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <span style={{ fontSize: '16px' }}>⚠️</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#92400E' }}>Company profile not set up yet.</div>
+              <div style={{ fontSize: '12px', color: '#78350F', marginTop: '2px' }}>Add your company details in Settings so they auto-fill in every quotation.</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+            <button
+              onClick={() => { if (typeof onNavigate === 'function') onNavigate('settings') }}
+              style={{ height: '32px', padding: '0 14px', borderRadius: '7px', background: '#D97706', color: 'white', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+            >
+              Go to Settings →
+            </button>
+            <button onClick={() => setBannerDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400E', padding: '4px', fontSize: '16px', lineHeight: 1 }}>✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: 0, fontFamily: "'Inter', sans-serif" }}>

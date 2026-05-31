@@ -11,10 +11,15 @@ export default function SettingsPanel({ apiKey, setApiKey, onClearAll, onLoadDem
   })
   const setComp = (key, val) => setCompany(prev => ({ ...prev, [key]: val }))
   const handleSaveCompany = () => {
+    // Validate GSTIN format if provided
+    if (company.gstin && !/^[A-Z0-9]{15}$/.test(company.gstin)) {
+      showToast?.('GSTIN must be exactly 15 alphanumeric characters', 'error', 'Invalid GSTIN')
+      return
+    }
     localStorage.setItem('opsagent_company', JSON.stringify(company))
     // Notify QuotationPanel via storage event
     window.dispatchEvent(new StorageEvent('storage', { key: 'opsagent_company', newValue: JSON.stringify(company) }))
-    showToast?.('Company details saved', 'success', 'Settings Updated')
+    showToast?.('Company profile saved successfully!', 'success', 'Settings Updated')
   }
 
   const handleSaveKey = () => {
@@ -50,8 +55,8 @@ export default function SettingsPanel({ apiKey, setApiKey, onClearAll, onLoadDem
             <Building2 size={16} color="#7C3AED" />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Company Details</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Pre-fills quotation form automatically.</p>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Company Profile</h3>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Pre-fills every quotation automatically. Saved permanently.</p>
           </div>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -70,22 +75,43 @@ export default function SettingsPanel({ apiKey, setApiKey, onClearAll, onLoadDem
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>GSTIN</label>
-              <input style={inp} value={company.gstin || ''} onChange={e => setComp('gstin', e.target.value)} placeholder="22AAAAA0000A1Z5" />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Bank Details (optional)</label>
-              <textarea style={{ ...inp, resize: 'vertical', minHeight: '48px' }} value={company.bankDetails || ''} onChange={e => setComp('bankDetails', e.target.value)} placeholder="Bank: HDFC | A/C: 1234567890 | IFSC: HDFC0001234" rows={2} />
+              <input
+                style={inp}
+                value={company.gstin || ''}
+                onChange={e => setComp('gstin', e.target.value.toUpperCase())}
+                placeholder="33AABCK2341C1ZP"
+                maxLength={15}
+              />
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Your GST Identification Number (15 characters) · Ex: 33AABCK2341C1ZP</div>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              onClick={handleSaveCompany}
-              className="btn-press"
-              style={{ height: '40px', padding: '0 20px', borderRadius: '8px', background: '#7C3AED', color: 'white', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(124,58,237,0.3)' }}
-            >
-              <Save size={16} /> Save Company Details
-            </button>
+
+          {/* Bank Details */}
+          <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Bank Details (optional)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Bank Name</label>
+                <input style={inp} value={company.bankName || ''} onChange={e => setComp('bankName', e.target.value)} placeholder="State Bank of India" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Account Number</label>
+                <input style={inp} value={company.accountNumber || ''} onChange={e => setComp('accountNumber', e.target.value)} placeholder="1234567890" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>IFSC Code</label>
+                <input style={{ ...inp }} value={company.ifsc || ''} onChange={e => setComp('ifsc', e.target.value.toUpperCase())} placeholder="SBIN0001234" />
+              </div>
+            </div>
           </div>
+
+          <button
+            onClick={handleSaveCompany}
+            className="btn-press"
+            style={{ width: '100%', height: '44px', borderRadius: '8px', background: '#7C3AED', color: 'white', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(124,58,237,0.3)', marginTop: '4px' }}
+          >
+            <Save size={16} /> Save Company Profile
+          </button>
         </div>
       </div>
 

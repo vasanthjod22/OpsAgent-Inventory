@@ -234,6 +234,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
               onClearAll={handleClearAll}
               onLoadDemo={handleLoadDemo}
               showToast={showToast}
+              onNavigate={setActiveNav}
             />
           </div>
         </main>
