@@ -4,6 +4,7 @@ import {
   Upload,
   Package,
   FileText,
+  Receipt,
   MessageSquare,
   Settings,
   LogOut,
@@ -23,6 +24,7 @@ const navGroups = [
       { id: 'grn',       label: 'GRN Upload', icon: Upload },
       { id: 'inventory', label: 'Inventory',  icon: Package },
       { id: 'quotation', label: 'Quotation',  icon: FileText },
+      { id: 'billing',   label: 'Billing',    icon: Receipt },
     ]
   },
   {

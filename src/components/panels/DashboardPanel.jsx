@@ -3,7 +3,11 @@ import SummaryCard from '../SummaryCard'
 
 export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [] }) {
   const quotations = (() => { try { return JSON.parse(localStorage.getItem('opsagent_quotations') || '[]') } catch { return [] } })()
+  const bills = (() => { try { return JSON.parse(localStorage.getItem('opsagent_bills') || '[]') } catch { return [] } })()
   const pendingApproval = quotations.filter(q => q.status === 'Sent').length
+  const billRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
+  const pendingBillsCount = bills.filter(b => b.paymentStatus !== 'Paid').length
+  const pendingBillsAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : (b.grandTotal || 0)), 0)
   const lowStockItems = inventory.filter(item => item.qty < item.min)
   const overstockItems = inventory.filter(item => item.qty > item.max)
   const stockAlerts = lowStockItems.length + overstockItems.length
@@ -17,17 +21,17 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
     {
       id: 'card-revenue',
       icon: DollarSign,
-      title: 'Total Revenue',
-      value: `₹${Number(totalRevenue).toLocaleString('en-IN')}`,
-      trend: totalRevenue > 0 ? 'up' : 'neutral', trendValue: totalRevenue > 0 ? 'Current' : '',
+      title: 'Bill Revenue',
+      value: `₹${Number(billRevenue).toLocaleString('en-IN')}`,
+      trend: billRevenue > 0 ? 'up' : 'neutral', trendValue: billRevenue > 0 ? 'Paid bills' : '₹0',
       colors: { bg: '#EFF6FF', text: '#2563EB' }
     },
     {
-      id: 'card-payables',
+      id: 'card-pending-bills',
       icon: Receipt,
-      title: 'Total Expenses',
-      value: `₹${Number(pendingPayables).toLocaleString('en-IN')}`,
-      trend: pendingPayables > 0 ? 'up' : 'neutral', trendValue: pendingPayables > 0 ? 'Current' : '',
+      title: 'Pending Bills',
+      value: String(pendingBillsCount),
+      trend: pendingBillsCount > 0 ? 'up' : 'neutral', trendValue: pendingBillsCount > 0 ? `₹${Number(pendingBillsAmount).toLocaleString('en-IN')}` : '₹0',
       colors: { bg: '#FEF2F2', text: '#DC2626' }
     },
     {
@@ -109,6 +113,31 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
                 </div>
              )}
           </div>
+
+          {/* Recent Bills */}
+          {bills.length > 0 && (
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Recent Bills</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {bills.slice(0, 3).map((b, i) => {
+                  const sc = { Paid: '#16A34A', Unpaid: '#DC2626', Partial: '#D97706' }
+                  const sb = { Paid: '#F0FDF4', Unpaid: '#FEF2F2', Partial: '#FFFBEB' }
+                  return (
+                    <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(248,250,252,0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB' }}>{b.billNumber}</p>
+                        <p style={{ fontSize: '11px', color: '#64748B' }}>{b.customerName}</p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>₹{Number(b.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 0 })}</p>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: sb[b.paymentStatus] || '#F1F5F9', color: sc[b.paymentStatus] || '#64748B' }}>{b.paymentStatus}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Recent Quotations */}
           {quotations.length > 0 && (

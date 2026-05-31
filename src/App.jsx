@@ -9,6 +9,7 @@ import InventoryPanel from './components/panels/InventoryPanel'
 import ChatPanel from './components/panels/ChatPanel'
 import SettingsPanel from './components/panels/SettingsPanel'
 import QuotationPanel from './components/panels/QuotationPanel'
+import BillingPanel from './components/panels/BillingPanel'
 import AuthPage from './components/AuthPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
@@ -20,6 +21,7 @@ const panels = {
   grn: GRNPanel,
   inventory: InventoryPanel,
   quotation: QuotationPanel,
+  billing:   BillingPanel,
   chat: ChatPanel,
   settings: SettingsPanel,
 }

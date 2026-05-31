@@ -8,4 +8,5 @@ export const STORAGE_KEYS = {
   SETTINGS: 'opsagent_settings',
   QUOTATIONS: 'opsagent_quotations',
   COMPANY: 'opsagent_company',
+  BILLS: 'opsagent_bills',
 };
