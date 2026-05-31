@@ -430,7 +430,6 @@ export default function QuotationPanel({ apiKey, showToast }) {
   })
 
   const [showPreview, setShowPreview] = useState(false)
-  const [aiLoading, setAiLoading] = useState(false)
   const [tab, setTab] = useState('form') // 'form' | 'history'
 
   // Persist quotations
@@ -523,69 +522,6 @@ export default function QuotationPanel({ apiKey, showToast }) {
     setQuotations(prev => [entry, ...prev])
     showToast?.(`Downloaded ${generateFilename(form.customerName, form.date)}`, 'success', 'PDF Generated')
   }
-
-  /* ── AI Generate ── */
-  const handleAIGenerate = useCallback(async () => {
-    if (!apiKey) {
-      showToast?.('Set your Groq API key in Settings first', 'warning', 'No API Key')
-      return
-    }
-    if (validItems.length === 0) {
-      showToast?.('Add at least one line item first', 'warning', 'No Items')
-      return
-    }
-    setAiLoading(true)
-    try {
-      const prompt = `You are a professional quotation writer for ${form.companyName || 'a business'} (construction/logistics/services).
-
-Improve these line item descriptions to sound professional and clear:
-${JSON.stringify(form.items.filter(i => i.description))}
-
-Also suggest professional terms and conditions and optional notes.
-
-Return ONLY valid JSON (no markdown, no explanation):
-{
-  "items": [{"description": "improved description", "quantity": same_number, "unit": same_unit, "rate": same_rate}],
-  "terms": "professional terms text",
-  "notes": "optional professional note"
-}`
-
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'llama3-8b-8192',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.4,
-          max_tokens: 1024,
-        }),
-      })
-
-      if (!res.ok) throw new Error(`Groq API error: ${res.status}`)
-      const data = await res.json()
-      const raw = data.choices?.[0]?.message?.content || ''
-      const json = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
-
-      if (json.items) {
-        const updatedItems = form.items.map((it, idx) => {
-          const ai = json.items[idx]
-          if (!ai) return it
-          return { ...it, description: ai.description || it.description }
-        })
-        setForm(prev => ({
-          ...prev,
-          items: updatedItems,
-          terms: json.terms || prev.terms,
-          notes: json.notes || prev.notes,
-        }))
-        showToast?.('AI improved your quotation!', 'success', 'AI Enhanced')
-      }
-    } catch (err) {
-      showToast?.(`AI error: ${err.message}`, 'error', 'AI Failed')
-    } finally {
-      setAiLoading(false)
-    }
-  }, [apiKey, form, validItems, showToast])
 
   /* ── Status change in history ── */
   const changeStatus = (id, status) => {
@@ -862,15 +798,6 @@ Return ONLY valid JSON (no markdown, no explanation):
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end', paddingBottom: '16px' }}>
-              <button
-                onClick={handleAIGenerate}
-                disabled={aiLoading}
-                className="btn-press"
-                style={{ height: '44px', padding: '0 22px', borderRadius: '10px', background: aiLoading ? '#94A3B8' : 'linear-gradient(135deg,#7C3AED,#4F46E5)', color: 'white', border: 'none', fontWeight: 700, fontSize: '14px', cursor: aiLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}
-              >
-                {aiLoading ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />}
-                {aiLoading ? 'Generating...' : 'Generate with AI'}
-              </button>
               <button
                 onClick={() => setShowPreview(true)}
                 className="btn-press"
