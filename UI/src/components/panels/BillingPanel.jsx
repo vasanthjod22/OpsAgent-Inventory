@@ -56,23 +56,24 @@ const makeItem = () => ({
   desp: '',
   hsnCode: '',
   feet: '',
-  pcs: '',
   quantity: '',
   unit: 'Nos',
   rate: '',
-  gstPercent: '',
+  cgstPercent: '',
+  sgstPercent: '',
   amount: 0,
   inventorySku: null,
 })
 
 const recalcSno = (items) => items.map((item, i) => ({ ...item, sno: i + 1 }))
 
-const calcAmount = (quantity, rate, gst) => {
+const calcAmount = (quantity, rate, cgst, sgst) => {
   const q = parseFloat(quantity) || 0
   const r = parseFloat(rate) || 0
-  const g = parseFloat(gst) || 0
+  const c = parseFloat(cgst) || 0
+  const s = parseFloat(sgst) || 0
   const base = q * r
-  return base + (base * g / 100)
+  return base + (base * (c + s) / 100)
 }
 
 /* ─── PDF Generator ───────────────────────────────────────── */
@@ -234,9 +235,9 @@ const generateBillPDF = (bill, company) => {
 
   // ── ITEMS TABLE ──────────────────────────────────────────────
   const iCols = [
-    { lbl:'S No', w:8 }, { lbl:'Product', w:46 }, { lbl:'Desp', w:16 },
-    { lbl:'HSN', w:14 }, { lbl:'Feet', w:12 }, { lbl:'Pcs/weight', w:16 },
-    { lbl:'Quantity', w:22 }, { lbl:'Rate', w:16 }, { lbl:'GST', w:12 }, { lbl:'Net Amt', w:28 },
+    { lbl:'S No', w:8 }, { lbl:'Product', w:54 }, { lbl:'Desp', w:16 },
+    { lbl:'HSN', w:14 }, { lbl:'Feet', w:12 },
+    { lbl:'Quantity', w:22 }, { lbl:'Rate', w:16 }, { lbl:'GST', w:12 }, { lbl:'Net Amt', w:26 },
   ]
   const tW = iCols.reduce((s,c) => s+c.w, 0)
   const iHdrH = 8
@@ -274,19 +275,23 @@ const generateBillPDF = (bill, company) => {
     doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(mg, y, tW, rowH)
     let cx = mg
     if (!isPad) {
+      const cP = parseFloat(item.cgstPercent) || 0
+      const sP = parseFloat(item.sgstPercent) || 0
+      const totalGST = cP + sP
+
       const vals = [
         item.sno, item.description, item.desp||'',
-        item.hsnCode||'', item.feet||'', item.pcs||'',
+        item.hsnCode||'', item.feet||'',
         item.quantity ? fmtINR(item.quantity)+' '+(item.unit||'Nos') : '',
         fmtINR(item.rate),
-        item.gstPercent ? String(item.gstPercent) : '0',
+        totalGST > 0 ? String(totalGST) : '0',
         fmtINR(item.amount),
       ]
       vals.forEach((v, ci) => {
         doc.line(cx, y, cx, y+rowH)
         doc.setFont('helvetica', ci===1 ? 'bold' : 'normal')
         doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-        const al = (ci <= 2 || ci === 3 || ci === 4 || ci === 5) ? 'left' : 'right'
+        const al = (ci <= 2 || ci === 3 || ci === 4) ? 'left' : 'right'
         const tx = al==='right' ? cx+iCols[ci].w-1.5 : cx+1.5
         if (v!==undefined && v!==null && v!=='') doc.text(String(v), tx, y+5, { align:al })
         cx += iCols[ci].w
@@ -310,7 +315,7 @@ const generateBillPDF = (bill, company) => {
   let cx=mg
   iCols.forEach((c,ci) => {
     doc.line(cx,y,cx,y+gtH)
-    if (ci===9) {
+    if (ci===8) {
       doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0,0,0)
       doc.text(fmtINR(bill.grandTotal), cx+c.w-1.5, y+5.5, { align:'right' })
     }
@@ -332,11 +337,13 @@ const generateBillPDF = (bill, company) => {
   const hsnMap = {}
   validItems.forEach(item => {
     const h = item.hsnCode || 'N/A'
-    const gstP = parseFloat(item.gstPercent)||0
+    const cP = parseFloat(item.cgstPercent)||0
+    const sP = parseFloat(item.sgstPercent)||0
     const base = (parseFloat(item.quantity)||0) * (parseFloat(item.rate)||0)
-    const tax = base * gstP / 100
-    if (!hsnMap[h]) hsnMap[h] = { taxable:0, gstRate:gstP, cgst:0, sgst:0 }
-    hsnMap[h].taxable += base; hsnMap[h].cgst += tax/2; hsnMap[h].sgst += tax/2
+    const cTax = base * cP / 100
+    const sTax = base * sP / 100
+    if (!hsnMap[h]) hsnMap[h] = { taxable:0, cRate:cP, sRate:sP, cgst:0, sgst:0 }
+    hsnMap[h].taxable += base; hsnMap[h].cgst += cTax; hsnMap[h].sgst += sTax
   })
 
   const gC = [
@@ -375,7 +382,7 @@ const generateBillPDF = (bill, company) => {
   let totTax=0, totCGST=0, totSGST=0
   Object.entries(hsnMap).forEach(([hsn,d]) => {
     totTax+=d.taxable; totCGST+=d.cgst; totSGST+=d.sgst
-    const rv = [hsn, fmtINR(d.taxable), d.gstRate/2+'%', fmtINR(d.cgst), d.gstRate/2+'%', fmtINR(d.sgst), fmtINR(d.cgst+d.sgst)]
+    const rv = [hsn, fmtINR(d.taxable), d.cRate+'%', fmtINR(d.cgst), d.sRate+'%', fmtINR(d.sgst), fmtINR(d.cgst+d.sgst)]
     doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(gX,y,gW,gRH)
     cx=gX
     gC.forEach((c,ci) => {
@@ -582,7 +589,8 @@ function LineItemsTable({ items, setItems, inventory }) {
       updated.amount = calcAmount(
         field === 'quantity' ? value : item.quantity,
         field === 'rate' ? value : item.rate,
-        field === 'gstPercent' ? value : item.gstPercent
+        field === 'cgstPercent' ? value : item.cgstPercent,
+        field === 'sgstPercent' ? value : item.sgstPercent
       )
       return updated
     }))
@@ -600,10 +608,10 @@ function LineItemsTable({ items, setItems, inventory }) {
   return (
     <div>
       <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '880px' }}>
           <thead>
             <tr style={{ background: '#0F172A' }}>
-              {[['#', '30px'], ['Product', '200px'], ['Desp', '80px'], ['HSN', '70px'], ['Feet', '60px'], ['Pcs/weight', '80px'], ['Qty', '70px'], ['Unit', '70px'], ['Rate', '80px'], ['GST %', '60px'], ['Amount', '90px'], ['', '36px']].map(([h, w]) => (
+              {[['#', '30px'], ['Product', '200px'], ['Desp', '80px'], ['HSN', '70px'], ['Feet', '60px'], ['Qty', '70px'], ['Unit', '70px'], ['Rate', '80px'], ['CGST %', '60px'], ['SGST %', '60px'], ['Amount', '90px'], ['', '36px']].map(([h, w]) => (
                 <th key={h} style={{ padding: '9px 8px', textAlign: 'left', color: 'white', fontSize: '11px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -631,35 +639,37 @@ function LineItemsTable({ items, setItems, inventory }) {
                       <input style={inp} value={item.desp} onChange={e => updateItem(item.id, 'desp', e.target.value)} placeholder="e.g. 2.00 Mt" />
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="HSN" />
+                      <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="0001" />
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.feet} onChange={e => updateItem(item.id, 'feet', e.target.value)} placeholder="Feet" />
+                      <input style={inp} value={item.feet} onChange={e => updateItem(item.id, 'feet', e.target.value)} placeholder="" />
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.pcs} onChange={e => updateItem(item.id, 'pcs', e.target.value)} placeholder="Pcs/wt" />
+                      <div>
+                        <input style={{ ...inp, border: overStock ? '1px solid #EF4444' : inp.border }} type="number" min="0" step="any" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
+                        {overStock && <div style={{ color: '#EF4444', fontSize: '10px', marginTop: '2px', fontWeight: 600 }}>Stock: {invItem.qty}</div>}
+                      </div>
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" step="0.01" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <select style={inp} value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)}>
-                        {UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
+                      <select style={{ ...inp, cursor: 'pointer', background: '#F8FAFC' }} value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)}>
+                        {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder="0.00" />
-                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>{getRateLabel(item.unit)}</div>
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" max="100" step="0.01" value={item.gstPercent} onChange={e => updateItem(item.id, 'gstPercent', e.target.value)} placeholder="0" />
+                      <input style={inp} type="number" min="0" max="100" step="0.01" value={item.cgstPercent} onChange={e => updateItem(item.id, 'cgstPercent', e.target.value)} placeholder="0" />
+                    </td>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
+                      <input style={inp} type="number" min="0" max="100" step="0.01" value={item.sgstPercent} onChange={e => updateItem(item.id, 'sgstPercent', e.target.value)} placeholder="0" />
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'right', verticalAlign: 'top' }}>
                       <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
                         {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
                       </div>
                       <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>
-                        {parseFloat(item.gstPercent) > 0 ? `Incl. ${item.gstPercent}% GST` : 'Qty × Rate'}
+                        {(parseFloat(item.cgstPercent)||0) + (parseFloat(item.sgstPercent)||0) > 0 ? `+ ${parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST` : 'Qty × Rate'}
                       </div>
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'top' }}>
