@@ -53,7 +53,10 @@ const makeItem = () => ({
   id: Date.now() + Math.random(),
   sno: 1,
   description: '',
+  desp: '',
   hsnCode: '',
+  feet: '',
+  pcs: '',
   quantity: '',
   unit: 'Nos',
   rate: '',
@@ -78,7 +81,7 @@ const generateBillPDF = (bill, company) => {
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
   const mg = 10
-  let y = mg
+  const pageW = W - mg * 2
 
   // ── Helpers ──────────────────────────────────────────────────
   const amtWords = (amt) => {
@@ -101,154 +104,210 @@ const generateBillPDF = (bill, company) => {
     return s + ' Only'
   }
 
-  const pageW = W - mg * 2
+  let totalPages = 1
 
-  // ── TITLE ────────────────────────────────────────────────────
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
-  doc.setTextColor(0, 0, 0)
-  doc.text('Tax Invoice', W / 2, y + 5, { align: 'center' })
-  y += 9
+  const drawHeader = (startY, isFirstPage) => {
+    let y = startY
 
-  // ── COMPANY + INVOICE META ───────────────────────────────────
-  const headerH = 66
-  const halfW = pageW / 2
+    if (isFirstPage) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text('Tax Invoice', W / 2, y + 10, { align: 'center' })
+      doc.setFontSize(9)
+      doc.text('e-Invoice', W - mg - 15, y + 5, { align: 'center' })
 
-  // Outer box
-  doc.setDrawColor(0); doc.setLineWidth(0.4)
-  doc.rect(mg, y, pageW, headerH)
-  // Vertical divider
-  doc.line(mg + halfW, y, mg + halfW, y + headerH)
+      // e-Invoice QR Placeholder
+      doc.setDrawColor(0); doc.setLineWidth(0.2); doc.setLineDashPattern([1, 1], 0)
+      doc.rect(W - mg - 30, y + 7, 30, 30)
+      doc.setLineDashPattern([], 0)
 
-  // LEFT — Company info
-  let ly = y + 3.5
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0,0,0)
-  doc.text((company.name || 'Company Name').toUpperCase(), mg + 2, ly); ly += 5
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5)
-  const addrL = doc.splitTextToSize(company.address || '', halfW - 5)
-  doc.text(addrL.slice(0,3), mg + 2, ly); ly += addrL.slice(0,3).length * 3.7
-  if (company.phone) { doc.text('Phone: ' + company.phone, mg+2, ly); ly += 4 }
-  if (company.gstin) {
-    doc.setFont('helvetica','bold'); doc.text('GSTIN/UIN: ' + company.gstin, mg+2, ly)
-    doc.setFont('helvetica','normal'); ly += 4
-  }
-  if (company.bankName) {
-    doc.text('Bank: ' + company.bankName + '  A/C: ' + (company.accountNumber||''), mg+2, ly); ly+=4
-    doc.text('IFSC: ' + (company.ifsc||''), mg+2, ly)
-  }
+      // IRN Details
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+      doc.text('IRN', mg, y+18)
+      doc.text('Ack No.', mg, y+22)
+      doc.text('Ack Date', mg, y+26)
+      doc.setFont('helvetica', 'normal')
+      doc.text(': 65cab76d7facad2d94f4d778d483795688625521dda36...', mg+15, y+18)
+      doc.text(': 152314046200747', mg+15, y+22)
+      doc.text(': ' + fmtDate(bill.date), mg+15, y+26)
 
-  // RIGHT — Invoice meta grid (2 columns of label + value pairs, 6 rows)
-  const mX = mg + halfW
-  const mW = halfW
-  const metaRows = [
-    ['Invoice No.', bill.billNumber, 'Dated', fmtDate(bill.date)],
-    ['Delivery Note', '', 'Mode/Terms of Payment', ''],
-    ['Reference No. & Date.', '', 'Other References', ''],
-    ["Buyer's Order No.", '', 'Dated', ''],
-    ['Dispatch Doc No.', '', 'Delivery Note Date', ''],
-    ['Dispatched through', '', 'Destination', ''],
-  ]
-  const mRowH = headerH / metaRows.length
-  const halfM = mW / 2
-  metaRows.forEach((row, ri) => {
-    const ry = y + ri * mRowH
-    doc.setDrawColor(0); doc.setLineWidth(0.15)
-    if (ri > 0) doc.line(mX, ry, mX + mW, ry)
-    doc.line(mX + halfM, ry, mX + halfM, ry + mRowH)
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70)
-    doc.text(row[0], mX+1.5, ry+3.5)
-    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-    if (row[1]) doc.text(row[1], mX+1.5, ry+mRowH-1.5)
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70)
-    doc.text(row[2], mX+halfM+1.5, ry+3.5)
-    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-    if (row[3]) doc.text(row[3], mX+halfM+1.5, ry+mRowH-1.5)
-  })
-  y += headerH
-
-  // ── CONSIGNEE / BUYER ────────────────────────────────────────
-  const partyH = 38
-  doc.setDrawColor(0); doc.setLineWidth(0.4)
-  doc.rect(mg, y, halfW, partyH)
-  doc.rect(mg + halfW, y, halfW, partyH)
-
-  const drawParty = (sx, sw, label) => {
-    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(80,80,80)
-    doc.text(label, sx+2, y+4)
-    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(0,0,0)
-    doc.text((bill.customerName||'').substring(0,34), sx+2, y+10)
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-    if (bill.customerAddress) {
-      const al = doc.splitTextToSize(bill.customerAddress, sw-5)
-      doc.text(al.slice(0,3), sx+2, y+16)
+      y += 40
+    } else {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.text(`Tax Invoice (Page ${totalPages})`, W / 2, y + 5, { align: 'center' })
+      y += 10
     }
-    if (bill.customerPhone) doc.text('Ph: '+bill.customerPhone, sx+2, y+partyH-4)
+
+    // Outer box
+    const headerH = 72
+    const halfW = pageW / 2
+    doc.setDrawColor(0); doc.setLineWidth(0.3)
+    doc.rect(mg, y, pageW, headerH)
+    doc.line(mg + halfW, y, mg + halfW, y + headerH)
+
+    // LEFT — Company info
+    let ly = y + 4
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0,0,0)
+    doc.text((company.name || 'Company Name').toUpperCase(), mg + 2, ly); ly += 5
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5)
+    const addrL = doc.splitTextToSize(company.address || '', halfW - 5)
+    doc.text(addrL.slice(0,3), mg + 2, ly); ly += addrL.slice(0,3).length * 3.7
+    if (company.phone) { doc.text('Phone: ' + company.phone, mg+2, ly); ly += 4 }
+    if (company.gstin) {
+      doc.setFont('helvetica','bold'); doc.text('GSTIN/UIN: ' + company.gstin, mg+2, ly)
+      doc.setFont('helvetica','normal'); ly += 4
+    }
+    doc.text('State Name : Tamil Nadu, Code : 33', mg+2, ly); ly += 4
+    if (company.email) {
+      doc.text('E-Mail : ' + company.email, mg+2, ly)
+    }
+
+    // RIGHT — Invoice meta grid (2 columns, 8 rows)
+    const mX = mg + halfW
+    const mW = halfW
+    const metaRows = [
+      ['Invoice No.', bill.billNumber, 'Dated', fmtDate(bill.date)],
+      ['Delivery Note', '', 'Mode/Terms of Payment', ''],
+      ['Reference No. & Date.', '', 'Other References', ''],
+      ["Buyer's Order No.", '', 'Dated', ''],
+      ['Dispatch Doc No.', '', 'Delivery Note Date', ''],
+      ['Dispatched through', '', 'Destination', ''],
+      ['Bill of Lading/LR-RR No.', '', 'Motor Vehicle No.', ''],
+      ['Terms of Delivery', '', null, null],
+    ]
+    const mRowH = headerH / metaRows.length
+    const halfM = mW / 2
+    metaRows.forEach((row, ri) => {
+      const ry = y + ri * mRowH
+      doc.setDrawColor(0); doc.setLineWidth(0.15)
+      if (ri > 0) doc.line(mX, ry, mX + mW, ry)
+      if (row[2] !== null) doc.line(mX + halfM, ry, mX + halfM, ry + mRowH)
+      
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70)
+      doc.text(row[0], mX+1.5, ry+3.5)
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+      if (row[1]) doc.text(row[1], mX+1.5, ry+mRowH-1.5)
+      
+      if (row[2] !== null) {
+        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70)
+        doc.text(row[2], mX+halfM+1.5, ry+3.5)
+        doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+        if (row[3]) doc.text(row[3], mX+halfM+1.5, ry+mRowH-1.5)
+      }
+    })
+    y += headerH
+
+    // ── CONSIGNEE / BUYER
+    const partyH = 34
+    doc.setDrawColor(0); doc.setLineWidth(0.3)
+    doc.rect(mg, y, halfW, partyH)
+    doc.rect(mg + halfW, y, halfW, partyH)
+
+    const drawParty = (sx, sw, label) => {
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+      doc.text(label, sx+2, y+4)
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(0,0,0)
+      doc.text((bill.customerName||'').substring(0,34), sx+2, y+9)
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+      if (bill.customerAddress) {
+        const al = doc.splitTextToSize(bill.customerAddress, sw-5)
+        doc.text(al.slice(0,3), sx+2, y+13)
+      }
+      if (bill.customerPhone) {
+        doc.text('Ph: ' + bill.customerPhone, sx+2, y+23)
+      }
+      doc.setFont('helvetica','bold')
+      doc.text('GSTIN/UIN        : ', sx+2, y+27)
+      doc.setFont('helvetica','normal')
+      doc.text('State Name       : Tamil Nadu, Code : 33', sx+2, y+31)
+    }
+    drawParty(mg, halfW, 'Consignee (Ship to)')
+    drawParty(mg+halfW, halfW, 'Buyer (Bill to)')
+    y += partyH
+
+    return y
   }
-  drawParty(mg, halfW, 'Consignee (Ship to)')
-  drawParty(mg+halfW, halfW, 'Buyer (Bill to)')
-  y += partyH
+
+  let y = drawHeader(mg, true)
 
   // ── ITEMS TABLE ──────────────────────────────────────────────
   const iCols = [
-    { lbl:'S No', w:10 }, { lbl:'Product', w:50 }, { lbl:'Desp', w:14 },
-    { lbl:'HSN', w:18 }, { lbl:'Feet', w:12 }, { lbl:'Pcs/wt', w:13 },
-    { lbl:'Quantity', w:19 }, { lbl:'Rate', w:18 }, { lbl:'GST', w:10 }, { lbl:'Net Amt', w:22 },
+    { lbl:'S No', w:8 }, { lbl:'Product', w:46 }, { lbl:'Desp', w:16 },
+    { lbl:'HSN', w:14 }, { lbl:'Feet', w:12 }, { lbl:'Pcs/weight', w:16 },
+    { lbl:'Quantity', w:22 }, { lbl:'Rate', w:16 }, { lbl:'GST', w:12 }, { lbl:'Net Amt', w:28 },
   ]
   const tW = iCols.reduce((s,c) => s+c.w, 0)
   const iHdrH = 8
 
-  doc.setFillColor(230,230,230)
-  doc.rect(mg, y, tW, iHdrH, 'F')
-  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg, y, tW, iHdrH)
-  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
-  let cx = mg
-  iCols.forEach(c => {
-    doc.line(cx, y, cx, y+iHdrH)
-    doc.text(c.lbl, cx+c.w/2, y+5.5, { align:'center' })
-    cx += c.w
-  })
-  doc.line(cx, y, cx, y+iHdrH); y += iHdrH
+  const drawItemsHeader = (cy) => {
+    doc.setFillColor(255,255,255)
+    doc.rect(mg, cy, tW, iHdrH, 'F')
+    doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg, cy, tW, iHdrH)
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+    let cx = mg
+    iCols.forEach(c => {
+      doc.line(cx, cy, cx, cy+iHdrH)
+      doc.text(c.lbl, cx+c.w/2, cy+5.5, { align:'center' })
+      cx += c.w
+    })
+    doc.line(cx, cy, cx, cy+iHdrH)
+    return cy + iHdrH
+  }
 
-  const rowH = 9
+  y = drawItemsHeader(y)
+
+  const rowH = 7
   const validItems = bill.items.filter(i => i.description)
 
-  validItems.forEach((item) => {
-    if (y + rowH > H - 60) { doc.addPage(); y = mg }
-    doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(mg, y, tW, rowH)
-    cx = mg
-    const vals = [
-      item.sno, item.description, '',
-      item.hsnCode||'', '', '',
-      item.quantity ? fmtINR(item.quantity)+' '+(item.unit||'Nos') : '',
-      fmtINR(item.rate),
-      item.gstPercent ? String(item.gstPercent) : '0',
-      fmtINR(item.amount),
-    ]
-    vals.forEach((v, ci) => {
-      doc.line(cx, y, cx, y+rowH)
-      doc.setFont('helvetica', ci===1 ? 'bold' : 'normal')
-      doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-      const al = ci <= 2 ? 'left' : 'right'
-      const tx = al==='right' ? cx+iCols[ci].w-1.5 : cx+1.5
-      if (v!==undefined && v!==null && v!=='') doc.text(String(v), tx, y+6, { align:al })
-      cx += iCols[ci].w
-    })
-    doc.line(cx, y, cx, y+rowH); y += rowH
-  })
+  const drawItemRow = (item, isPad) => {
+    if (y + rowH > H - 100 && !isPad) { // Give space for footer
+      totalPages++
+      doc.addPage()
+      y = drawHeader(mg, false)
+      y = drawItemsHeader(y)
+    } else if (y + rowH > H - 70 && isPad) {
+      return // Don't draw pad row if too close to bottom
+    }
 
-  // Pad with blank rows
-  const padRows = Math.max(0, 12 - validItems.length)
-  for (let r=0; r<padRows; r++) {
     doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(mg, y, tW, rowH)
-    cx=mg; iCols.forEach(c => { doc.line(cx,y,cx,y+rowH); cx+=c.w })
-    doc.line(cx,y,cx,y+rowH); y+=rowH
+    let cx = mg
+    if (!isPad) {
+      const vals = [
+        item.sno, item.description, item.desp||'',
+        item.hsnCode||'', item.feet||'', item.pcs||'',
+        item.quantity ? fmtINR(item.quantity)+' '+(item.unit||'Nos') : '',
+        fmtINR(item.rate),
+        item.gstPercent ? String(item.gstPercent) : '0',
+        fmtINR(item.amount),
+      ]
+      vals.forEach((v, ci) => {
+        doc.line(cx, y, cx, y+rowH)
+        doc.setFont('helvetica', ci===1 ? 'bold' : 'normal')
+        doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+        const al = (ci <= 2 || ci === 3 || ci === 4 || ci === 5) ? 'left' : 'right'
+        const tx = al==='right' ? cx+iCols[ci].w-1.5 : cx+1.5
+        if (v!==undefined && v!==null && v!=='') doc.text(String(v), tx, y+5, { align:al })
+        cx += iCols[ci].w
+      })
+    } else {
+      iCols.forEach(c => { doc.line(cx,y,cx,y+rowH); cx+=c.w })
+    }
+    doc.line(cx, y, cx, y+rowH); y += rowH
   }
+
+  validItems.forEach((item) => drawItemRow(item, false))
+
+  // Pad with blank rows to make it look full
+  const padRows = Math.max(0, 15 - validItems.length)
+  for (let r=0; r<padRows; r++) drawItemRow(null, true)
 
   // Grand total row
   const gtH = 8
-  doc.setFillColor(245,245,245); doc.rect(mg,y,tW,gtH,'F')
+  doc.setFillColor(255,255,255); doc.rect(mg,y,tW,gtH,'F')
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg,y,tW,gtH)
-  cx=mg
+  let cx=mg
   iCols.forEach((c,ci) => {
     doc.line(cx,y,cx,y+gtH)
     if (ci===9) {
@@ -262,16 +321,12 @@ const generateBillPDF = (bill, company) => {
   // Amount in words row
   const wH = 8
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg,y,tW,wH)
-  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
-  doc.text('Total Amount (In Words):', mg+1.5, y+3.5)
-  doc.setFont('helvetica','normal')
-  const wText = amtWords(bill.grandTotal)
-  const wLines = doc.splitTextToSize(wText, tW-42)
-  doc.text(wLines[0]||'', mg+41, y+5.5)
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+  doc.text('Total Amount (In Words):  ' + amtWords(bill.grandTotal), mg+2, y+5.5)
   y+=wH
 
-  doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(80,80,80)
-  doc.text('E. & O.E', mg+tW-1.5, y+3, { align:'right' }); y+=5
+  doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+  doc.text('E. & O.E', mg+tW-2, y+4, { align:'right' }); y+=6
 
   // ── GST SUMMARY TABLE ────────────────────────────────────────
   const hsnMap = {}
@@ -285,26 +340,37 @@ const generateBillPDF = (bill, company) => {
   })
 
   const gC = [
-    { lbl:'HSN/SAC', w:20 }, { lbl:'Taxable Value', w:30 },
-    { lbl:'Central Tax Rate', w:20 }, { lbl:'Central Tax Amount', w:26 },
-    { lbl:'State Tax Rate', w:20 }, { lbl:'State Tax Amount', w:26 },
-    { lbl:'Total Tax Amount', w:28 },
+    { lbl:'HSN/SAC', w:30 }, { lbl:'Taxable\nValue', w:26 },
+    { lbl:'Rate', w:14 }, { lbl:'Amount', w:22 },
+    { lbl:'Rate', w:14 }, { lbl:'Amount', w:22 },
+    { lbl:'Total\nTax Amount', w:26 },
   ]
   const gW = gC.reduce((s,c)=>s+c.w,0)
   const gX = mg + (tW-gW)/2
-  const gRH = 7
+  const gRH = 8
+
+  // Top header group for CGST/SGST
+  doc.setDrawColor(0); doc.setLineWidth(0.2)
+  doc.rect(gX, y, gW, 5)
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+  doc.text('Central Tax', gX + gC[0].w + gC[1].w + (gC[2].w+gC[3].w)/2, y+3.5, { align:'center' })
+  doc.text('State Tax', gX + gC[0].w + gC[1].w + gC[2].w + gC[3].w + (gC[4].w+gC[5].w)/2, y+3.5, { align:'center' })
+  doc.line(gX + gC[0].w + gC[1].w, y, gX + gC[0].w + gC[1].w, y+5)
+  doc.line(gX + gC[0].w + gC[1].w + gC[2].w + gC[3].w, y, gX + gC[0].w + gC[1].w + gC[2].w + gC[3].w, y+5)
+  doc.line(gX + gC[0].w + gC[1].w + gC[2].w + gC[3].w + gC[4].w + gC[5].w, y, gX + gC[0].w + gC[1].w + gC[2].w + gC[3].w + gC[4].w + gC[5].w, y+5)
+  y += 5
 
   // GST header
-  doc.setFillColor(230,230,230); doc.rect(gX,y,gW,gRH,'F')
-  doc.setDrawColor(0); doc.setLineWidth(0.25); doc.rect(gX,y,gW,gRH)
+  doc.rect(gX,y,gW,gRH)
   cx=gX
   gC.forEach(c => {
-    doc.line(cx,y,cx,y+gRH)
-    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(0,0,0)
-    doc.text(c.lbl, cx+c.w/2, y+4.5, { align:'center' })
+    doc.line(cx,y-5,cx,y+gRH)
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+    const lines = c.lbl.split('\n')
+    lines.forEach((l,li) => doc.text(l, cx+c.w/2, y+3.5 + (li*3), { align:'center' }))
     cx+=c.w
   })
-  doc.line(cx,y,cx,y+gRH); y+=gRH
+  doc.line(cx,y-5,cx,y+gRH); y+=gRH
 
   let totTax=0, totCGST=0, totSGST=0
   Object.entries(hsnMap).forEach(([hsn,d]) => {
@@ -316,7 +382,7 @@ const generateBillPDF = (bill, company) => {
       doc.line(cx,y,cx,y+gRH)
       doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(0,0,0)
       const al = ci===0 ? 'left' : 'right'
-      doc.text(rv[ci], al==='right'?cx+c.w-1.5:cx+1.5, y+4.5, { align:al })
+      doc.text(rv[ci], al==='right'?cx+c.w-1.5:cx+1.5, y+5, { align:al })
       cx+=c.w
     })
     doc.line(cx,y,cx,y+gRH); y+=gRH
@@ -324,42 +390,42 @@ const generateBillPDF = (bill, company) => {
 
   // Totals row
   const tv = ['Total', fmtINR(totTax), '', fmtINR(totCGST), '', fmtINR(totSGST), fmtINR(totCGST+totSGST)]
-  doc.setFillColor(240,240,240); doc.rect(gX,y,gW,gRH,'F')
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(gX,y,gW,gRH)
   cx=gX
   gC.forEach((c,ci) => {
     doc.line(cx,y,cx,y+gRH)
-    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
-    const al=ci===0?'left':'right'
-    if(tv[ci]) doc.text(tv[ci], al==='right'?cx+c.w-1.5:cx+1.5, y+4.5, { align:al })
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+    const al=ci===0?'center':'right'
+    if(tv[ci]) doc.text(tv[ci], al==='right'?cx+c.w-1.5:cx+c.w/2, y+5, { align:al })
     cx+=c.w
   })
   doc.line(cx,y,cx,y+gRH); y+=gRH+3
 
   // Tax in words + PAN
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-  doc.text('Tax Amount (in words):  '+amtWords(totCGST+totSGST), mg, y); y+=5
+  doc.text('Tax Amount (in words)  :  INR ' + amtWords(totCGST+totSGST), mg, y); y+=5
   if (company.gstin) {
-    doc.text("Company's PAN   :  "+company.gstin.substring(2,12), mg, y); y+=5
+    doc.text("Company's PAN          :  " + company.gstin.substring(2,12), mg, y); y+=5
   }
 
   // ── DECLARATION + SIGNATORY ──────────────────────────────────
-  const declH=22, sigW=65, declW=tW-sigW
+  const declH=22, sigW=75, declW=tW-sigW
   doc.setDrawColor(0); doc.setLineWidth(0.3)
   doc.rect(mg,y,declW,declH)
   doc.rect(mg+declW,y,sigW,declH)
-  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
   doc.text('Declaration', mg+2, y+4)
-  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(50,50,50)
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(0,0,0)
   const declTxt = 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.'
   doc.text(doc.splitTextToSize(declTxt, declW-4), mg+2, y+9)
-  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0)
-  doc.text('for '+(company.name||'').toUpperCase(), mg+declW+sigW/2, y+7, { align:'center' })
+  
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0,0,0)
+  doc.text('for '+(company.name||'').toUpperCase(), mg+declW+sigW/2, y+6, { align:'center' })
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5)
   doc.text('Authorised Signatory', mg+declW+sigW/2, y+declH-3, { align:'center' })
   y+=declH+4
 
-  doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(100,100,100)
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
   doc.text('This is a Computer Generated Invoice', W/2, y, { align:'center' })
 
   doc.save(generateBillFilename(bill.customerName))
@@ -537,8 +603,8 @@ function LineItemsTable({ items, setItems, inventory }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
           <thead>
             <tr style={{ background: '#0F172A' }}>
-              {[['#', '40px'], ['Description', '1fr'], ['HSN', '80px'], ['Quantity', '80px'], ['Unit', '80px'], ['Rate', '90px'], ['GST %', '80px'], ['Amount', '100px'], ['', '36px']].map(([h, w]) => (
-                <th key={h} style={{ padding: '9px 10px', textAlign: 'left', color: 'white', fontSize: '12px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
+              {[['#', '30px'], ['Product', '200px'], ['Desp', '80px'], ['HSN', '70px'], ['Feet', '60px'], ['Pcs/weight', '80px'], ['Qty', '70px'], ['Unit', '70px'], ['Rate', '80px'], ['GST %', '60px'], ['Amount', '90px'], ['', '36px']].map(([h, w]) => (
+                <th key={h} style={{ padding: '9px 8px', textAlign: 'left', color: 'white', fontSize: '11px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -549,10 +615,10 @@ function LineItemsTable({ items, setItems, inventory }) {
               return (
                 <div key={item.id} style={{ display: 'contents' }}>
                   <tr style={{ borderBottom: '1px solid #F1F5F9', background: idx % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                    <td style={{ padding: '6px 8px', color: '#94A3B8', fontSize: '13px', fontWeight: 600, textAlign: 'center', width: '40px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', color: '#94A3B8', fontSize: '12px', fontWeight: 600, textAlign: 'center', width: '30px', verticalAlign: 'top' }}>
                       <div style={{ paddingTop: '8px' }}>{item.sno}</div>
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <DescriptionInput
                         inputRef={idx === items.length - 1 ? newRowRef : undefined}
                         value={item.description}
@@ -561,25 +627,34 @@ function LineItemsTable({ items, setItems, inventory }) {
                         onSelectItem={inv => selectInventoryItem(item.id, inv)}
                       />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="Optional" />
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
+                      <input style={inp} value={item.desp} onChange={e => updateItem(item.id, 'desp', e.target.value)} placeholder="e.g. 2.00 Mt" />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
+                      <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="HSN" />
+                    </td>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
+                      <input style={inp} value={item.feet} onChange={e => updateItem(item.id, 'feet', e.target.value)} placeholder="Feet" />
+                    </td>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
+                      <input style={inp} value={item.pcs} onChange={e => updateItem(item.id, 'pcs', e.target.value)} placeholder="Pcs/wt" />
+                    </td>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <input style={inp} type="number" min="0" step="0.01" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <select style={inp} value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)}>
                         {UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
                       </select>
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder="0.00" />
                       <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px', textAlign: 'center' }}>{getRateLabel(item.unit)}</div>
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <input style={inp} type="number" min="0" max="100" step="0.01" value={item.gstPercent} onChange={e => updateItem(item.id, 'gstPercent', e.target.value)} placeholder="0" />
                     </td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', verticalAlign: 'top' }}>
                       <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
                         {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
                       </div>
