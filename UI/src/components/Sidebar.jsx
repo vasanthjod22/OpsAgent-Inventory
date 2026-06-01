@@ -215,13 +215,9 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
           </div>
         </div>
 
-        {/* Sign Out Button */}
         <button
           onClick={() => {
-            if (window.confirm('Sign out of OpsAgent?')) {
-              onLogout && onLogout()
-              window.location.reload()
-            }
+            if (onLogout) onLogout();
           }}
           className="btn-press"
           style={{

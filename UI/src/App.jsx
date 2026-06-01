@@ -53,6 +53,7 @@ export default function App() {
   const handleLogout = () => {
     setDashboardVisible(false)
     setAuthState({ isLoggedIn: false, currentUser: null })
+    localStorage.removeItem('opsagent_token')
   }
 
   const toastIcons = {
