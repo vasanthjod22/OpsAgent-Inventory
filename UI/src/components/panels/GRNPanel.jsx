@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { callVisionAI } from '../../utils/api'
+import { backendFetch } from '../../utils/backend'
 import * as pdfjsLib from 'pdfjs-dist'
 import {
   Upload, Loader2, AlertTriangle, X, CheckCircle, AlertCircle, FileImage, FileText,
@@ -46,7 +47,7 @@ function ConfidenceDot({ fieldVal, isTamil }) {
   return <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A', flexShrink: 0 }} />
 }
 
-export default function GRNPanel({ apiKey, onApproveGRN, showToast }) {
+export default function GRNPanel({ showToast }) {
   const fileRef = useRef()
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState(null)
@@ -84,11 +85,6 @@ export default function GRNPanel({ apiKey, onApproveGRN, showToast }) {
 
   const extractData = async () => {
     if (!base64Data) return
-    if (!apiKey) {
-      setError('Please add your Groq API key in Settings first.')
-      showToast?.('API key required', 'warning')
-      return
-    }
     setLoading(true); setError(null); setData(null); setConfirmed(new Set())
     try {
       let imageBase64 = base64Data
@@ -103,7 +99,7 @@ export default function GRNPanel({ apiKey, onApproveGRN, showToast }) {
         setIsPdfConverting(false)
       }
 
-      const parsed = await callVisionAI(apiKey, imageBase64, imageMime)
+      const parsed = await callVisionAI(null, imageBase64, imageMime)
       if (!parsed.items) parsed.items = []
       setData(parsed)
       showToast?.('Extraction successful', 'success')
@@ -116,10 +112,21 @@ export default function GRNPanel({ apiKey, onApproveGRN, showToast }) {
   }
 
   const handleApprove = async () => {
-    if (!onApproveGRN) return
     setApproving(true)
-    try { await onApproveGRN(data.grn_number || 'Unknown', data.items) }
-    finally {
+    try {
+      await backendFetch('/grn', {
+        method: 'POST',
+        body: JSON.stringify({
+          supplier: data.supplier_name || 'Unknown Supplier',
+          date: data.date,
+          items: data.items,
+          updateInventory: true
+        })
+      })
+      showToast?.('GRN approved and stock updated', 'success')
+    } catch (err) {
+      showToast?.(err.message || 'Failed to approve GRN', 'error')
+    } finally {
       setFile(null); setFileName(''); setFileType(''); setBase64('')
       setData(null); setError(null); setConfirmed(new Set()); setApproving(false)
       if (fileRef.current) fileRef.current.value = ''

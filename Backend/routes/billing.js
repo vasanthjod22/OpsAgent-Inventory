@@ -1,17 +1,42 @@
 const express = require('express');
 const { randomUUID: uuidv4 } = require('crypto');
-const store = require('../data/store');
+const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/bills
-router.get('/', auth, (req, res) => {
-  res.json(store.bills);
+router.get('/', auth, async (req, res) => {
+  const { data: bills, error } = await supabase.from('bills').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  
+  // Convert snake_case to camelCase
+  const formatted = bills.map(b => ({
+    id: b.id,
+    billNumber: b.bill_number,
+    customerName: b.customer_name,
+    customerPhone: b.customer_phone,
+    customerAddress: b.customer_address,
+    date: b.date,
+    items: b.items,
+    subtotal: b.subtotal,
+    discount: b.discount,
+    grandTotal: b.grand_total,
+    paymentStatus: b.payment_status,
+    balanceDue: b.balance_due,
+    amountPaid: b.amount_paid,
+    notes: b.notes,
+    status: b.status,
+    includeTerms: b.include_terms,
+    terms: b.terms,
+    inventoryUpdated: b.inventory_updated,
+    createdAt: b.created_at
+  }));
+  res.json(formatted);
 });
 
 // POST /api/bills — create bill, deduct inventory stock
-router.post('/', auth, (req, res) => {
+router.post('/', auth, async (req, res) => {
   const { customerName, customerPhone, customerAddress, items, subtotal, discount, grandTotal, paymentStatus, amountPaid, balanceDue, notes, includeTerms, terms, date, updateInventory } = req.body;
 
   if (!customerName || !items || items.length === 0) {
@@ -19,66 +44,81 @@ router.post('/', auth, (req, res) => {
   }
 
   // Generate sequential bill number
-  const next = store.bills.length + 1;
+  const { count, error: countErr } = await supabase.from('bills').select('*', { count: 'exact', head: true }).eq('user_id', req.user.id);
+  if (countErr) return res.status(500).json({ error: countErr.message });
+  
+  const next = (count || 0) + 1;
   const billNumber = `BILL-${new Date().getFullYear()}-${String(next).padStart(4, '0')}`;
 
+  let inventoryUpdated = false;
+  
+  // Deduct inventory stock if requested
+  if (updateInventory) {
+    // Note: A real transaction should be used in production via RPC
+    for (const item of items) {
+      if (item.inventorySku) {
+        const { data: inv } = await supabase.from('inventory').select('qty').eq('user_id', req.user.id).eq('sku', item.inventorySku).single();
+        if (inv) {
+          const newQty = Math.max(0, inv.qty - (Number(item.quantity) || 0));
+          await supabase.from('inventory').update({ qty: newQty }).eq('user_id', req.user.id).eq('sku', item.inventorySku);
+        }
+      }
+    }
+    inventoryUpdated = true;
+  }
+
   const bill = {
-    id: uuidv4(),
-    billNumber,
-    customerName,
-    customerPhone: customerPhone || '',
-    customerAddress: customerAddress || '',
+    user_id: req.user.id,
+    bill_number: billNumber,
+    customer_name: customerName,
+    customer_phone: customerPhone || '',
+    customer_address: customerAddress || '',
     items,
     subtotal: subtotal || 0,
     discount: discount || 0,
-    grandTotal: grandTotal || 0,
-    paymentStatus: paymentStatus || 'Unpaid',
-    amountPaid: amountPaid || null,
-    balanceDue: balanceDue || null,
+    grand_total: grandTotal || 0,
+    payment_status: paymentStatus || 'Unpaid',
+    amount_paid: amountPaid || null,
+    balance_due: balanceDue || null,
     notes: notes || '',
-    includeTerms: includeTerms || false,
+    include_terms: includeTerms || false,
     terms: terms || '',
     date: date || new Date().toISOString().split('T')[0],
-    inventoryUpdated: false,
-    createdAt: new Date().toISOString(),
+    inventory_updated: inventoryUpdated
   };
 
-  // Optionally deduct inventory stock
-  if (updateInventory) {
-    items.forEach(item => {
-      if (item.inventorySku) {
-        const inv = store.inventory.find(i => i.sku === item.inventorySku);
-        if (inv) {
-          inv.qty = Math.max(0, inv.qty - (Number(item.quantity) || 0));
-        }
-      }
-    });
-    bill.inventoryUpdated = true;
-  }
-
-  store.bills.unshift(bill);
-  res.status(201).json(bill);
+  const { data: inserted, error } = await supabase.from('bills').insert([bill]).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  
+  inserted.billNumber = inserted.bill_number;
+  inserted.customerName = inserted.customer_name;
+  res.status(201).json(inserted);
 });
 
 // PATCH /api/bills/:id/status — update payment status
-router.patch('/:id/status', auth, (req, res) => {
-  const bill = store.bills.find(b => b.id === req.params.id);
-  if (!bill) return res.status(404).json({ error: 'Bill not found' });
-
+router.patch('/:id/status', auth, async (req, res) => {
   const { paymentStatus, amountPaid } = req.body;
-  bill.paymentStatus = paymentStatus || bill.paymentStatus;
+  const { data: bill, error: fetchErr } = await supabase.from('bills').select('*').eq('user_id', req.user.id).eq('id', req.params.id).single();
+  if (fetchErr || !bill) return res.status(404).json({ error: 'Bill not found' });
+
+  const updates = { payment_status: paymentStatus || bill.payment_status };
+  
   if (paymentStatus === 'Partial') {
-    bill.amountPaid = Number(amountPaid) || 0;
-    bill.balanceDue = bill.grandTotal - bill.amountPaid;
+    updates.amount_paid = Number(amountPaid) || 0;
+    updates.balance_due = bill.grand_total - updates.amount_paid;
   }
-  res.json(bill);
+
+  const { data: updated, error } = await supabase.from('bills').update(updates).eq('user_id', req.user.id).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json(updated);
 });
 
 // DELETE /api/bills/:id
-router.delete('/:id', auth, (req, res) => {
-  const before = store.bills.length;
-  store.bills = store.bills.filter(b => b.id !== req.params.id);
-  if (store.bills.length === before) return res.status(404).json({ error: 'Bill not found' });
+router.delete('/:id', auth, async (req, res) => {
+  const { data, error } = await supabase.from('bills').delete().eq('user_id', req.user.id).eq('id', req.params.id).select();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data || data.length === 0) return res.status(404).json({ error: 'Bill not found' });
   res.json({ message: 'Deleted' });
 });
 

@@ -77,7 +77,7 @@ const renderMarkdown = (text) => {
   return <div style={{ fontSize: '14px', fontFamily: "'Inter', sans-serif" }}>{result}</div>
 }
 
-export default function ChatPanel({ apiKey, inventory = [], financeSummary, chatMessages: messages, setChatMessages: setMessages, showToast }) {
+export default function ChatPanel({ inventory = [], financeSummary, chatMessages: messages, setChatMessages: setMessages, showToast }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef()
@@ -89,11 +89,6 @@ export default function ChatPanel({ apiKey, inventory = [], financeSummary, chat
   const sendMessage = async (overrideText = null) => {
     const text = overrideText || input.trim()
     if (!text) return
-
-    if (!apiKey) {
-      showToast?.('API key required — go to Settings', 'warning', 'Missing API Key')
-      return
-    }
 
     const userMsg = { role: 'user', content: text }
     const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -115,7 +110,7 @@ IMPORTANT: When asked about "low stock", carefully check all inventory items. An
         content: m.content
       }))
 
-      const aiReply = await callAI(apiKey, groqMessages, systemPrompt)
+      const aiReply = await callAI(null, groqMessages, systemPrompt)
       
       if (!aiReply) throw new Error("Empty response from AI")
       

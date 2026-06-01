@@ -1,30 +1,27 @@
-import { useState } from 'react'
-import { Key, Save, AlertTriangle, Database, Trash2, Eye, EyeOff, FileCode2, CheckCircle, Building2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Save, Database, Trash2, FileCode2, Building2 } from 'lucide-react'
+import { backendFetch } from '../../utils/backend'
 
-export default function SettingsPanel({ apiKey, setApiKey, onClearAll, onLoadDemo, showToast }) {
-  const [tempKey, setTempKey] = useState(apiKey || '')
-  const [showKey, setShowKey] = useState(false)
+export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
+  const [company, setCompany] = useState({})
 
-  // Company details
-  const [company, setCompany] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('opsagent_company') || '{}') } catch { return {} }
-  })
+  useEffect(() => {
+    backendFetch('/company').then(setCompany).catch(console.error)
+  }, [])
+
   const setComp = (key, val) => setCompany(prev => ({ ...prev, [key]: val }))
-  const handleSaveCompany = () => {
-    // Validate GSTIN format if provided
+  
+  const handleSaveCompany = async () => {
     if (company.gstin && !/^[A-Z0-9]{15}$/.test(company.gstin)) {
       showToast?.('GSTIN must be exactly 15 alphanumeric characters', 'error', 'Invalid GSTIN')
       return
     }
-    localStorage.setItem('opsagent_company', JSON.stringify(company))
-    // Notify QuotationPanel via storage event
-    window.dispatchEvent(new StorageEvent('storage', { key: 'opsagent_company', newValue: JSON.stringify(company) }))
-    showToast?.('Company profile saved successfully!', 'success', 'Settings Updated')
-  }
-
-  const handleSaveKey = () => {
-    setApiKey(tempKey.trim())
-    showToast?.('API Key saved successfully', 'success', 'Settings Updated')
+    try {
+      await backendFetch('/company', { method: 'PUT', body: JSON.stringify(company) })
+      showToast?.('Company profile saved successfully!', 'success', 'Settings Updated')
+    } catch(err) {
+      showToast?.(err.message, 'error')
+    }
   }
 
   const handleClear = () => {
@@ -115,60 +112,7 @@ export default function SettingsPanel({ apiKey, setApiKey, onClearAll, onLoadDem
         </div>
       </div>
 
-      {/* AI Configuration */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Key size={16} color="#2563EB" />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Groq API Key</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Required for Finance Analysis, GRN Upload, and Chat Assistant.</p>
-          </div>
-        </div>
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '8px' }}>API Key</label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <input 
-                  type={showKey ? 'text' : 'password'} 
-                  value={tempKey} 
-                  onChange={e => setTempKey(e.target.value)} 
-                  className="input-base" 
-                  placeholder="gsk_..." 
-                  style={{ width: '100%', paddingRight: '40px' }}
-                />
-                <button 
-                  onClick={() => setShowKey(!showKey)}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
-                >
-                  {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              <button 
-                onClick={handleSaveKey}
-                className="btn-press"
-                style={{ height: '40px', padding: '0 20px', borderRadius: '8px', background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}
-              >
-                <Save size={16} /> Save Key
-              </button>
-            </div>
-          </div>
-          {!apiKey ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #FECACA' }}>
-              <AlertTriangle size={16} color="#DC2626" />
-              <p style={{ fontSize: '13px', color: '#991B1B', fontWeight: 600 }}>No API key set</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#F0FDF4', borderRadius: '8px', border: '1px solid #BBF7D0' }}>
-              <CheckCircle size={16} color="#16A34A" />
-              <p style={{ fontSize: '13px', color: '#15803D', fontWeight: 600 }}>Key saved</p>
-            </div>
-          )}
-          <p style={{ fontSize: '12px', color: '#64748B' }}>Get your free API key at <a href="https://console.groq.com" target="_blank" rel="noreferrer" style={{ color: '#2563EB', textDecoration: 'underline' }}>console.groq.com</a></p>
-        </div>
-      </div>
+
 
       {/* Demo Data Section */}
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>

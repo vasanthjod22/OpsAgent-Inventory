@@ -6,6 +6,7 @@ import {
   Calendar, List, DollarSign, FileCheck, Clock,
   CheckCircle, Send, XCircle, RefreshCw, RotateCcw,
 } from 'lucide-react'
+import { backendFetch } from '../../utils/backend'
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 const today = () => new Date().toISOString().split('T')[0]
@@ -410,68 +411,51 @@ function StatusBadge({ status }) {
 
 /* ─── Main QuotationPanel ──────────────────────────────────────────────── */
 export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
-  // Company info from localStorage
-  const [company, setCompany] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('opsagent_company') || '{}') } catch { return {} }
-  })
+  const [company, setCompany] = useState({})
+  const [quotations, setQuotations] = useState([])
 
-  const [form, setForm] = useState(() => {
-    const c = company
-    return {
-      companyName: c.name || '',
-      companyAddress: c.address || '',
-      companyPhone: c.phone || '',
-      gstin: c.gstin || '',
-      bankDetails: c.bankDetails || '',
-      customerName: '',
-      customerAddress: '',
-      customerPhone: '',
-      quotationNumber: generateQuotationNumber(),
-      date: today(),
-      validUntil: plusDays(10),
-      items: [emptyItem()],
-      gstPercent: 18,
-      discount: '',
-      terms: DEFAULT_TERMS,
-      notes: '',
-    }
-  })
-
-  const [quotations, setQuotations] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('opsagent_quotations') || '[]') } catch { return [] }
+  const [form, setForm] = useState({
+    companyName: '',
+    companyAddress: '',
+    companyPhone: '',
+    gstin: '',
+    bankDetails: '',
+    customerName: '',
+    customerAddress: '',
+    customerPhone: '',
+    quotationNumber: 'Auto-generated on save',
+    date: today(),
+    validUntil: plusDays(10),
+    items: [emptyItem()],
+    gstPercent: 18,
+    discount: '',
+    terms: DEFAULT_TERMS,
+    notes: '',
   })
 
   const [showPreview, setShowPreview] = useState(false)
   const [tab, setTab] = useState('form') // 'form' | 'history'
   const [bannerDismissed, setBannerDismissed] = useState(false)
 
-  // Persist quotations
   useEffect(() => {
-    localStorage.setItem('opsagent_quotations', JSON.stringify(quotations))
-  }, [quotations])
-
-  // Sync company from localStorage when settings are saved externally
-  useEffect(() => {
-    const sync = () => {
-      try {
-        const c = JSON.parse(localStorage.getItem('opsagent_company') || '{}')
-        setCompany(c)
-        setForm(prev => ({
-          ...prev,
-          companyName:    c.name         || prev.companyName,
-          companyAddress: c.address      || prev.companyAddress,
-          companyPhone:   c.phone        || prev.companyPhone,
-          gstin:          c.gstin        || prev.gstin,
-          bankDetails:    c.bankDetails  || prev.bankDetails,
-          bankName:       c.bankName     || prev.bankName,
-          accountNumber:  c.accountNumber|| prev.accountNumber,
-          ifsc:           c.ifsc         || prev.ifsc,
-        }))
-      } catch {}
-    }
-    window.addEventListener('storage', sync)
-    return () => window.removeEventListener('storage', sync)
+    backendFetch('/quotations').then(setQuotations).catch(console.error)
+    backendFetch('/company').then(c => {
+      setCompany(c)
+      setForm(prev => ({
+        ...prev,
+        companyName: c.name || '',
+        companyAddress: c.address || '',
+        companyPhone: c.phone || '',
+        gstin: c.gstin || '',
+        bankDetails: c.bankDetails || '',
+        bankName: c.bankName || '',
+        accountNumber: c.accountNumber || '',
+        ifsc: c.ifsc || ''
+      }))
+    }).catch(console.error)
   }, [])
+
+
 
   /* ── Derived totals ── */
   const validItems = form.items.filter(i => i.description)
@@ -518,45 +502,54 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
   }
 
   /* ── Download PDF ── */
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!form.customerName.trim()) {
       showToast?.('Please enter customer name before downloading', 'warning', 'Missing Info')
       return
     }
-    generatePDF(form)
 
-    // Save to history
-    const entry = {
-      id: Date.now(),
-      quotationNumber: form.quotationNumber,
-      customerName: form.customerName,
-      date: form.date,
-      grandTotal,
-      status: 'Draft',
-      formData: { ...form },
+    try {
+      const savedQuotation = await backendFetch('/quotations', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          subtotal,
+          discount,
+          grandTotal
+        })
+      })
+      setQuotations(prev => [savedQuotation, ...prev])
+      generatePDF({ ...form, quotationNumber: savedQuotation.quotationNumber })
+      showToast?.(`Downloaded ${generateFilename(form.customerName, form.date)}`, 'success', 'PDF Generated')
+    } catch(err) {
+      showToast?.(err.message, 'error')
     }
-    setQuotations(prev => [entry, ...prev])
-    showToast?.(`Downloaded ${generateFilename(form.customerName, form.date)}`, 'success', 'PDF Generated')
   }
 
   /* ── Status change in history ── */
-  const changeStatus = (id, status) => {
+  const changeStatus = async (id, status) => {
     setQuotations(prev => prev.map(q => q.id === id ? { ...q, status } : q))
+    try {
+      await backendFetch(`/quotations/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+    } catch(err) { console.error(err) }
   }
 
-  const deleteQuotation = (id) => {
+  const deleteQuotation = async (id) => {
     if (!window.confirm('Delete this quotation from history?')) return
     setQuotations(prev => prev.filter(q => q.id !== id))
     showToast?.('Quotation deleted', 'info', 'Deleted')
+    try {
+      await backendFetch(`/quotations/${id}`, { method: 'DELETE' })
+    } catch(err) { console.error(err) }
   }
 
   const redownload = (q) => {
-    generatePDF(q.formData)
+    generatePDF({ ...q, ...company, companyName: company.name, companyAddress: company.address, companyPhone: company.phone })
     showToast?.(`Re-downloaded ${generateFilename(q.customerName, q.date)}`, 'success', 'PDF Downloaded')
   }
 
   const loadFromHistory = (q) => {
-    setForm({ ...q.formData, quotationNumber: q.quotationNumber })
+    setForm(prev => ({ ...prev, ...q, quotationNumber: q.quotationNumber }))
     setTab('form')
     showToast?.('Quotation loaded into form', 'info', 'Loaded')
   }

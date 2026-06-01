@@ -3,7 +3,7 @@ import {
   User, Lock, Mail, Building, Eye, EyeOff,
   Zap, ArrowRight, ShieldCheck, CheckCircle2
 } from 'lucide-react'
-import { initDemoUser, findUser, verifyPassword, registerUser, updatePassword } from '../utils/auth'
+import { loginUser, registerUser, logoutUser } from '../utils/auth'
 
 /* ─── Animated SVG Checkmark ─────────────────────────────────────────────── */
 function AnimatedCheckmark({ size = 72, color = '#16A34A' }) {
@@ -90,7 +90,7 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
   const [sliding, setSliding] = useState(false)
   const [successUser, setSuccessUser] = useState(null)
 
-  useEffect(() => { initDemoUser() }, [])
+  // Backend automatically has demo data if seeded, no need to init locally
 
   const handleAuthSuccess = useCallback((user) => {
     setSuccessUser(user)
@@ -245,19 +245,18 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
     setTimeout(() => setShake(false), 500)
   }
 
-  const doLogin = useCallback((id, pwd) => {
-    const user = findUser(id)
-    if (!user || !verifyPassword(user, pwd)) {
-      triggerError('Invalid username or password')
-      return
+  const doLogin = useCallback(async (id, pwd) => {
+    try {
+      const user = await loginUser(id, pwd);
+      setLoggedInUser(user)
+      setPhase('success')
+      onPanelChange('loginSuccess')
+      showToast && showToast(`Welcome back, ${user.fullName}!`, 'success', 'Signed in successfully')
+      // After 1.6s (progress bar), redirect
+      setTimeout(() => onAuthSuccess(user), 1700)
+    } catch (err) {
+      triggerError(err.message || 'Invalid username or password')
     }
-    // SUCCESS SEQUENCE
-    setLoggedInUser(user)
-    setPhase('success')
-    onPanelChange('loginSuccess')
-    showToast && showToast(`Welcome back, ${user.fullName}!`, 'success', 'Signed in successfully')
-    // After 1.6s (progress bar), redirect
-    setTimeout(() => onAuthSuccess(user), 1700)
   }, [onAuthSuccess, onPanelChange, showToast])
 
   const handleSubmit = (e) => {
@@ -440,7 +439,6 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
     if (touched.username) {
       if (formData.username.length < 3) errs.username = 'Min 3 characters'
       else if (/\s/.test(formData.username)) errs.username = 'No spaces allowed'
-      else if (isUsernameTaken(formData.username)) errs.username = '✗ Username taken'
     }
     if (touched.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Invalid email format'
     if (touched.password && formData.password.length < 8) errs.password = 'Min 8 characters required'
@@ -464,7 +462,6 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
 
   const isReady = formData.fullName.length >= 2 &&
     formData.username.length >= 3 &&
-    !isUsernameTaken(formData.username) &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
     formData.password.length >= 8 &&
     formData.password === formData.confirm &&
@@ -474,31 +471,36 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
     e.preventDefault()
     if (!isReady || phase !== 'idle') return
     setPhase('loading')
-    setTimeout(() => {
-      const user = registerUser({
-        fullName: formData.fullName,
-        username: formData.username,
-        email: formData.email,
-        company: formData.company,
-        password: formData.password,
-      })
-      setNewUser(user)
-      setShowConfetti(true)
-      setPhase('confetti')
-      onPanelChange('signupSuccess')
-      showToast && showToast(`Welcome to OpsAgent, ${user.fullName}!`, 'info', '🎉 Account created!')
+    setTimeout(async () => {
+      try {
+        const user = await registerUser({
+          fullName: formData.fullName,
+          username: formData.username,
+          email: formData.email,
+          company: formData.company,
+          password: formData.password,
+        })
+        setNewUser(user)
+        setShowConfetti(true)
+        setPhase('confetti')
+        onPanelChange('signupSuccess')
+        showToast && showToast(`Welcome to OpsAgent, ${user.fullName}!`, 'info', '🎉 Account created!')
 
-      // Sequential setup steps
-      const steps = [1, 2, 3, 4]
-      steps.forEach((_, i) => {
-        setTimeout(() => setVisibleSteps(i + 1), 400 + i * 400)
-      })
+        // Sequential setup steps
+        const steps = [1, 2, 3, 4]
+        steps.forEach((_, i) => {
+          setTimeout(() => setVisibleSteps(i + 1), 400 + i * 400)
+        })
 
-      // Move to success card after confetti
-      setTimeout(() => setPhase('success'), 400)
+        // Move to success card after confetti
+        setTimeout(() => setPhase('success'), 400)
 
-      // Final redirect
-      setTimeout(() => onAuthSuccess(user), 2800)
+        // Final redirect
+        setTimeout(() => onAuthSuccess(user), 2800)
+      } catch (err) {
+        setPhase('idle');
+        setErrors({ username: err.message });
+      }
     }, 800)
   }
 

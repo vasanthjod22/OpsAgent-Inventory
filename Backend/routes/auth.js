@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { randomUUID: uuidv4 } = require('crypto');
-const store = require('../data/store');
+const supabase = require('../data/supabaseClient');
 const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,9 +18,12 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
-  const exists = store.users.find(
-    u => u.username === username || u.email === email
-  );
+  const { data: exists } = await supabase
+    .from('users')
+    .select('id')
+    .or(`username.eq.${username},email.eq.${email}`)
+    .single();
+
   if (exists) {
     return res.status(409).json({ error: 'Username or email already taken' });
   }
@@ -34,20 +37,29 @@ router.post('/register', async (req, res) => {
     .slice(0, 2);
 
   const newUser = {
-    id: uuidv4(),
-    fullName,
+    full_name: fullName,
     username,
     email,
     password: hashed,
     company: company || '',
     avatar,
-    createdAt: new Date().toISOString(),
   };
 
-  store.users.push(newUser);
+  const { data: insertedUser, error } = await supabase
+    .from('users')
+    .insert([newUser])
+    .select()
+    .single();
 
-  const { password: _, ...safeUser } = newUser;
-  const token = jwt.sign({ id: newUser.id, username: newUser.username }, JWT_SECRET, { expiresIn: '7d' });
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  const { password: _, ...safeUser } = insertedUser;
+  // Map snake_case to camelCase for the frontend
+  safeUser.fullName = safeUser.full_name;
+  
+  const token = jwt.sign({ id: safeUser.id, username: safeUser.username }, JWT_SECRET, { expiresIn: '7d' });
 
   res.status(201).json({ user: safeUser, token });
 });
@@ -63,11 +75,13 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Username/email and password are required' });
   }
 
-  const user = store.users.find(
-    u => u.username === usernameOrEmail || u.email === usernameOrEmail
-  );
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .or(`username.eq.${usernameOrEmail},email.eq.${usernameOrEmail}`)
+    .single();
 
-  if (!user) {
+  if (error || !user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
@@ -77,6 +91,8 @@ router.post('/login', async (req, res) => {
   }
 
   const { password: _, ...safeUser } = user;
+  safeUser.fullName = safeUser.full_name;
+  
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 
   res.json({ user: safeUser, token });
@@ -88,13 +104,26 @@ router.post('/login', async (req, res) => {
  */
 router.post('/change-password', async (req, res) => {
   const { username, currentPassword, newPassword } = req.body;
-  const user = store.users.find(u => u.username === username);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('username', username)
+    .single();
+    
+  if (error || !user) return res.status(404).json({ error: 'User not found' });
 
   const valid = await bcrypt.compare(currentPassword, user.password);
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
 
-  user.password = await bcrypt.hash(newPassword, 10);
+  const hashedNew = await bcrypt.hash(newPassword, 10);
+  
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ password: hashedNew })
+    .eq('id', user.id);
+    
+  if (updateError) return res.status(500).json({ error: updateError.message });
+  
   res.json({ message: 'Password updated successfully' });
 });
 

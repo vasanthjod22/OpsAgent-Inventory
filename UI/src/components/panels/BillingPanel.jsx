@@ -5,6 +5,7 @@ import {
   CheckCircle, AlertTriangle, ChevronDown, Building2,
   User, Hash, DollarSign, FileText, Clock, Edit2,
 } from 'lucide-react'
+import { backendFetch } from '../../utils/backend'
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 const todayISO = () => new Date().toISOString().split('T')[0]
@@ -76,207 +77,297 @@ const generateBillPDF = (bill, company) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
-  const mg = 15
-  let y = 20
+  const mg = 10
+  let y = mg
 
-  // Header background
-  doc.setFillColor(15, 23, 42)
-  doc.rect(0, 0, W, 42, 'F')
-
-  // Company name
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(17)
-  doc.setTextColor(255, 255, 255)
-  doc.text((company.name || 'Company Name').substring(0, 35), mg, 13)
-
-  // Company details
-  doc.setFontSize(7.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(180, 195, 210)
-  doc.text(company.address || '', mg, 20)
-  doc.text(`Ph: ${company.phone || ''}  |  GSTIN: ${company.gstin || ''}`, mg, 26)
-  const bankLine = company.bankName
-    ? `Bank: ${company.bankName}  |  A/C: ${company.accountNumber || ''}  |  IFSC: ${company.ifsc || ''}`
-    : (company.bankDetails || '')
-  if (bankLine) doc.text(bankLine.substring(0, 70), mg, 32)
-
-  // TAX INVOICE label
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(16)
-  doc.setTextColor(96, 165, 250)
-  doc.text('TAX INVOICE', W - mg, 13, { align: 'right' })
-
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(180, 195, 210)
-  doc.text(`Bill No: ${bill.billNumber}`, W - mg, 21, { align: 'right' })
-  doc.text(`Date: ${fmtDate(bill.date)}`, W - mg, 27, { align: 'right' })
-
-  y = 52
-
-  // Bill To box
-  doc.setFillColor(248, 250, 252)
-  doc.setDrawColor(226, 232, 240)
-  doc.roundedRect(mg, y, (W - mg * 2) / 2 - 5, 36, 3, 3, 'FD')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.setTextColor(100, 116, 139)
-  doc.text('BILL TO', mg + 5, y + 7)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(15, 23, 42)
-  doc.text((bill.customerName || '').substring(0, 30), mg + 5, y + 14)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(100, 116, 139)
-  if (bill.customerPhone) doc.text(`Ph: ${bill.customerPhone}`, mg + 5, y + 21)
-  if (bill.customerAddress) doc.text(bill.customerAddress.substring(0, 40), mg + 5, y + 27)
-
-  y += 44
-
-  // Line items table header
-  doc.setFillColor(15, 23, 42)
-  doc.rect(mg, y, W - mg * 2, 8, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.setTextColor(255, 255, 255)
-  const cols = { sno: mg + 3, desc: mg + 12, hsn: mg + 65, qty: mg + 85, unit: mg + 100, rate: mg + 116, gst: mg + 136, amt: W - mg - 2 }
-  doc.text('#', cols.sno, y + 5.5)
-  doc.text('Description', cols.desc, y + 5.5)
-  doc.text('HSN', cols.hsn, y + 5.5)
-  doc.text('Quantity', cols.qty, y + 5.5)
-  doc.text('Unit', cols.unit, y + 5.5)
-  doc.text('Rate', cols.rate, y + 5.5)
-  doc.text('GST%', cols.gst, y + 5.5)
-  doc.text('Amount', cols.amt, y + 5.5, { align: 'right' })
-  y += 8
-
-  // Rows
-  bill.items.forEach((item, idx) => {
-    const rowH = 8
-    doc.setFillColor(idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 250, idx % 2 === 0 ? 255 : 252)
-    doc.rect(mg, y, W - mg * 2, rowH, 'F')
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(15, 23, 42)
-    doc.text(String(item.sno), cols.sno, y + 5.5)
-    doc.text((item.description || '').substring(0, 30), cols.desc, y + 5.5)
-    doc.setTextColor(100, 116, 139)
-    doc.text(item.hsnCode || '-', cols.hsn, y + 5.5)
-    doc.setTextColor(15, 23, 42)
-    doc.text(item.quantity ? String(item.quantity) : '-', cols.qty, y + 5.5)
-    doc.text(item.unit || '', cols.unit, y + 5.5)
-    doc.text(fmtINR(item.rate), cols.rate, y + 5.5)
-    doc.text(item.gstPercent ? `${item.gstPercent}%` : '0%', cols.gst, y + 5.5)
-    doc.setFont('helvetica', 'bold')
-    doc.text(fmtINR(item.amount), cols.amt, y + 5.5, { align: 'right' })
-    y += rowH
-
-    if (y > H - 70) {
-      doc.addPage()
-      y = 20
+  // ── Helpers ──────────────────────────────────────────────────
+  const amtWords = (amt) => {
+    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+      'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']
+    const tensW = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']
+    const nW = (n) => {
+      if (n === 0) return ''
+      if (n < 20) return ones[n]
+      if (n < 100) return tensW[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '')
+      if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' '+nW(n%100) : '')
+      if (n < 100000) return nW(Math.floor(n/1000)) + ' Thousand' + (n%1000 ? ' '+nW(n%1000) : '')
+      if (n < 10000000) return nW(Math.floor(n/100000)) + ' Lakh' + (n%100000 ? ' '+nW(n%100000) : '')
+      return nW(Math.floor(n/10000000)) + ' Crore' + (n%10000000 ? ' '+nW(n%10000000) : '')
     }
+    const rupees = Math.floor(amt)
+    const paise = Math.round((amt - rupees) * 100)
+    let s = 'INR ' + (nW(rupees) || 'Zero')
+    if (paise > 0) s += ' and ' + nW(paise) + ' Paise'
+    return s + ' Only'
+  }
+
+  const pageW = W - mg * 2
+
+  // ── TITLE ────────────────────────────────────────────────────
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(0, 0, 0)
+  doc.text('Tax Invoice', W / 2, y + 5, { align: 'center' })
+  y += 9
+
+  // ── COMPANY + INVOICE META ───────────────────────────────────
+  const headerH = 66
+  const halfW = pageW / 2
+
+  // Outer box
+  doc.setDrawColor(0); doc.setLineWidth(0.4)
+  doc.rect(mg, y, pageW, headerH)
+  // Vertical divider
+  doc.line(mg + halfW, y, mg + halfW, y + headerH)
+
+  // LEFT — Company info
+  let ly = y + 3.5
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0,0,0)
+  doc.text((company.name || 'Company Name').toUpperCase(), mg + 2, ly); ly += 5
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5)
+  const addrL = doc.splitTextToSize(company.address || '', halfW - 5)
+  doc.text(addrL.slice(0,3), mg + 2, ly); ly += addrL.slice(0,3).length * 3.7
+  if (company.phone) { doc.text('Phone: ' + company.phone, mg+2, ly); ly += 4 }
+  if (company.gstin) {
+    doc.setFont('helvetica','bold'); doc.text('GSTIN/UIN: ' + company.gstin, mg+2, ly)
+    doc.setFont('helvetica','normal'); ly += 4
+  }
+  if (company.bankName) {
+    doc.text('Bank: ' + company.bankName + '  A/C: ' + (company.accountNumber||''), mg+2, ly); ly+=4
+    doc.text('IFSC: ' + (company.ifsc||''), mg+2, ly)
+  }
+
+  // RIGHT — Invoice meta grid (2 columns of label + value pairs, 6 rows)
+  const mX = mg + halfW
+  const mW = halfW
+  const metaRows = [
+    ['Invoice No.', bill.billNumber, 'Dated', fmtDate(bill.date)],
+    ['Delivery Note', '', 'Mode/Terms of Payment', ''],
+    ['Reference No. & Date.', '', 'Other References', ''],
+    ["Buyer's Order No.", '', 'Dated', ''],
+    ['Dispatch Doc No.', '', 'Delivery Note Date', ''],
+    ['Dispatched through', '', 'Destination', ''],
+  ]
+  const mRowH = headerH / metaRows.length
+  const halfM = mW / 2
+  metaRows.forEach((row, ri) => {
+    const ry = y + ri * mRowH
+    doc.setDrawColor(0); doc.setLineWidth(0.15)
+    if (ri > 0) doc.line(mX, ry, mX + mW, ry)
+    doc.line(mX + halfM, ry, mX + halfM, ry + mRowH)
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70)
+    doc.text(row[0], mX+1.5, ry+3.5)
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+    if (row[1]) doc.text(row[1], mX+1.5, ry+mRowH-1.5)
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70,70,70)
+    doc.text(row[2], mX+halfM+1.5, ry+3.5)
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+    if (row[3]) doc.text(row[3], mX+halfM+1.5, ry+mRowH-1.5)
+  })
+  y += headerH
+
+  // ── CONSIGNEE / BUYER ────────────────────────────────────────
+  const partyH = 38
+  doc.setDrawColor(0); doc.setLineWidth(0.4)
+  doc.rect(mg, y, halfW, partyH)
+  doc.rect(mg + halfW, y, halfW, partyH)
+
+  const drawParty = (sx, sw, label) => {
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(80,80,80)
+    doc.text(label, sx+2, y+4)
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(0,0,0)
+    doc.text((bill.customerName||'').substring(0,34), sx+2, y+10)
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+    if (bill.customerAddress) {
+      const al = doc.splitTextToSize(bill.customerAddress, sw-5)
+      doc.text(al.slice(0,3), sx+2, y+16)
+    }
+    if (bill.customerPhone) doc.text('Ph: '+bill.customerPhone, sx+2, y+partyH-4)
+  }
+  drawParty(mg, halfW, 'Consignee (Ship to)')
+  drawParty(mg+halfW, halfW, 'Buyer (Bill to)')
+  y += partyH
+
+  // ── ITEMS TABLE ──────────────────────────────────────────────
+  const iCols = [
+    { lbl:'S No', w:10 }, { lbl:'Product', w:50 }, { lbl:'Desp', w:14 },
+    { lbl:'HSN', w:18 }, { lbl:'Feet', w:12 }, { lbl:'Pcs/wt', w:13 },
+    { lbl:'Quantity', w:19 }, { lbl:'Rate', w:18 }, { lbl:'GST', w:10 }, { lbl:'Net Amt', w:22 },
+  ]
+  const tW = iCols.reduce((s,c) => s+c.w, 0)
+  const iHdrH = 8
+
+  doc.setFillColor(230,230,230)
+  doc.rect(mg, y, tW, iHdrH, 'F')
+  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg, y, tW, iHdrH)
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+  let cx = mg
+  iCols.forEach(c => {
+    doc.line(cx, y, cx, y+iHdrH)
+    doc.text(c.lbl, cx+c.w/2, y+5.5, { align:'center' })
+    cx += c.w
+  })
+  doc.line(cx, y, cx, y+iHdrH); y += iHdrH
+
+  const rowH = 9
+  const validItems = bill.items.filter(i => i.description)
+
+  validItems.forEach((item) => {
+    if (y + rowH > H - 60) { doc.addPage(); y = mg }
+    doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(mg, y, tW, rowH)
+    cx = mg
+    const vals = [
+      item.sno, item.description, '',
+      item.hsnCode||'', '', '',
+      item.quantity ? fmtINR(item.quantity)+' '+(item.unit||'Nos') : '',
+      fmtINR(item.rate),
+      item.gstPercent ? String(item.gstPercent) : '0',
+      fmtINR(item.amount),
+    ]
+    vals.forEach((v, ci) => {
+      doc.line(cx, y, cx, y+rowH)
+      doc.setFont('helvetica', ci===1 ? 'bold' : 'normal')
+      doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+      const al = ci <= 2 ? 'left' : 'right'
+      const tx = al==='right' ? cx+iCols[ci].w-1.5 : cx+1.5
+      if (v!==undefined && v!==null && v!=='') doc.text(String(v), tx, y+6, { align:al })
+      cx += iCols[ci].w
+    })
+    doc.line(cx, y, cx, y+rowH); y += rowH
   })
 
-  // Totals divider line
-  doc.setDrawColor(226, 232, 240)
-  doc.line(mg, y, W - mg, y)
-  y += 6
-
-  // Totals right-side block
-  const totX = W - mg - 60
-  const totRight = W - mg
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(100, 116, 139)
-  doc.text('Subtotal (GST inclusive):', totX, y)
-  doc.setTextColor(15, 23, 42)
-  doc.text(`Rs. ${fmtINR(bill.subtotal)}`, totRight, y, { align: 'right' })
-  y += 6
-
-  if (bill.discount > 0) {
-    doc.setTextColor(100, 116, 139)
-    doc.text('Discount:', totX, y)
-    doc.setTextColor(220, 38, 38)
-    doc.text(`-Rs. ${fmtINR(bill.discount)}`, totRight, y, { align: 'right' })
-    y += 6
+  // Pad with blank rows
+  const padRows = Math.max(0, 12 - validItems.length)
+  for (let r=0; r<padRows; r++) {
+    doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(mg, y, tW, rowH)
+    cx=mg; iCols.forEach(c => { doc.line(cx,y,cx,y+rowH); cx+=c.w })
+    doc.line(cx,y,cx,y+rowH); y+=rowH
   }
 
-  doc.setDrawColor(200, 210, 220)
-  doc.line(totX, y, totRight, y)
-  y += 4
+  // Grand total row
+  const gtH = 8
+  doc.setFillColor(245,245,245); doc.rect(mg,y,tW,gtH,'F')
+  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg,y,tW,gtH)
+  cx=mg
+  iCols.forEach((c,ci) => {
+    doc.line(cx,y,cx,y+gtH)
+    if (ci===9) {
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0,0,0)
+      doc.text(fmtINR(bill.grandTotal), cx+c.w-1.5, y+5.5, { align:'right' })
+    }
+    cx+=c.w
+  })
+  doc.line(cx,y,cx,y+gtH); y+=gtH
 
-  doc.setFillColor(15, 23, 42)
-  doc.roundedRect(totX - 4, y - 1, totRight - totX + 6, 9, 2, 2, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9.5)
-  doc.setTextColor(255, 255, 255)
-  doc.text('GRAND TOTAL', totX, y + 6)
-  doc.text(`Rs. ${fmtINR(bill.grandTotal)}`, totRight, y + 6, { align: 'right' })
-  y += 12
+  // Amount in words row
+  const wH = 8
+  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(mg,y,tW,wH)
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+  doc.text('Total Amount (In Words):', mg+1.5, y+3.5)
+  doc.setFont('helvetica','normal')
+  const wText = amtWords(bill.grandTotal)
+  const wLines = doc.splitTextToSize(wText, tW-42)
+  doc.text(wLines[0]||'', mg+41, y+5.5)
+  y+=wH
 
-  // Payment status box (left side)
-  const psY = y - 12
-  const psColor = bill.paymentStatus === 'Paid' ? [22, 163, 74] : bill.paymentStatus === 'Partial' ? [217, 119, 6] : [220, 38, 38]
-  doc.setFillColor(...psColor)
-  doc.roundedRect(mg, psY - 1, 52, bill.paymentStatus === 'Partial' ? 16 : 10, 2, 2, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.setTextColor(255, 255, 255)
-  const psLabel = bill.paymentStatus === 'Paid' ? '✓  PAID' : bill.paymentStatus === 'Partial' ? 'PARTIAL PAYMENT' : 'PAYMENT DUE'
-  doc.text(psLabel, mg + 4, psY + 6)
-  if (bill.paymentStatus === 'Partial') {
-    doc.setFontSize(7.5)
-    doc.text(`Paid: Rs.${fmtINR(bill.amountPaid)}  |  Bal: Rs.${fmtINR(bill.balanceDue)}`, mg + 4, psY + 12)
+  doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(80,80,80)
+  doc.text('E. & O.E', mg+tW-1.5, y+3, { align:'right' }); y+=5
+
+  // ── GST SUMMARY TABLE ────────────────────────────────────────
+  const hsnMap = {}
+  validItems.forEach(item => {
+    const h = item.hsnCode || 'N/A'
+    const gstP = parseFloat(item.gstPercent)||0
+    const base = (parseFloat(item.quantity)||0) * (parseFloat(item.rate)||0)
+    const tax = base * gstP / 100
+    if (!hsnMap[h]) hsnMap[h] = { taxable:0, gstRate:gstP, cgst:0, sgst:0 }
+    hsnMap[h].taxable += base; hsnMap[h].cgst += tax/2; hsnMap[h].sgst += tax/2
+  })
+
+  const gC = [
+    { lbl:'HSN/SAC', w:20 }, { lbl:'Taxable Value', w:30 },
+    { lbl:'Central Tax Rate', w:20 }, { lbl:'Central Tax Amount', w:26 },
+    { lbl:'State Tax Rate', w:20 }, { lbl:'State Tax Amount', w:26 },
+    { lbl:'Total Tax Amount', w:28 },
+  ]
+  const gW = gC.reduce((s,c)=>s+c.w,0)
+  const gX = mg + (tW-gW)/2
+  const gRH = 7
+
+  // GST header
+  doc.setFillColor(230,230,230); doc.rect(gX,y,gW,gRH,'F')
+  doc.setDrawColor(0); doc.setLineWidth(0.25); doc.rect(gX,y,gW,gRH)
+  cx=gX
+  gC.forEach(c => {
+    doc.line(cx,y,cx,y+gRH)
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(0,0,0)
+    doc.text(c.lbl, cx+c.w/2, y+4.5, { align:'center' })
+    cx+=c.w
+  })
+  doc.line(cx,y,cx,y+gRH); y+=gRH
+
+  let totTax=0, totCGST=0, totSGST=0
+  Object.entries(hsnMap).forEach(([hsn,d]) => {
+    totTax+=d.taxable; totCGST+=d.cgst; totSGST+=d.sgst
+    const rv = [hsn, fmtINR(d.taxable), d.gstRate/2+'%', fmtINR(d.cgst), d.gstRate/2+'%', fmtINR(d.sgst), fmtINR(d.cgst+d.sgst)]
+    doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(gX,y,gW,gRH)
+    cx=gX
+    gC.forEach((c,ci) => {
+      doc.line(cx,y,cx,y+gRH)
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+      const al = ci===0 ? 'left' : 'right'
+      doc.text(rv[ci], al==='right'?cx+c.w-1.5:cx+1.5, y+4.5, { align:al })
+      cx+=c.w
+    })
+    doc.line(cx,y,cx,y+gRH); y+=gRH
+  })
+
+  // Totals row
+  const tv = ['Total', fmtINR(totTax), '', fmtINR(totCGST), '', fmtINR(totSGST), fmtINR(totCGST+totSGST)]
+  doc.setFillColor(240,240,240); doc.rect(gX,y,gW,gRH,'F')
+  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(gX,y,gW,gRH)
+  cx=gX
+  gC.forEach((c,ci) => {
+    doc.line(cx,y,cx,y+gRH)
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+    const al=ci===0?'left':'right'
+    if(tv[ci]) doc.text(tv[ci], al==='right'?cx+c.w-1.5:cx+1.5, y+4.5, { align:al })
+    cx+=c.w
+  })
+  doc.line(cx,y,cx,y+gRH); y+=gRH+3
+
+  // Tax in words + PAN
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
+  doc.text('Tax Amount (in words):  '+amtWords(totCGST+totSGST), mg, y); y+=5
+  if (company.gstin) {
+    doc.text("Company's PAN   :  "+company.gstin.substring(2,12), mg, y); y+=5
   }
 
-  y += 8
+  // ── DECLARATION + SIGNATORY ──────────────────────────────────
+  const declH=22, sigW=65, declW=tW-sigW
+  doc.setDrawColor(0); doc.setLineWidth(0.3)
+  doc.rect(mg,y,declW,declH)
+  doc.rect(mg+declW,y,sigW,declH)
+  doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(0,0,0)
+  doc.text('Declaration', mg+2, y+4)
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(50,50,50)
+  const declTxt = 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.'
+  doc.text(doc.splitTextToSize(declTxt, declW-4), mg+2, y+9)
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0)
+  doc.text('for '+(company.name||'').toUpperCase(), mg+declW+sigW/2, y+7, { align:'center' })
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5)
+  doc.text('Authorised Signatory', mg+declW+sigW/2, y+declH-3, { align:'center' })
+  y+=declH+4
 
-  // Notes
-  if (bill.notes) {
-    y += 4
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(100, 116, 139)
-    doc.text('Notes:', mg, y)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(15, 23, 42)
-    const noteLines = doc.splitTextToSize(bill.notes, W - mg * 2)
-    doc.text(noteLines.slice(0, 3), mg, y + 5)
-    y += 5 + noteLines.slice(0, 3).length * 4
-  }
-
-  // Terms
-  if (bill.includeTerms && bill.terms) {
-    y += 4
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(100, 116, 139)
-    doc.text('Terms & Conditions:', mg, y)
-    y += 5
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    doc.setTextColor(71, 85, 105)
-    const tLines = doc.splitTextToSize(bill.terms, W - mg * 2)
-    doc.text(tLines.slice(0, 6), mg, y)
-    y += tLines.slice(0, 6).length * 4
-  }
-
-  // Footer
-  doc.setFillColor(15, 23, 42)
-  doc.rect(0, H - 14, W, 14, 'F')
-  doc.setFont('helvetica', 'italic')
-  doc.setFontSize(7.5)
-  doc.setTextColor(100, 116, 139)
-  doc.text('This is a computer generated invoice', W / 2, H - 8, { align: 'center' })
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(148, 163, 184)
-  doc.text(`${company.name || ''}  |  ${bill.billNumber}  |  OpsAgent`, W / 2, H - 3, { align: 'center' })
+  doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(100,100,100)
+  doc.text('This is a Computer Generated Invoice', W/2, y, { align:'center' })
 
   doc.save(generateBillFilename(bill.customerName))
 }
 
+
 /* ─── Stock Update Confirm Modal ──────────────────────────── */
+
 function StockModal({ items, inventory, onSkip, onConfirm }) {
   const matchedItems = items.filter(it => {
     if (!it.inventorySku) return false
@@ -539,16 +630,22 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
   const totalRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + b.grandTotal, 0)
   const pendingAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : b.grandTotal), 0)
 
-  const updateStatus = (id, status) => {
+  const updateStatus = async (id, status) => {
     setBills(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: status } : b))
     setEditStatusId(null)
     showToast?.(`Payment status updated to ${status}`, 'success')
+    try {
+      await backendFetch(`/bills/${id}/status`, { method: 'PATCH', body: JSON.stringify({ paymentStatus: status }) })
+    } catch(err) { console.error(err) }
   }
 
-  const deleteBill = (id) => {
+  const deleteBill = async (id) => {
     if (!window.confirm('Delete this bill from history?')) return
     setBills(prev => prev.filter(b => b.id !== id))
     showToast?.('Bill deleted', 'info')
+    try {
+      await backendFetch(`/bills/${id}`, { method: 'DELETE' })
+    } catch(err) { console.error(err) }
   }
 
   const redownload = (b) => {
@@ -655,18 +752,17 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
 
 /* ─── Main BillingPanel ──────────────────────────────────── */
 export default function BillingPanel({ inventory = [], setInventory, showToast, onNavigate }) {
-  const company = (() => { try { return JSON.parse(localStorage.getItem('opsagent_company') || '{}') } catch { return {} } })()
+  const [company, setCompany] = useState({})
+  const [bills, setBills] = useState([])
 
-  const [bills, setBills] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('opsagent_bills') || '[]') } catch { return [] }
-  })
-
-  // Persist bills
   useEffect(() => {
-    localStorage.setItem('opsagent_bills', JSON.stringify(bills))
-  }, [bills])
+    backendFetch('/bills').then(setBills).catch(console.error)
+    backendFetch('/company').then(setCompany).catch(console.error)
+  }, [])
 
-  const [billNumber] = useState(() => generateBillNumber())
+  const billNumber = bills.length 
+    ? `BILL-${new Date().getFullYear()}-${String(bills.length + 1).padStart(4, '0')}`
+    : `BILL-${new Date().getFullYear()}-0001`
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
@@ -728,12 +824,17 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
     }
   }
 
-  const saveBill = (bill) => {
-    setBills(prev => [bill, ...prev])
-    showToast?.('Bill saved to history', 'success', 'Billing')
+  const saveBill = async (billData) => {
+    try {
+      const savedBill = await backendFetch('/bills', { method: 'POST', body: JSON.stringify(billData) })
+      setBills(prev => [savedBill, ...prev])
+      showToast?.('Bill saved to history', 'success', 'Billing')
+    } catch (err) {
+      showToast?.(err.message, 'error')
+    }
   }
 
-  const handleStockUpdate = (matchedItems) => {
+  const handleStockUpdate = async (matchedItems) => {
     const updated = [...inventory]
     matchedItems.forEach(m => {
       const idx = updated.findIndex(i => i.sku === m.sku)
@@ -745,8 +846,8 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
       }
     })
     setInventory(updated)
-    const bill = { ...stockModal.bill, inventoryUpdated: true }
-    saveBill(bill)
+    const billData = { ...stockModal.bill, updateInventory: true }
+    await saveBill(billData)
     setStockModal(null)
     showToast?.('Bill generated and stock updated!', 'success', 'Stock Updated')
   }

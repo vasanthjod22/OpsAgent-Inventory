@@ -136,7 +136,7 @@ Return ONLY a raw JSON object (no markdown, no code fences) with this exact stru
   "anomaly_alerts": [{"title": string, "message": string, "severity": "high"|"medium"|"low"}]
 }`
 
-export default function FinancePanel({ apiKey, financeSummary: summary, setFinanceSummary: setSummary, showToast }) {
+export default function FinancePanel({ financeSummary: summary, setFinanceSummary: setSummary, showToast }) {
   const fileRef = useRef()
   const [csvData, setCsvData] = useState(null)
   const [fileName, setFileName] = useState(null)
@@ -167,15 +167,10 @@ export default function FinancePanel({ apiKey, financeSummary: summary, setFinan
 
   const generateSummary = async () => {
     if (!csvData?.raw) return
-    if (!apiKey) {
-      setError('Please add your Gemini API key in Settings first.')
-      showToast?.('API key required — go to Settings', 'warning', 'Missing API Key')
-      return
-    }
     setLoading(true); setSummary(null); setError(null)
     try {
       const text = await callAI(
-        apiKey,
+        null,
         [{ role: 'user', content: `Analyze this accounting data and return a financial summary as JSON. Data:\n\n${csvData.raw}` }],
         `You are a financial analyst for a small service business. Return ONLY a raw JSON object (no markdown, no code fences) with this exact structure: {"total_revenue": <number>, "total_expenses": <number>, "top_expense_categories": [{"category": string, "amount": number}], "overdue_receivables": [{"client": string, "amount": number, "due_date": string}], "upcoming_payables": [{"vendor": string, "amount": number, "due_date": string}], "anomaly_alerts": [{"title": string, "message": string, "severity": "high"|"medium"|"low"}]}`
       )

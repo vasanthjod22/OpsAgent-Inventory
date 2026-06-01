@@ -1,9 +1,7 @@
 import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock } from 'lucide-react'
 import SummaryCard from '../SummaryCard'
 
-export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [] }) {
-  const quotations = (() => { try { return JSON.parse(localStorage.getItem('opsagent_quotations') || '[]') } catch { return [] } })()
-  const bills = (() => { try { return JSON.parse(localStorage.getItem('opsagent_bills') || '[]') } catch { return [] } })()
+export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [], quotations = [], bills = [] }) {
   const pendingApproval = quotations.filter(q => q.status === 'Sent').length
   const billRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
   const pendingBillsCount = bills.filter(b => b.paymentStatus !== 'Paid').length

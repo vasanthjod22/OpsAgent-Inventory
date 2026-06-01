@@ -13,7 +13,7 @@ import BillingPanel from './components/panels/BillingPanel'
 import AuthPage from './components/AuthPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
-import { INVENTORY_SEED, FINANCE_SEED, FINANCE_SUMMARY_SEED, GRN_HISTORY_SEED } from './data/seedData'
+import { backendFetch } from './utils/backend'
 
 const panels = {
   dashboard: DashboardPanel,
@@ -137,71 +137,53 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
-  // Persisted global state. Auto-load seed data if the demo user logs in and storage is empty.
-  const isDemo = currentUser?.username === 'demo'
-  const [apiKey, setApiKey]             = useLocalStorage(STORAGE_KEYS.API_KEY, '')
-  const [financeSummary, setFinanceSummary] = useLocalStorage(STORAGE_KEYS.FINANCE, isDemo ? FINANCE_SUMMARY_SEED : null)
-  const [transactions, setTransactions] = useLocalStorage(STORAGE_KEYS.FINANCE_RAW, isDemo ? FINANCE_SEED : [])
-  const [inventory, setInventory]       = useLocalStorage(STORAGE_KEYS.INVENTORY, isDemo ? INVENTORY_SEED : [])
-  const [grnHistory, setGrnHistory]     = useLocalStorage(STORAGE_KEYS.GRN_HISTORY, isDemo ? GRN_HISTORY_SEED : [])
-  const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, []) // persists chat history
+  // Global Data State
+  const [financeSummary, setFinanceSummary] = useState(null)
+  const [transactions, setTransactions] = useState([])
+  const [inventory, setInventory]       = useState([])
+  const [grnHistory, setGrnHistory]     = useState([])
+  const [quotations, setQuotations]     = useState([])
+  const [bills, setBills]               = useState([])
+  
+  // Persisted chat history
+  const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, [])
 
-  const handleUpdateStock = (grnNumber, items) => {
-    setInventory(prev => {
-      const newInv = [...prev]
-      items.forEach(item => {
-        if (!item.sku || item.quantity == null) return
-        const idx = newInv.findIndex(i => i.sku === item.sku)
-        if (idx !== -1) {
-          newInv[idx] = { ...newInv[idx], qty: newInv[idx].qty + Number(item.quantity) }
-        } else {
-          newInv.unshift({
-            sku: item.sku,
-            name: item.description || 'New Item',
-            category: 'Uncategorized',
-            qty: Number(item.quantity),
-            unit: item.unit || 'Unit',
-            min: 10,
-            max: 100,
-          })
-        }
-      })
-      return newInv
-    })
-    setGrnHistory(prev => [{
-      id: grnNumber,
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      items: items.length,
-      status: 'Processed',
-    }, ...prev])
-    showToast(`Stock updated from GRN #${grnNumber}`, 'success', 'GRN Approved')
+  const loadData = async () => {
+    try {
+      const [inv, finSum, fin, grn, qts, bll] = await Promise.all([
+        backendFetch('/inventory'),
+        backendFetch('/finance/summary'),
+        backendFetch('/finance'),
+        backendFetch('/grn'),
+        backendFetch('/quotations'),
+        backendFetch('/bills')
+      ])
+      setInventory(inv)
+      setFinanceSummary(finSum)
+      setTransactions(fin)
+      setGrnHistory(grn)
+      setQuotations(qts)
+      setBills(bll)
+    } catch (err) {
+      console.error('Failed to load initial data:', err)
+      showToast('Failed to load data from server', 'error')
+    }
   }
 
+  // Fetch all data on mount
+  useEffect(() => {
+    loadData()
+  }, [])
+
   const handleClearAll = () => {
-    setInventory([])
     setChatMessages([])
-    setFinanceSummary(null)
-    setTransactions([])
-    setGrnHistory([])
-    showToast('All data has been cleared', 'info', 'Data Reset')
-    setTimeout(() => window.location.reload(), 1000)
+    showToast('Local chat history cleared', 'info')
   }
 
   const handleLoadDemo = () => {
-    setInventory(INVENTORY_SEED)
-    setFinanceSummary(FINANCE_SUMMARY_SEED)
-    setTransactions(FINANCE_SEED)
-    setGrnHistory(GRN_HISTORY_SEED)
-    showToast('Demo data loaded successfully', 'success', 'Demo Data Loaded')
+    // Demo data loading logic can be moved to the backend or removed since we have backend seeds
+    showToast('Demo data should be loaded via backend DB reset', 'info')
   }
-
-  // Force-load demo data on first login for the demo user if they have no data (runs once)
-  useEffect(() => {
-    if (isDemo && inventory.length === 0 && !financeSummary) {
-      handleLoadDemo()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const ActivePanel = panels[activeNav]
 
@@ -219,9 +201,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
 
         <main className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-main)' }}>
           <div key={activeNav} className="max-w-7xl mx-auto p-6 h-full animate-fadein">
-            <ActivePanel
-              apiKey={apiKey}
-              setApiKey={setApiKey}
+              <ActivePanel
               financeSummary={financeSummary}
               setFinanceSummary={setFinanceSummary}
               transactions={transactions}
@@ -230,13 +210,15 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
               setInventory={setInventory}
               grnHistory={grnHistory}
               setGrnHistory={setGrnHistory}
+              quotations={quotations}
+              bills={bills}
               chatMessages={chatMessages}
               setChatMessages={setChatMessages}
-              onApproveGRN={handleUpdateStock}
               onClearAll={handleClearAll}
               onLoadDemo={handleLoadDemo}
               showToast={showToast}
               onNavigate={setActiveNav}
+              refreshData={loadData}
             />
           </div>
         </main>

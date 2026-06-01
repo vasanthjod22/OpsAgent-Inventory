@@ -35,6 +35,8 @@ app.use('/api/company',    companyRoutes);
 app.use('/api/ai',         aiRoutes);
 
 // ─── Health Check ───────────────────────────────────────────
+app.get('/', (req, res) => res.redirect('/api/health'));
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -56,7 +58,11 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Start Server ────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n✅  OpsAgent Backend running on http://localhost:${PORT}`);
-  console.log(`📋  Health check: http://localhost:${PORT}/api/health\n`);
-});
+if (process.env.NODE_ENV !== 'production' || require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n✅  OpsAgent Backend running on http://localhost:${PORT}`);
+    console.log(`📋  Health check: http://localhost:${PORT}/api/health\n`);
+  });
+}
+
+module.exports = app;

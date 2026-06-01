@@ -5,6 +5,7 @@ import {
   AlertTriangle, AlertCircle, Upload, Download,
   CheckCircle, XCircle, CloudUpload, FileText,
 } from 'lucide-react'
+import { backendFetch } from '../../utils/backend'
 
 /* ─── CSV Template Download ─────────────────────────────────── */
 const downloadTemplate = () => {
@@ -185,6 +186,10 @@ function ImportModal({ onClose, inventory, setInventory, showToast }) {
 
     const merged = inventory.map(item => updatedItems.find(u => u.sku === item.sku) || item)
     setInventory([...merged, ...newItems])
+    backendFetch('/inventory/import', { 
+      method: 'POST', 
+      body: JSON.stringify({ items: [...updatedItems, ...newItems] }) 
+    }).catch(console.error)
 
     const msg = errorRows.length > 0
       ? `Import Complete — ${newItems.length} new, ${updatedItems.length} updated, ${errorRows.length} rows skipped`
@@ -388,9 +393,14 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
     return 'OK'
   }
 
-  const handleDelete = (sku) => {
+  const handleDelete = async (sku) => {
     setInventory(prev => prev.filter(i => i.sku !== sku))
     showToast?.(`Item ${sku} deleted`, 'success')
+    try {
+      await backendFetch(`/inventory/${sku}`, { method: 'DELETE' })
+    } catch (err) {
+      showToast?.(err.message, 'error')
+    }
   }
 
   const enriched = inventory.map(item => ({ ...item, status: getStatus(item) }))
@@ -412,15 +422,21 @@ export default function InventoryPanel({ inventory = [], setInventory, showToast
     setAdding(true)
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newItem.sku || !newItem.name) return showToast?.('SKU and Name are required', 'error')
+    
+    const processedItem = { ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 };
+
     if (editingItemSku) {
-      setInventory(prev => prev.map(i => i.sku === editingItemSku ? { ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 } : i))
+      setInventory(prev => prev.map(i => i.sku === editingItemSku ? processedItem : i))
       showToast?.('Item updated successfully', 'success')
+      backendFetch(`/inventory/${editingItemSku}`, { method: 'PUT', body: JSON.stringify(processedItem) }).catch(console.error)
     } else {
-      setInventory(prev => [{ ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 }, ...prev])
+      setInventory(prev => [processedItem, ...prev])
       showToast?.('Item added successfully', 'success')
+      backendFetch(`/inventory`, { method: 'POST', body: JSON.stringify(processedItem) }).catch(err => showToast?.(err.message, 'error'))
     }
+    
     setAdding(false)
     setEditingItemSku(null)
     setNewItem({ sku: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '' })
