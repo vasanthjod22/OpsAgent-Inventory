@@ -129,7 +129,7 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #E2E8F0', borderRadius: '8px', background: '#F8FAFC' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Load Demo Data</p>
-              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Loads sample inventory items and finance data into localStorage.</p>
+              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Loads sample inventory items and finance data into the Cloud Database.</p>
             </div>
             <button 
               onClick={onLoadDemo}
@@ -150,14 +150,14 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
           </div>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Danger Zone</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Manage localStorage data securely.</p>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Manage data securely.</p>
           </div>
         </div>
         <div style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #FECACA', borderRadius: '8px', background: '#FEF2F2' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#991B1B' }}>Clear All Data</p>
-              <p style={{ fontSize: '13px', color: '#B91C1C', marginTop: '2px' }}>Clears all localStorage keys (Inventory, Chat, Finance). API key will be kept.</p>
+              <p style={{ fontSize: '13px', color: '#B91C1C', marginTop: '2px' }}>Clears local chat data. Contact support to wipe cloud database.</p>
             </div>
             <button 
               onClick={handleClear}
