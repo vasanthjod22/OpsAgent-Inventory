@@ -15,17 +15,7 @@ const plusDays = (n) => {
   d.setDate(d.getDate() + n)
   return d.toISOString().split('T')[0]
 }
-const generateQuotationNumber = () => {
-  try {
-    const existing = JSON.parse(localStorage.getItem('opsagent_quotations') || '[]')
-    const nextNumber = existing.length + 1
-    const padded = String(nextNumber).padStart(4, '0')
-    const year = new Date().getFullYear()
-    return `QT-${year}-${padded}`
-  } catch {
-    return `QT-${new Date().getFullYear()}-0001`
-  }
-}
+
 const generateFilename = (customerName, date) => {
   const cleanName = (customerName || 'Customer')
     .trim()
@@ -490,7 +480,7 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
       customerName: '',
       customerAddress: '',
       customerPhone: '',
-      quotationNumber: generateQuotationNumber(),
+      quotationNumber: 'Auto-generated',
       date: today(),
       validUntil: plusDays(10),
       items: [emptyItem()],

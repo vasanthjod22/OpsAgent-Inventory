@@ -19,16 +19,7 @@ const fmtINR = (n) =>
 const fmtINR0 = (n) =>
   Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
-const generateBillNumber = () => {
-  try {
-    const existing = JSON.parse(localStorage.getItem('opsagent_bills') || '[]')
-    const next = existing.length + 1
-    const padded = String(next).padStart(4, '0')
-    return `BILL-${new Date().getFullYear()}-${padded}`
-  } catch {
-    return `BILL-${new Date().getFullYear()}-0001`
-  }
-}
+
 
 const generateBillFilename = (customerName) => {
   const clean = (customerName || 'Customer')
@@ -874,7 +865,7 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
 
   const buildBillData = () => ({
     id: Date.now(),
-    billNumber,
+    billNumber: 'Auto-generated',
     customerName,
     customerPhone,
     customerAddress,
@@ -892,30 +883,33 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
     inventoryUpdated: false,
   })
 
+  const saveBill = async (billData, downloadPDF = false) => {
+    try {
+      const savedBill = await backendFetch('/bills', { method: 'POST', body: JSON.stringify(billData) })
+      setBills(prev => [savedBill, ...prev])
+      showToast?.('Bill saved to history', 'success', 'Billing')
+      
+      if (downloadPDF) {
+        generateBillPDF(savedBill, company)
+        showToast?.(`${generateBillFilename(savedBill.customerName)} downloaded!`, 'success', 'Bill Generated')
+      }
+    } catch (err) {
+      showToast?.(err.message, 'error')
+    }
+  }
+
   const handleGenerate = () => {
     if (!customerName.trim()) return showToast?.('Customer name is required', 'error')
     if (items.filter(i => i.description).length === 0) return showToast?.('Add at least one line item', 'error')
 
     const bill = buildBillData()
-    generateBillPDF(bill, company)
-    showToast?.(`${generateBillFilename(customerName)} downloaded!`, 'success', 'Bill Generated')
 
     // Check for inventory items to deduct
     const invItems = items.filter(i => i.inventorySku && Number(i.quantity) > 0)
     if (invItems.length > 0) {
       setStockModal({ bill, items: invItems })
     } else {
-      saveBill(bill)
-    }
-  }
-
-  const saveBill = async (billData) => {
-    try {
-      const savedBill = await backendFetch('/bills', { method: 'POST', body: JSON.stringify(billData) })
-      setBills(prev => [savedBill, ...prev])
-      showToast?.('Bill saved to history', 'success', 'Billing')
-    } catch (err) {
-      showToast?.(err.message, 'error')
+      saveBill(bill, true)
     }
   }
 
@@ -932,13 +926,13 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
     })
     setInventory(updated)
     const billData = { ...stockModal.bill, updateInventory: true }
-    await saveBill(billData)
+    await saveBill(billData, true)
     setStockModal(null)
     showToast?.('Bill generated and stock updated!', 'success', 'Stock Updated')
   }
 
   const handleSkipStock = () => {
-    saveBill(stockModal.bill)
+    saveBill(stockModal.bill, true)
     setStockModal(null)
   }
 
