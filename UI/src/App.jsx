@@ -10,6 +10,7 @@ import ChatPanel from './components/panels/ChatPanel'
 import SettingsPanel from './components/panels/SettingsPanel'
 import QuotationPanel from './components/panels/QuotationPanel'
 import BillingPanel from './components/panels/BillingPanel'
+import DemandsPanel from './components/panels/DemandsPanel'
 import AuthPage from './components/AuthPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
@@ -22,6 +23,7 @@ const panels = {
   inventory: InventoryPanel,
   quotation: QuotationPanel,
   billing:   BillingPanel,
+  demands:   DemandsPanel,
   chat: ChatPanel,
   settings: SettingsPanel,
 }

@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Settings,
   LogOut,
+  BarChart2,
 } from 'lucide-react'
 
 const navGroups = [
@@ -25,6 +26,7 @@ const navGroups = [
       { id: 'inventory', label: 'Inventory',  icon: Package },
       { id: 'quotation', label: 'Quotation',  icon: FileText },
       { id: 'billing',   label: 'Billing',    icon: Receipt },
+      { id: 'demands',   label: 'Demands',    icon: BarChart2 },
     ]
   },
   {

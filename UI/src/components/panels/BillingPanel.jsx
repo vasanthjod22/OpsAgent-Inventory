@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import jsPDF from 'jspdf'
 import {
   Plus, Trash2, Download, Eye, X, Receipt, Search,
@@ -6,9 +6,7 @@ import {
   User, Hash, DollarSign, FileText, Clock, Edit2,
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
-
-/* ─── Helpers ─────────────────────────────────────────────── */
-const todayISO = () => new Date().toISOString().split('T')[0]
+import AutocompleteInput from '../AutocompleteInput'
 const fmtDate = (iso) => {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
@@ -56,7 +54,7 @@ const makeItem = () => ({
   inventorySku: null,
 })
 
-const recalcSno = (items) => items.map((item, i) => ({ ...item, sno: i + 1 }))
+const recalcSno = (items) => (items || []).map((item, i) => ({ ...item, sno: i + 1 }))
 
 const calcAmount = (quantity, rate, cgst, sgst) => {
   const q = parseFloat(quantity) || 0
@@ -469,7 +467,7 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
               </tr>
             </thead>
             <tbody>
-              {matchedItems.map((m, i) => (
+              {(matchedItems || []).map((m, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #F1F5F9', background: m.afterStock < m.min ? '#FFF7ED' : 'white' }}>
                   <td style={{ padding: '9px 10px', fontWeight: 600, color: '#0F172A' }}>{m.name}</td>
                   <td style={{ padding: '9px 10px', color: '#64748B' }}>{m.billedQty} {m.unit}</td>
@@ -498,65 +496,7 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
   )
 }
 
-/* ─── Inventory Autocomplete ─────────────────────────────── */
-function DescriptionInput({ value, onChange, inventory, onSelectItem, inputRef }) {
-  const [query, setQuery] = useState(value)
-  const [open, setOpen] = useState(false)
-
-  const suggestions = query.length > 0
-    ? inventory.filter(i => i.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5)
-    : []
-
-  const handleChange = (v) => {
-    setQuery(v)
-    onChange(v)
-    setOpen(true)
-  }
-
-  const handleSelect = (item) => {
-    setQuery(item.name)
-    onChange(item.name)
-    onSelectItem(item)
-    setOpen(false)
-  }
-
-  useEffect(() => { setQuery(value) }, [value])
-
-  return (
-    <div style={{ position: 'relative', flex: 1 }}>
-      <textarea
-        ref={inputRef}
-        rows={1}
-        style={{ width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: '7px', fontSize: '13px', outline: 'none', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box', resize: 'vertical', minHeight: '34px' }}
-        value={query}
-        onChange={e => {
-          handleChange(e.target.value);
-          e.target.style.height = '34px';
-          e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Item description..."
-      />
-      {open && suggestions.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 100, marginTop: '2px', overflow: 'hidden' }}>
-          {suggestions.map(item => (
-            <button key={item.sku} onMouseDown={() => handleSelect(item)}
-              style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-              <div>
-                <span style={{ fontWeight: 600, color: '#0F172A' }}>{item.name}</span>
-                <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '6px' }}>{item.sku}</span>
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 700, background: '#EFF6FF', color: '#2563EB', padding: '2px 7px', borderRadius: '99px' }}>{item.qty} {item.unit}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+/* ─── Removed Inline DescriptionInput ─────────────────────────────── */
 
 const getRateLabel = (unit) => {
   const simple = ['Set', 'Box', 'Bag']
@@ -579,7 +519,7 @@ function LineItemsTable({ items, setItems, inventory }) {
   }
 
   const updateItem = (id, field, value) => {
-    setItems(prev => prev.map(item => {
+    setItems(prev => (prev || []).map(item => {
       if (item.id !== id) return item
       const updated = { ...item, [field]: value }
       updated.amount = calcAmount(
@@ -593,7 +533,7 @@ function LineItemsTable({ items, setItems, inventory }) {
   }
 
   const selectInventoryItem = (id, invItem) => {
-    setItems(prev => prev.map(item => {
+    setItems(prev => (prev || []).map(item => {
       if (item.id !== id) return item
       return { ...item, unit: invItem.unit || item.unit, inventorySku: invItem.sku }
     }))
@@ -613,7 +553,7 @@ function LineItemsTable({ items, setItems, inventory }) {
             </tr>
           </thead>
           <tbody>
-            {items.map((item, idx) => {
+            {(items || []).map((item, idx) => {
               const invItem = item.inventorySku ? inventory.find(i => i.sku === item.inventorySku) : null
               const overStock = invItem && Number(item.quantity) > invItem.qty
               return (
@@ -623,12 +563,22 @@ function LineItemsTable({ items, setItems, inventory }) {
                       <div style={{ paddingTop: '8px' }}>{item.sno}</div>
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <DescriptionInput
+                      <AutocompleteInput
                         inputRef={idx === items.length - 1 ? newRowRef : undefined}
                         value={item.description}
                         onChange={v => updateItem(item.id, 'description', v)}
                         inventory={inventory}
-                        onSelectItem={inv => selectInventoryItem(item.id, inv)}
+                        placeholder="Search item or type freely..."
+                        onSelect={inv => {
+                          updateItem(item.id, 'description', inv.name)
+                          if (inv.rate !== undefined && inv.rate !== null && inv.rate !== '') {
+                            updateItem(item.id, 'rate', inv.rate)
+                          }
+                          selectInventoryItem(item.id, inv)
+                          setTimeout(() => {
+                            document.getElementById(`qty-${item.id}`)?.focus()
+                          }, 50)
+                        }}
                       />
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
@@ -642,7 +592,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <div>
-                        <input style={{ ...inp, border: overStock ? '1px solid #EF4444' : inp.border }} type="number" min="0" step="any" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
+                        <input id={`qty-${item.id}`} style={{ ...inp, border: overStock ? '1px solid #EF4444' : inp.border }} type="number" min="0" step="any" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
                         {overStock && <div style={{ color: '#EF4444', fontSize: '10px', marginTop: '2px', fontWeight: 600 }}>Stock: {invItem.qty}</div>}
                       </div>
                     </td>
@@ -712,7 +662,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
   const pendingAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : b.grandTotal), 0)
 
   const updateStatus = async (id, status) => {
-    setBills(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: status } : b))
+    setBills(prev => (prev || []).map(b => b.id === id ? { ...b, paymentStatus: status } : b))
     setEditStatusId(null)
     showToast?.(`Payment status updated to ${status}`, 'success')
     try {
@@ -777,7 +727,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
                 {bills.length === 0 ? 'No bills yet. Generate your first bill!' : 'No bills match your search.'}
               </td></tr>
             )}
-            {filtered.map((b, i) => (
+            {(filtered || []).map((b, i) => (
               <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9', background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563EB' }}>{b.billNumber}</td>
                 <td style={{ padding: '12px 16px' }}>
@@ -832,7 +782,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
 }
 
 /* ─── Main BillingPanel ──────────────────────────────────── */
-export default function BillingPanel({ inventory = [], setInventory, showToast, onNavigate }) {
+function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate }) {
   const [company, setCompany] = useState({})
   const [bills, setBills] = useState([])
 
@@ -857,7 +807,7 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
   const [stockModal, setStockModal] = useState(null)
 
   // Derived totals
-  const subtotal = items.reduce((s, i) => s + (i.amount || 0), 0)
+  const subtotal = (items || []).reduce((s, i) => s + (i.amount || 0), 0)
   const discountVal = Number(discount || 0)
   const grandTotal = subtotal - discountVal
   const balanceDue = grandTotal - Number(amountPaid || 0)
@@ -981,14 +931,14 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Bill From (Company)
-                {!company.name && (
+                {!company?.name && !bannerDismissed && (
                   <button onClick={() => onNavigate?.('settings')} style={{ fontSize: '11px', color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>⚠ Set up in Settings →</button>
                 )}
               </div>
-              <div><Lbl>Company Name</Lbl><input style={readOnly} value={company.name || '—'} readOnly /></div>
+              <div><Lbl>Company Name</Lbl><input style={readOnly} value={company?.name || '—'} readOnly /></div>
               <div>
                 <Lbl>GSTIN</Lbl>
-                <input style={readOnly} value={company.gstin || '—'} readOnly />
+                <input style={readOnly} value={company?.gstin || '—'} readOnly />
                 <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Saved from Company Profile · <button onClick={() => onNavigate?.('settings')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563EB', fontSize: '11px', padding: 0 }}>Update in Settings →</button></div>
               </div>
               <div><Lbl>Bill Date</Lbl><input style={readOnly} value={fmtDate(todayISO())} readOnly /></div>
@@ -1081,5 +1031,50 @@ export default function BillingPanel({ inventory = [], setInventory, showToast, 
         <StockModal items={stockModal.items} inventory={inventory} onSkip={handleSkipStock} onConfirm={handleStockUpdate} />
       )}
     </div>
+  )
+}
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Panel Error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '32px', textAlign: 'center' }}>
+          <div style={{ color: '#EF4444', fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+            Something went wrong
+          </div>
+          <div style={{ color: '#6B7280', fontSize: '14px', marginBottom: '16px' }}>
+            {this.state.error?.message}
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ padding: '8px 16px', background: '#2563EB', color: 'white', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', border: 'none' }}
+          >
+            Try Again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+export default function BillingPanel(props) {
+  return (
+    <ErrorBoundary>
+      <BillingPanelBase {...props} />
+    </ErrorBoundary>
   )
 }

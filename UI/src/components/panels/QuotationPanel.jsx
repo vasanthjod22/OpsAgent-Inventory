@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import jsPDF from 'jspdf'
 import {
   Plus, Trash2, Download, Sparkles, Eye, X,
   FileText, ChevronDown, Building2, User, Hash,
   Calendar, List, DollarSign, FileCheck, Clock,
   CheckCircle, Send, XCircle, RefreshCw, RotateCcw,
+  Package, Search, Edit2,
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
+import AutocompleteInput from '../AutocompleteInput'
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 const today = () => new Date().toISOString().split('T')[0]
@@ -389,6 +391,203 @@ function PreviewModal({ formData, onClose }) {
   )
 }
 
+/* ─── Quotation History Component ───────────────────────────────────────── */
+function QuotationHistory({ quotations, onChangeStatus, onRedownload, onDelete }) {
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All Status')
+  const [editStatusId, setEditStatusId] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
+
+  const filtered = quotations.filter(q => {
+    const matchesSearch = !search ||
+      q.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+      q.quotationNumber?.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === 'All Status' || q.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
+
+  const approvedCount = quotations.filter(q => q.status === 'Approved').length
+  const pendingCount = quotations.filter(q => q.status === 'Draft' || q.status === 'Sent').length
+
+  const STATUS_COLORS_MAP = {
+    Draft:    { color: '#64748B', bg: '#F1F5F9', border: '#CBD5E1' },
+    Sent:     { color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
+    Approved: { color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' },
+    Rejected: { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+  }
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      {/* Header */}
+      <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: '#FAFBFC' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Clock size={17} color="#2563EB" />
+          </div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Quotation History</div>
+            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '1px' }}>{quotations.length} quotations total</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#2563EB' }}>{quotations.length}</div>
+            <div style={{ fontSize: '10px', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Total Quotations</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#16A34A' }}>{approvedCount}</div>
+            <div style={{ fontSize: '10px', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Approved</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#D97706' }}>{pendingCount}</div>
+            <div style={{ fontSize: '10px', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Pending</div>
+          </div>
+          
+          <div style={{ position: 'relative', width: '210px' }}>
+            <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by customer or QT no..."
+              style={{ width: '100%', paddingLeft: '30px', paddingRight: '10px', height: '34px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}
+            />
+          </div>
+          <select 
+            value={statusFilter} 
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{ height: '34px', padding: '0 12px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', outline: 'none', background: 'white', color: '#0F172A', cursor: 'pointer' }}
+          >
+            {['All Status', 'Draft', 'Sent', 'Approved', 'Rejected'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+              {['QT Number', 'Customer', 'Date', 'Items', 'Amount', 'Status', 'Actions'].map((h, i) => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: i >= 4 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: '60px', textAlign: 'center' }}>
+                <FileText size={48} color="#CBD5E1" style={{ marginBottom: '16px', display: 'block', margin: '0 auto 16px' }} />
+                <div style={{ color: '#64748B', fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
+                  {quotations.length === 0 ? 'No quotations yet' : 'No quotations match your search'}
+                </div>
+                <div style={{ color: '#94A3B8', fontSize: '13px' }}>
+                  {quotations.length === 0 ? 'Create your first quotation above' : 'Try a different name or clear the filter'}
+                </div>
+              </td></tr>
+            )}
+            {filtered.map((q, i) => {
+              const sc = STATUS_COLORS_MAP[q.status] || STATUS_COLORS_MAP.Draft
+              const isExpanded = expandedId === q.id
+              return (
+                <React.Fragment key={q.id}>
+                  <tr style={{ borderBottom: isExpanded ? 'none' : '1px solid #F1F5F9', background: i % 2 === 0 ? 'white' : '#FAFBFC', height: '48px' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563EB', cursor: 'pointer', fontFamily: 'monospace', fontSize: '13px' }} onClick={() => setExpandedId(isExpanded ? null : q.id)}>
+                      {q.quotationNumber}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontWeight: 600, color: '#0F172A' }}>{q.customerName}</div>
+                      {q.customerPhone && <div style={{ fontSize: '11px', color: '#94A3B8' }}>{q.customerPhone}</div>}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#64748B' }}>{fmtDate(q.date)}</td>
+                    <td style={{ padding: '12px 16px', color: '#64748B' }}>
+                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', background: '#F1F5F9', fontSize: '11px', fontWeight: 600 }}>
+                        {q.items?.filter(it => it.description)?.length || 0} items
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#0F172A' }}>₹{fmtINR(q.grandTotal)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center', position: 'relative' }}>
+                      {editStatusId === q.id ? (
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {Object.keys(STATUS_COLORS_MAP).map(s => (
+                            <button key={s} onClick={() => { onChangeStatus(q.id, s); setEditStatusId(null) }}
+                              style={{ padding: '3px 8px', borderRadius: '6px', border: `1px solid ${STATUS_COLORS_MAP[s].border}`, background: STATUS_COLORS_MAP[s].bg, color: STATUS_COLORS_MAP[s].color, fontWeight: 700, fontSize: '11px', cursor: 'pointer' }}>
+                              {s}
+                            </button>
+                          ))}
+                          <button onClick={() => setEditStatusId(null)} style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: '11px', cursor: 'pointer' }}>✕</button>
+                        </div>
+                      ) : (
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '99px', background: sc.bg, color: sc.color, fontSize: '11px', fontWeight: 700, border: `1px solid ${sc.border}` }}>
+                          {q.status || 'Draft'}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <button onClick={() => onRedownload(q)} title="Download PDF"
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.borderColor = '#93C5FD' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                          <Download size={14} />
+                        </button>
+                        <button onClick={() => setEditStatusId(editStatusId === q.id ? null : q.id)} title="Change status"
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#7C3AED'; e.currentTarget.style.borderColor = '#C4B5FD' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => onDelete(q.id)} title="Delete"
+                          style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+                      <td colSpan={7} style={{ padding: '16px 24px' }}>
+                        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
+                          <div style={{ padding: '12px 16px', background: '#F1F5F9', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '13px' }}>{q.quotationNumber} &nbsp;|&nbsp; <span style={{ color: '#64748B', fontWeight: 600 }}>{q.customerName}</span></span>
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                {['#', 'Description', 'Qty', 'Unit', 'Rate', 'Amount'].map((h, hi) => (
+                                  <th key={h} style={{ padding: '8px 12px', textAlign: hi >= 2 ? 'right' : 'left', color: '#64748B', fontWeight: 600 }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {q.items?.filter(it => it.description).map((it, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                  <td style={{ padding: '8px 12px', color: '#94A3B8' }}>{idx + 1}</td>
+                                  <td style={{ padding: '8px 12px', fontWeight: 600, color: '#0F172A' }}>{it.description}</td>
+                                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{it.quantity}</td>
+                                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{it.unit}</td>
+                                  <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B' }}>{fmtINR(it.rate)}</td>
+                                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>{fmtINR(it.amount || (it.quantity * it.rate))}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <div style={{ padding: '12px 16px', background: '#FAFBFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                            <span style={{ color: '#64748B', fontWeight: 600 }}>Subtotal: ₹{fmtINR(q.subtotal)}</span>
+                            <span style={{ color: '#0F172A', fontWeight: 800 }}>Grand Total: ₹{fmtINR(q.grandTotal)}</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Status Badge ──────────────────────────────────────────────────────────── */
 function StatusBadge({ status }) {
   const m = STATUS_META[status] || STATUS_META.Draft
@@ -399,10 +598,13 @@ function StatusBadge({ status }) {
   )
 }
 
+/* ─── Removed Inline DescriptionInput ─────────────────────────────────────── */
+
 /* ─── Main QuotationPanel ──────────────────────────────────────────────── */
 export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
   const [company, setCompany] = useState({})
   const [quotations, setQuotations] = useState([])
+  const [inventory, setInventory] = useState([])
 
   const [form, setForm] = useState({
     companyName: '',
@@ -429,6 +631,7 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
 
   useEffect(() => {
     backendFetch('/quotations').then(setQuotations).catch(console.error)
+    backendFetch('/inventory').then(setInventory).catch(console.error)
     backendFetch('/company').then(c => {
       setCompany(c)
       setForm(prev => ({
@@ -580,87 +783,11 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
             Create professional quotations and export as PDF
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setTab(tab === 'form' ? 'history' : 'form')}
-            className="btn-press"
-            style={{ height: '38px', padding: '0 16px', borderRadius: '8px', background: tab === 'history' ? '#0F172A' : 'white', color: tab === 'history' ? 'white' : '#0F172A', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <List size={15} />{tab === 'history' ? 'Back to Form' : `History (${quotations.length})`}
-          </button>
-          <button
-            onClick={resetForm}
-            className="btn-press"
-            style={{ height: '38px', padding: '0 16px', borderRadius: '8px', background: 'white', color: '#64748B', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <RotateCcw size={14} />New
-          </button>
-        </div>
       </div>
 
-      {tab === 'history' ? (
-        /* ────── HISTORY TAB ────── */
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FileText size={18} color="#2563EB" />
-            <span style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Quotation History</span>
-          </div>
-          {quotations.length === 0 ? (
-            <div style={{ padding: '60px', textAlign: 'center' }}>
-              <FileText size={40} color="#CBD5E1" style={{ marginBottom: '12px' }} />
-              <p style={{ color: '#94A3B8', fontSize: '14px' }}>No quotations yet. Generate your first one!</p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                    {['QT Number', 'Customer', 'Date', 'Amount', 'Status', 'Actions'].map(h => (
-                      <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748B', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {quotations.map((q, i) => (
-                    <tr key={q.id} style={{ borderBottom: '1px solid #F1F5F9', background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563EB' }}>{q.quotationNumber}</td>
-                      <td style={{ padding: '12px 16px', color: '#0F172A', fontWeight: 600 }}>{q.customerName}</td>
-                      <td style={{ padding: '12px 16px', color: '#64748B' }}>{fmtDate(q.date)}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0F172A' }}>₹{fmtINR(q.grandTotal)}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <select
-                          value={q.status}
-                          onChange={e => changeStatus(q.id, e.target.value)}
-                          style={{ ...inp, width: 'auto', padding: '4px 8px', fontSize: '11px', fontWeight: 700, background: STATUS_META[q.status]?.bg, color: STATUS_META[q.status]?.color, border: 'none', borderRadius: '99px', cursor: 'pointer' }}
-                        >
-                          {Object.keys(STATUS_META).map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button onClick={() => redownload(q)} title="Download PDF" className="btn-press" style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#F0FDF4', border: '1px solid #BBF7D0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Download size={14} color="#16A34A" />
-                          </button>
-                          <button onClick={() => loadFromHistory(q)} title="Load into form" className="btn-press" style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#EFF6FF', border: '1px solid #BFDBFE', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FileText size={14} color="#2563EB" />
-                          </button>
-                          <button onClick={() => deleteQuotation(q.id)} title="Delete" className="btn-press" style={{ width: '30px', height: '30px', borderRadius: '7px', background: '#FEF2F2', border: '1px solid #FECACA', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Trash2 size={14} color="#DC2626" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* ────── FORM + PREVIEW ────── */
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }} className="quotation-grid">
-          {/* ── LEFT: FORM ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }} className="quotation-grid">
+        {/* ── LEFT: FORM ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* Company Details */}
             <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
@@ -734,16 +861,18 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
                   const amount = Number(item.quantity || 0) * Number(item.rate || 0)
                   return (
                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 80px 90px 90px 36px', gap: '6px', alignItems: 'center' }}>
-                      <textarea 
-                        rows={1}
-                        style={{ ...inp, resize: 'vertical', minHeight: '34px', overflow: 'hidden' }} 
-                        value={item.description} 
-                        onChange={e => {
-                          setItem(item.id, 'description', e.target.value);
-                          e.target.style.height = '34px';
-                          e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
-                        }} 
-                        placeholder="Service/Item description" 
+                      <AutocompleteInput
+                        value={item.description}
+                        onChange={v => setItem(item.id, 'description', v)}
+                        inventory={inventory}
+                        placeholder="Search item or type freely..."
+                        onSelect={inv => {
+                          setItem(item.id, 'description', inv.name)
+                          if (inv.rate !== undefined && inv.rate !== null && inv.rate !== '') {
+                            setItem(item.id, 'rate', inv.rate)
+                          }
+                          if (inv.unit) setItem(item.id, 'unit', inv.unit)
+                        }}
                       />
                       <input type="number" style={{ ...inp, textAlign: 'center' }} value={item.quantity} min="0" onChange={e => setItem(item.id, 'quantity', e.target.value)} />
                       <select style={inp} value={item.unit} onChange={e => setItem(item.id, 'unit', e.target.value)}>
@@ -848,7 +977,14 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
             </div>
           </div>
         </div>
-      )}
+
+      {/* ────── QUOTATION HISTORY ────── */}
+      <QuotationHistory
+        quotations={quotations}
+        onChangeStatus={changeStatus}
+        onRedownload={redownload}
+        onDelete={deleteQuotation}
+      />
 
       {/* Preview Modal */}
       {showPreview && <PreviewModal formData={form} onClose={() => setShowPreview(false)} />}
