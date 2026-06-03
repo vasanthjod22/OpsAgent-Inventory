@@ -734,7 +734,17 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
                   const amount = Number(item.quantity || 0) * Number(item.rate || 0)
                   return (
                     <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 80px 90px 90px 36px', gap: '6px', alignItems: 'center' }}>
-                      <input style={inp} value={item.description} onChange={e => setItem(item.id, 'description', e.target.value)} placeholder="Service/Item description" />
+                      <textarea 
+                        rows={1}
+                        style={{ ...inp, resize: 'vertical', minHeight: '34px', overflow: 'hidden' }} 
+                        value={item.description} 
+                        onChange={e => {
+                          setItem(item.id, 'description', e.target.value);
+                          e.target.style.height = '34px';
+                          e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+                        }} 
+                        placeholder="Service/Item description" 
+                      />
                       <input type="number" style={{ ...inp, textAlign: 'center' }} value={item.quantity} min="0" onChange={e => setItem(item.id, 'quantity', e.target.value)} />
                       <select style={inp} value={item.unit} onChange={e => setItem(item.id, 'unit', e.target.value)}>
                         {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}

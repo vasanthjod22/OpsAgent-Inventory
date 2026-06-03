@@ -524,11 +524,16 @@ function DescriptionInput({ value, onChange, inventory, onSelectItem, inputRef }
 
   return (
     <div style={{ position: 'relative', flex: 1 }}>
-      <input
+      <textarea
         ref={inputRef}
-        style={{ width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: '7px', fontSize: '13px', outline: 'none', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}
+        rows={1}
+        style={{ width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: '7px', fontSize: '13px', outline: 'none', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box', resize: 'vertical', minHeight: '34px' }}
         value={query}
-        onChange={e => handleChange(e.target.value)}
+        onChange={e => {
+          handleChange(e.target.value);
+          e.target.style.height = '34px';
+          e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+        }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Item description..."

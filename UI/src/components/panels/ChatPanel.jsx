@@ -196,17 +196,31 @@ IMPORTANT: When asked about "low stock", carefully check all inventory items. An
             display: 'flex', alignItems: 'center', padding: '4px 4px 4px 16px',
             transition: 'all 0.2s'
           }} className="focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
-            <input
-              type="text"
+            <textarea
               value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendMessage() } }}
+              onChange={e => {
+                setInput(e.target.value);
+                e.target.style.height = '40px';
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                  e.target.style.height = '40px';
+                }
+              }}
               disabled={loading}
-              placeholder="Message OpsAgent..."
-              style={{ flex: 1, height: '40px', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', fontWeight: 500, color: '#0F172A', fontFamily: "'Inter', sans-serif" }}
+              placeholder="Message OpsAgent... (Shift+Enter for new line)"
+              rows={1}
+              style={{
+                flex: 1, minHeight: '40px', maxHeight: '120px', resize: 'none', background: 'transparent',
+                border: 'none', outline: 'none', fontSize: '14px', fontWeight: 500, color: '#0F172A',
+                fontFamily: "'Inter', sans-serif", paddingTop: '10px', overflowY: 'auto'
+              }}
             />
             <button
-              onClick={() => sendMessage(null)}
+              onClick={() => { sendMessage(null); setInput(''); }}
               disabled={!input.trim() || loading}
               className="btn-press"
               style={{
