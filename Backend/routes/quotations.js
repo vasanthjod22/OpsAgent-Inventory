@@ -7,19 +7,36 @@ const router = express.Router();
 
 // GET /api/quotations
 router.get('/', auth, async (req, res) => {
-  const { data: quotations, error } = await supabase.from('quotations').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
+  const { data: quotations, error } = await supabase
+    .from('quotations')
+    .select('*')
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: false });
+
   if (error) return res.status(500).json({ error: error.message });
 
   const formatted = quotations.map(q => ({
     id: q.id,
     quotationNumber: q.quotation_number,
+    type: q.type || 'breakdown',
     customerName: q.customer_name,
     customerPhone: q.customer_phone,
     customerEmail: q.customer_email,
     customerAddress: q.customer_address,
     date: q.date,
     validity: q.validity,
-    items: q.items,
+    // Breakdown fields
+    projectName: q.project_name || '',
+    sections: q.sections || [],
+    items: q.items || [],
+    // Fixed fields
+    packageName: q.package_name || '',
+    packageDescription: q.package_description || '',
+    inclusions: q.inclusions || [],
+    exclusions: q.exclusions || [],
+    basePrice: q.base_price || 0,
+    gstPercent: q.gst_percent || 18,
+    // Common
     subtotal: q.subtotal,
     discount: q.discount,
     grandTotal: q.grand_total,
@@ -29,18 +46,30 @@ router.get('/', auth, async (req, res) => {
     status: q.status,
     createdAt: q.created_at
   }));
+
   res.json(formatted);
 });
 
 // POST /api/quotations — create quotation
 router.post('/', auth, async (req, res) => {
-  const { customerName, customerPhone, customerEmail, customerAddress, items, subtotal, discount, grandTotal, notes, includeTerms, terms, date, validity } = req.body;
+  const {
+    customerName, customerPhone, customerEmail, customerAddress,
+    type, projectName,
+    sections, items,
+    packageName, packageDescription, inclusions, exclusions, basePrice, gstPercent,
+    subtotal, discount, grandTotal,
+    notes, includeTerms, terms, date, validity
+  } = req.body;
 
-  if (!customerName || !items || items.length === 0) {
-    return res.status(400).json({ error: 'customerName and items are required' });
+  if (!customerName) {
+    return res.status(400).json({ error: 'customerName is required' });
   }
 
-  const { count, error: countErr } = await supabase.from('quotations').select('*', { count: 'exact', head: true }).eq('user_id', req.user.id);
+  const { count, error: countErr } = await supabase
+    .from('quotations')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', req.user.id);
+
   if (countErr) return res.status(500).json({ error: countErr.message });
 
   const next = (count || 0) + 1;
@@ -49,11 +78,20 @@ router.post('/', auth, async (req, res) => {
   const quotation = {
     user_id: req.user.id,
     quotation_number: quotationNumber,
+    type: type || 'breakdown',
     customer_name: customerName,
     customer_phone: customerPhone || '',
     customer_email: customerEmail || '',
     customer_address: customerAddress || '',
-    items,
+    project_name: projectName || '',
+    sections: sections || [],
+    items: items || [],
+    package_name: packageName || '',
+    package_description: packageDescription || '',
+    inclusions: inclusions || [],
+    exclusions: exclusions || [],
+    base_price: basePrice || 0,
+    gst_percent: gstPercent || 18,
     subtotal: subtotal || 0,
     discount: discount || 0,
     grand_total: grandTotal || 0,
@@ -65,12 +103,23 @@ router.post('/', auth, async (req, res) => {
     status: 'Draft'
   };
 
-  const { data: inserted, error } = await supabase.from('quotations').insert([quotation]).select().single();
+  const { data: inserted, error } = await supabase
+    .from('quotations')
+    .insert([quotation])
+    .select()
+    .single();
+
   if (error) return res.status(500).json({ error: error.message });
 
-  inserted.quotationNumber = inserted.quotation_number;
-  inserted.customerName = inserted.customer_name;
-  res.status(201).json(inserted);
+  res.status(201).json({
+    ...inserted,
+    quotationNumber: inserted.quotation_number,
+    customerName: inserted.customer_name,
+    type: inserted.type || 'breakdown',
+    sections: inserted.sections || [],
+    inclusions: inserted.inclusions || [],
+    exclusions: inserted.exclusions || [],
+  });
 });
 
 // PATCH /api/quotations/:id/status
@@ -85,13 +134,18 @@ router.patch('/:id/status', auth, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   if (!updated) return res.status(404).json({ error: 'Quotation not found' });
-  
   res.json(updated);
 });
 
 // DELETE /api/quotations/:id
 router.delete('/:id', auth, async (req, res) => {
-  const { data, error } = await supabase.from('quotations').delete().eq('user_id', req.user.id).eq('id', req.params.id).select();
+  const { data, error } = await supabase
+    .from('quotations')
+    .delete()
+    .eq('user_id', req.user.id)
+    .eq('id', req.params.id)
+    .select();
+
   if (error) return res.status(500).json({ error: error.message });
   if (!data || data.length === 0) return res.status(404).json({ error: 'Not found' });
   res.json({ message: 'Deleted' });
