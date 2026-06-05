@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import AutocompleteInput from '../AutocompleteInput'
+const todayISO = () => new Date().toISOString().split('T')[0]
 const fmtDate = (iso) => {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
