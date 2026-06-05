@@ -11,12 +11,14 @@ import SettingsPanel from './components/panels/SettingsPanel'
 import QuotationPanel from './components/panels/QuotationPanel'
 import BillingPanel from './components/panels/BillingPanel'
 import DemandsPanel from './components/panels/DemandsPanel'
+import CustomersPanel from './components/panels/CustomersPanel'
 import AuthPage from './components/AuthPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
 import { backendFetch } from './utils/backend'
 
 const panels = {
+  customers: CustomersPanel,
   dashboard: DashboardPanel,
   finance: FinancePanel,
   grn: GRNPanel,
@@ -147,19 +149,21 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
   const [grnHistory, setGrnHistory]     = useState([])
   const [quotations, setQuotations]     = useState([])
   const [bills, setBills]               = useState([])
+  const [customers, setCustomers]       = useState([])
   
   // Persisted chat history
   const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, [])
 
   const loadData = async () => {
     try {
-      const [inv, finSum, fin, grn, qts, bll] = await Promise.all([
+      const [inv, finSum, fin, grn, qts, bll, cust] = await Promise.all([
         backendFetch('/inventory'),
         backendFetch('/finance/summary'),
         backendFetch('/finance'),
         backendFetch('/grn'),
         backendFetch('/quotations'),
-        backendFetch('/bills')
+        backendFetch('/bills'),
+        backendFetch('/customers'),
       ])
       setInventory(inv)
       setFinanceSummary(finSum)
@@ -167,6 +171,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
       setGrnHistory(grn)
       setQuotations(qts)
       setBills(bll)
+      setCustomers(cust)
     } catch (err) {
       console.error('Failed to load initial data:', err)
       showToast('Failed to load data from server', 'error')
@@ -215,6 +220,8 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
               setGrnHistory={setGrnHistory}
               quotations={quotations}
               bills={bills}
+              customers={customers}
+              setCustomers={setCustomers}
               chatMessages={chatMessages}
               setChatMessages={setChatMessages}
               onClearAll={handleClearAll}

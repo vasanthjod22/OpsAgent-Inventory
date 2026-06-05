@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   BarChart2,
+  Users,
 } from 'lucide-react'
 
 const navGroups = [
@@ -22,6 +23,7 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
+      { id: 'customers', label: 'Customers',  icon: Users },
       { id: 'grn',       label: 'GRN Upload', icon: Upload },
       { id: 'inventory', label: 'Inventory',  icon: Package },
       { id: 'quotation', label: 'Quotation',  icon: FileText },

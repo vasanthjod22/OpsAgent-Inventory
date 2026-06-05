@@ -11,6 +11,7 @@ const financeRoutes   = require('./routes/finance');
 const grnRoutes       = require('./routes/grn');
 const companyRoutes   = require('./routes/company');
 const aiRoutes        = require('./routes/ai');
+const customerRoutes  = require('./routes/customers');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -33,6 +34,7 @@ app.use('/api/finance',    financeRoutes);
 app.use('/api/grn',        grnRoutes);
 app.use('/api/company',    companyRoutes);
 app.use('/api/ai',         aiRoutes);
+app.use('/api/customers',  customerRoutes);
 
 // ─── Health Check ───────────────────────────────────────────
 app.get('/', (req, res) => res.redirect('/api/health'));
@@ -42,7 +44,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     message: 'OpsAgent Backend is running',
     timestamp: new Date().toISOString(),
-    routes: ['/api/auth', '/api/inventory', '/api/bills', '/api/quotations', '/api/finance', '/api/grn', '/api/company', '/api/ai'],
+    routes: ['/api/auth', '/api/inventory', '/api/bills', '/api/quotations', '/api/finance', '/api/grn', '/api/company', '/api/ai', '/api/customers'],
   });
 });
 
