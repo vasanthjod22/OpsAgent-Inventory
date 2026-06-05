@@ -232,6 +232,35 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
           </div>
         </div>
       </div>
+
+      {/* Quick Reports */}
+      <div className="glass-card hover-up" style={{ borderRadius: '12px', padding: '24px', marginTop: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '16px' }}>Quick Reports</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+          {[
+            { label: 'Sales Report', icon: TrendingUp },
+            { label: 'Stock Report', icon: Package },
+            { label: 'GST Report', icon: Receipt },
+            { label: 'Customer Report', icon: Users },
+          ].map(({ label, icon: Icon }, i) => (
+            <button
+              key={i}
+              onClick={() => onNavigate('reports')}
+              className="btn-press"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0',
+                borderRadius: '8px', color: '#334155', fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
+              onMouseLeave={e => e.currentTarget.style.background = '#F8FAFC'}
+            >
+              <Icon size={16} color="#2563EB" /> {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
     </div>
   )
 }

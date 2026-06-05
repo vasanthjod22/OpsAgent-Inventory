@@ -17,6 +17,7 @@ const navGroups = [
     label: 'Overview',
     items: [
       { id: 'dashboard', label: 'Dashboard',  icon: LayoutDashboard },
+      { id: 'reports',   label: 'Reports',    icon: BarChart2 },
       { id: 'finance',   label: 'Finance',    icon: DollarSign },
     ]
   },

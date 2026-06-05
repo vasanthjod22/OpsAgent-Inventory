@@ -12,6 +12,7 @@ import QuotationPanel from './components/panels/QuotationPanel'
 import BillingPanel from './components/panels/BillingPanel'
 import DemandsPanel from './components/panels/DemandsPanel'
 import CustomersPanel from './components/panels/CustomersPanel'
+import ReportsPanel from './components/panels/ReportsPanel'
 import AuthPage from './components/AuthPage'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
@@ -28,6 +29,7 @@ const panels = {
   demands:   DemandsPanel,
   chat: ChatPanel,
   settings: SettingsPanel,
+  reports: ReportsPanel,
 }
 
 /* ─── Root App — Auth Gate ─────────────────────────────────────────────── */

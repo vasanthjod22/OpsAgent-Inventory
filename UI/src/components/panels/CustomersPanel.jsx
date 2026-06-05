@@ -5,7 +5,7 @@ import {
   Star, ChevronLeft, Edit2, Receipt, FileText, Package,
   Clock, CheckCircle, XCircle, MessageSquare, Copy, Trash2,
   X, Save, Building2, CreditCard, StickyNote, ArrowUpDown,
-  Eye, RefreshCw, Send, BarChart2
+  Eye, RefreshCw, Send, BarChart2, Tag
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 
@@ -56,6 +56,8 @@ const buildCustomers = (bills = [], quotations = [], manualCustomers = []) => {
         firstSeen: fallbackData.date || new Date().toISOString().split('T')[0],
         addedManually: false,
         manualId: null,
+        tags: [],
+        contacts: [],
       }
     }
   }
@@ -116,6 +118,8 @@ const buildCustomers = (bills = [], quotations = [], manualCustomers = []) => {
     if (mc.city) c.city = mc.city
     if (mc.gstin) c.gstin = mc.gstin
     if (mc.notes) c.notes = mc.notes
+    if (mc.tags) c.tags = mc.tags
+    if (mc.contacts) c.contacts = mc.contacts
   })
 
   return Object.values(customerMap)
@@ -181,6 +185,9 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
   const isTop = customer.totalPurchases >= 100000
   const hasOutstanding = customer.outstanding > 0
   const topItemsList = Object.values(customer.topItems).sort((a, b) => b.amount - a.amount).slice(0, 2)
+  
+  const primaryContact = customer.contacts?.find(c => c.is_primary) || customer.contacts?.[0]
+  const displayPhone = primaryContact?.phone || customer.phone
 
   useEffect(() => {
     const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false) }
@@ -222,9 +229,19 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
               <MapPin size={10} style={{ marginRight: 3 }} />{customer.city || customer.address.split(',')[0]}
             </div>
           )}
-          {customer.phone && (
+          {displayPhone && (
             <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
-              <Phone size={10} style={{ marginRight: 3 }} />{customer.phone}
+              <Phone size={10} style={{ marginRight: 3 }} />
+              {displayPhone} {primaryContact && <span style={{fontSize:9, color:'#94A3B8'}}>({primaryContact.full_name})</span>}
+            </div>
+          )}
+          {customer.tags && customer.tags.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+              {customer.tags.map((t, i) => (
+                <span key={i} style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `${t.color}15`, color: t.color, border: `1px solid ${t.color}30` }}>
+                  {t.label}
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -245,6 +262,10 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
                 { label: 'View Details', icon: Eye, action: onView },
                 { label: 'Create Bill', icon: Receipt, action: onCreateBill },
                 { label: 'Create Quotation', icon: FileText, action: onCreateQuote },
+                ...(primaryContact ? [
+                  { label: `Call ${primaryContact.full_name.split(' ')[0]}`, icon: Phone, action: () => window.location.href=`tel:+91${primaryContact.phone}` },
+                  { label: `WhatsApp ${primaryContact.full_name.split(' ')[0]}`, icon: MessageSquare, action: () => window.open(`https://wa.me/91${primaryContact.phone}`, '_blank') },
+                ] : []),
                 ...(hasOutstanding ? [{ label: 'Send Reminder', icon: MessageSquare, action: onRemind }] : []),
                 { label: 'Copy Phone', icon: Copy, action: onCopy },
                 { label: 'Delete', icon: Trash2, action: onDelete, danger: true },
@@ -310,6 +331,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
     { id: 'bills', label: 'Bills', icon: Receipt },
     { id: 'quotations', label: 'Quotations', icon: FileText },
     { id: 'items', label: 'Top Items', icon: Package },
+    { id: 'contacts', label: 'Contacts', icon: Users },
   ]
 
   const paidBills = customer.bills.filter(b => (b.paymentStatus || b.payment_status) === 'Paid')
@@ -562,14 +584,49 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                   {topItemsList.map((item, i) => (
                     <div key={i} style={{ padding: '12px 16px', background: '#F8FAFC', borderRadius: 10, border: '1px solid #E2E8F0' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{item.name}</div>
-                        <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-                          <span style={{ color: '#64748B' }}>{item.qty} {item.unit}</span>
-                          <span style={{ fontWeight: 700, color: '#059669' }}>{fmt(item.amount)}</span>
+                         <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{item.name}</div>
+                         <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+                           <span style={{ color: '#64748B' }}>{item.qty} {item.unit}</span>
+                           <span style={{ fontWeight: 700, color: '#059669' }}>{fmt(item.amount)}</span>
+                         </div>
+                       </div>
+                       <div style={{ height: 6, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
+                         <div style={{ width: `${(item.amount / maxAmount) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 99, transition: 'width 0.5s' }} />
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'contacts' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <Btn onClick={() => window.dispatchEvent(new CustomEvent('open-contact-modal'))} icon={Plus} variant="primary" small>Add Contact</Btn>
+              </div>
+              {(!customer.contacts || customer.contacts.length === 0) ? <p style={{ fontSize: 13, color: '#94A3B8' }}>No contacts added yet</p> : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                  {customer.contacts.sort((a,b)=> b.is_primary ? 1 : -1).map((c, i) => (
+                    <div key={i} style={{ border: `1px solid ${c.is_primary ? '#FCD34D' : '#E2E8F0'}`, background: c.is_primary ? '#FFFBEB' : '#F8FAFC', padding: 16, borderRadius: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {c.is_primary && <Star size={14} fill="#F59E0B" color="#F59E0B" />}
+                            {c.full_name}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{c.designation || 'Contact Person'}</div>
                         </div>
+                        {c.is_primary && <Badge text="PRIMARY" color="#D97706" bg="#FEF3C7" />}
                       </div>
-                      <div style={{ height: 6, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{ width: `${(item.amount / maxAmount) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 99, transition: 'width 0.5s' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={12}/>{c.phone}</div>
+                        {c.email && <div style={{ fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={12}/>{c.email}</div>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <Btn small onClick={() => window.location.href=`tel:+91${c.phone}`} icon={Phone} variant="ghost" style={{flex: 1, padding: '4px 0', justifyContent: 'center'}}>Call</Btn>
+                        <Btn small onClick={() => window.open(`https://wa.me/91${c.phone}`, '_blank')} icon={MessageSquare} variant="ghost" style={{flex: 1, padding: '4px 0', justifyContent: 'center'}}>WhatsApp</Btn>
+                        {c.email && <Btn small onClick={() => window.location.href=`mailto:${c.email}`} icon={Mail} variant="ghost" style={{flex: 1, padding: '4px 0', justifyContent: 'center'}}>Email</Btn>}
                       </div>
                     </div>
                   ))}
@@ -584,7 +641,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
 }
 
 /* ─── Add / Edit Customer Modal ────────────────────────────────── */
-function CustomerModal({ onClose, onSave, existing }) {
+function CustomerModal({ onClose, onSave, existing, availableTags }) {
   const [form, setForm] = useState({
     name: existing?.name || '',
     phone: existing?.phone || '',
@@ -593,6 +650,7 @@ function CustomerModal({ onClose, onSave, existing }) {
     city: existing?.city || '',
     gstin: existing?.gstin || '',
     notes: existing?.notes || '',
+    tags: existing?.tags || [],
   })
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
@@ -671,11 +729,103 @@ function CustomerModal({ onClose, onSave, existing }) {
           </div>
           <Field label="Address" field="address" placeholder="Full address..." textarea />
           <Field label="Notes" field="notes" placeholder="Any special instructions or preferences..." textarea />
+          
+          <div>
+             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Tags</label>
+             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '10px', border: '1px solid #D1D5DB', borderRadius: 8, minHeight: 40 }}>
+                {availableTags.map(t => {
+                   const active = form.tags.some(x => x.label === t.label)
+                   return (
+                     <button
+                       key={t.label}
+                       onClick={() => {
+                          setForm(f => ({
+                             ...f,
+                             tags: active ? f.tags.filter(x => x.label !== t.label) : [...f.tags, t]
+                          }))
+                       }}
+                       style={{ padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1px solid ${active ? t.color : '#E2E8F0'}`, background: active ? `${t.color}15` : '#F8FAFC', color: active ? t.color : '#64748B' }}
+                     >
+                       {t.label}
+                     </button>
+                   )
+                })}
+             </div>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
           <Btn onClick={onClose} variant="ghost" style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
           <Btn onClick={handleSave} variant="primary" icon={saving ? RefreshCw : Save} style={{ flex: 2, justifyContent: 'center' }}>
             {saving ? 'Saving…' : existing ? 'Update Customer' : 'Add Customer'}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Add Contact Modal ────────────────────────────────────────── */
+function ContactModal({ onClose, onSave, existing }) {
+  const [form, setForm] = useState({
+    full_name: existing?.full_name || '',
+    designation: existing?.designation || '',
+    phone: existing?.phone || '',
+    email: existing?.email || '',
+    is_primary: existing?.is_primary || false,
+  })
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
+
+  const validate = () => {
+    const e = {}
+    if (!form.full_name.trim()) e.full_name = 'Name is required'
+    if (!form.phone || !/^\d{10}$/.test(form.phone.replace(/\D/g, ''))) e.phone = 'Enter valid 10-digit mobile'
+    return e
+  }
+
+  const handleSave = async () => {
+    const e = validate()
+    if (Object.keys(e).length) { setErrors(e); return }
+    setSaving(true)
+    await onSave(form)
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>{existing ? 'Edit Contact' : 'Add Contact'}</h3>
+          <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}><X size={18} /></button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Full Name <span style={{ color: '#DC2626' }}>*</span></label>
+            <input type="text" value={form.full_name} onChange={e => { setForm(f => ({ ...f, full_name: e.target.value })); setErrors(er => ({ ...er, full_name: undefined })) }} placeholder="e.g. Rajan Kumar" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${errors.full_name ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+            {errors.full_name && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>{errors.full_name}</div>}
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Designation</label>
+            <input type="text" value={form.designation} onChange={e => setForm(f => ({ ...f, designation: e.target.value }))} placeholder="e.g. Owner, Manager" style={{ width: '100%', padding: '9px 12px', border: `1px solid #D1D5DB`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Phone <span style={{ color: '#DC2626' }}>*</span></label>
+            <input type="tel" value={form.phone} onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); setErrors(er => ({ ...er, phone: undefined })) }} placeholder="98421 55678" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${errors.phone ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+            {errors.phone && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>{errors.phone}</div>}
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Email</label>
+            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="name@email.com" style={{ width: '100%', padding: '9px 12px', border: `1px solid #D1D5DB`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.is_primary} onChange={e => setForm(f => ({ ...f, is_primary: e.target.checked }))} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+            <span style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>Set as Primary Contact</span>
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+          <Btn onClick={onClose} variant="ghost" style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
+          <Btn onClick={handleSave} variant="primary" icon={saving ? RefreshCw : Save} style={{ flex: 2, justifyContent: 'center' }}>
+            {saving ? 'Saving…' : existing ? 'Update Contact' : 'Add Contact'}
           </Btn>
         </div>
       </div>
@@ -694,12 +844,43 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
   const [detailCustomer, setDetailCustomer] = useState(null)
   const [companySettings, setCompanySettings] = useState({})
 
-  // Load company settings
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [editingContact, setEditingContact] = useState(null)
+  
+  useEffect(() => {
+    const handleOpenContact = () => { setEditingContact(null); setShowContactModal(true); }
+    window.addEventListener('open-contact-modal', handleOpenContact)
+    return () => window.removeEventListener('open-contact-modal', handleOpenContact)
+  }, [])
+
+  const [availableTags, setAvailableTags] = useState([
+    { label: 'VIP', color: '#F59E0B' },
+    { label: 'Contractor', color: '#2563EB' },
+    { label: 'Retail', color: '#7C3AED' },
+    { label: 'Regular', color: '#16A34A' },
+    { label: 'New', color: '#06B6D4' },
+    { label: 'Wholesale', color: '#EA580C' },
+    { label: 'Risky', color: '#DC2626' },
+    { label: 'Inactive', color: '#6B7280' }
+  ])
+  const [selectedTagFilters, setSelectedTagFilters] = useState([])
+
+  // Load company settings & custom tags
   useEffect(() => {
     try {
       const s = localStorage.getItem('opsagent_company')
       if (s) setCompanySettings(JSON.parse(s))
     } catch {}
+    
+    backendFetch('/customers/tags/all').then(data => {
+       if (data && data.length) {
+          setAvailableTags(prev => {
+             const map = new Map(prev.map(t => [t.label, t]));
+             data.forEach(t => map.set(t.label, t));
+             return Array.from(map.values());
+          });
+       }
+    }).catch(()=>{})
   }, [])
 
   // Build merged customer list
@@ -729,6 +910,13 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
         c.city.toLowerCase().includes(q) ||
         c.address.toLowerCase().includes(q)
       )
+    }
+
+    if (selectedTagFilters.length > 0) {
+      list = list.filter(c => {
+         const cTags = c.tags || []
+         return selectedTagFilters.some(tf => cTags.some(t => t.label === tf))
+      })
     }
 
     if (filter === 'outstanding') list = list.filter(c => c.outstanding > 0)
@@ -809,6 +997,49 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
     else { navigator.clipboard.writeText(msg); showToast('Message copied — phone number not found', 'info') }
   }
 
+  const handleSaveContact = async (formData) => {
+    if (!detailLive?.manualId) {
+      showToast('You must add this customer manually first to save contacts.', 'error')
+      return
+    }
+    try {
+      if (editingContact?.id) {
+        await backendFetch(`/customers/contacts/${editingContact.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(formData),
+        })
+      } else {
+        await backendFetch(`/customers/${detailLive.manualId}/contacts`, {
+          method: 'POST',
+          body: JSON.stringify(formData),
+        })
+      }
+      showToast(editingContact ? 'Contact updated' : 'Contact added', 'success')
+      if (onNavigate) {
+         // trigger refetch hack by reloading the panel or simply asking user to refresh for now. 
+         // Since app passes customer state, we'll mutate customers array directly.
+         const newCustomers = customers.map(c => {
+           if (c.id === detailLive.manualId) {
+              const updatedContacts = c.contacts || [];
+              if (formData.is_primary) updatedContacts.forEach(x => x.is_primary = false);
+              if (editingContact?.id) {
+                 const idx = updatedContacts.findIndex(x => x.id === editingContact.id);
+                 if (idx >= 0) updatedContacts[idx] = { ...updatedContacts[idx], ...formData };
+              } else {
+                 updatedContacts.push({ id: Date.now().toString(), ...formData });
+              }
+              return { ...c, contacts: updatedContacts };
+           }
+           return c;
+         });
+         setCustomers(newCustomers);
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to save contact', 'error')
+    }
+    setShowContactModal(false)
+  }
+
   // ── Render detail view
   if (detailLive) {
     return (
@@ -829,60 +1060,84 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0 }}>Customers</h1>
-          <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 99 }}>
-            {allCustomers.length}
-          </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0 }}>Customers</h1>
+            <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 99 }}>
+              {allCustomers.length}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Search */}
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search name, phone, city…"
+                style={{ paddingLeft: 34, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#0F172A', width: 220, fontFamily: "'Inter', sans-serif", outline: 'none' }}
+              />
+            </div>
+            {/* Filter */}
+            <select
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', cursor: 'pointer', background: 'white', fontFamily: "'Inter', sans-serif" }}
+            >
+              <option value="all">All Customers</option>
+              <option value="outstanding">With Outstanding</option>
+              <option value="regular">Regular (3+ bills)</option>
+              <option value="new">New (1 bill)</option>
+              <option value="top">Top (₹1L+)</option>
+              <option value="inactive">Inactive (90d)</option>
+            </select>
+            {/* Sort */}
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', cursor: 'pointer', background: 'white', fontFamily: "'Inter', sans-serif" }}
+            >
+              <option value="name">Name A–Z</option>
+              <option value="purchases">Top Purchases</option>
+              <option value="outstanding">Outstanding</option>
+              <option value="lastPurchase">Recent First</option>
+              <option value="bills">Most Bills</option>
+            </select>
+            {/* View toggle */}
+            <div style={{ display: 'flex', border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
+              {[{ mode: 'grid', Icon: Grid }, { mode: 'list', Icon: List }].map(({ mode, Icon }) => (
+                <button key={mode} onClick={() => setViewMode(mode)}
+                  style={{ padding: '8px 12px', border: 'none', cursor: 'pointer', background: viewMode === mode ? '#2563EB' : 'white', color: viewMode === mode ? 'white' : '#64748B', transition: 'all 0.15s' }}>
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
+            {/* Add Customer */}
+            <Btn onClick={() => { setEditingCustomer(null); setShowModal(true) }} icon={Plus} variant="primary">Add Customer</Btn>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Search */}
-          <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, phone, city…"
-              style={{ paddingLeft: 34, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#0F172A', width: 220, fontFamily: "'Inter', sans-serif", outline: 'none' }}
-            />
-          </div>
-          {/* Filter */}
-          <select
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', cursor: 'pointer', background: 'white', fontFamily: "'Inter', sans-serif" }}
+
+        {/* Tags Filter Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+          <button
+             onClick={() => setSelectedTagFilters([])}
+             style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid #E2E8F0', cursor: 'pointer', background: selectedTagFilters.length === 0 ? '#1E293B' : 'white', color: selectedTagFilters.length === 0 ? 'white' : '#64748B' }}
           >
-            <option value="all">All Customers</option>
-            <option value="outstanding">With Outstanding</option>
-            <option value="regular">Regular (3+ bills)</option>
-            <option value="new">New (1 bill)</option>
-            <option value="top">Top (₹1L+)</option>
-            <option value="inactive">Inactive (90d)</option>
-          </select>
-          {/* Sort */}
-          <select
-            value={sort}
-            onChange={e => setSort(e.target.value)}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', cursor: 'pointer', background: 'white', fontFamily: "'Inter', sans-serif" }}
-          >
-            <option value="name">Name A–Z</option>
-            <option value="purchases">Top Purchases</option>
-            <option value="outstanding">Outstanding</option>
-            <option value="lastPurchase">Recent First</option>
-            <option value="bills">Most Bills</option>
-          </select>
-          {/* View toggle */}
-          <div style={{ display: 'flex', border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
-            {[{ mode: 'grid', Icon: Grid }, { mode: 'list', Icon: List }].map(({ mode, Icon }) => (
-              <button key={mode} onClick={() => setViewMode(mode)}
-                style={{ padding: '8px 12px', border: 'none', cursor: 'pointer', background: viewMode === mode ? '#2563EB' : 'white', color: viewMode === mode ? 'white' : '#64748B', transition: 'all 0.15s' }}>
-                <Icon size={15} />
-              </button>
-            ))}
-          </div>
-          {/* Add Customer */}
-          <Btn onClick={() => { setEditingCustomer(null); setShowModal(true) }} icon={Plus} variant="primary">Add Customer</Btn>
+            All
+          </button>
+          {availableTags.map((t, i) => {
+             const active = selectedTagFilters.includes(t.label)
+             return (
+               <button
+                 key={i}
+                 onClick={() => setSelectedTagFilters(prev => active ? prev.filter(x => x !== t.label) : [...prev, t.label])}
+                 style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1px solid ${active ? t.color : '#E2E8F0'}`, cursor: 'pointer', background: active ? `${t.color}15` : 'white', color: active ? t.color : '#64748B', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}
+               >
+                 {t.label}
+               </button>
+             )
+          })}
         </div>
       </div>
 
@@ -1013,6 +1268,16 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
           existing={editingCustomer}
           onClose={() => { setShowModal(false); setEditingCustomer(null) }}
           onSave={handleSaveCustomer}
+          availableTags={availableTags}
+        />
+      )}
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <ContactModal
+          existing={editingContact}
+          onClose={() => { setShowContactModal(false); setEditingContact(null) }}
+          onSave={handleSaveContact}
         />
       )}
     </div>
