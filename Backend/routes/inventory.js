@@ -69,7 +69,7 @@ router.get('/', auth, async (req, res) => {
       .eq('user_id', req.user.id)
 
     if (search && search.trim()) {
-      query = query.or(`name.ilike.${search}%,hsn.ilike.${search}%,category.ilike.${search}%`)
+      query = query.or(`name.ilike.%${search}%,hsn.ilike.%${search}%,category.ilike.%${search}%`)
     }
 
     if (category && category !== 'all') {
@@ -94,6 +94,23 @@ router.get('/', auth, async (req, res) => {
 
     let { data, error } = await query
     if (error) throw error
+
+    if (search && search.trim()) {
+      const lowerSearch = search.toLowerCase()
+      data.sort((a, b) => {
+        const aName = (a.name || '').toLowerCase()
+        const bName = (b.name || '').toLowerCase()
+        const aHsn = (a.hsn || '').toLowerCase()
+        const bHsn = (b.hsn || '').toLowerCase()
+
+        const aStarts = aName.startsWith(lowerSearch) || aHsn.startsWith(lowerSearch)
+        const bStarts = bName.startsWith(lowerSearch) || bHsn.startsWith(lowerSearch)
+
+        if (aStarts && !bStarts) return -1
+        if (!aStarts && bStarts) return 1
+        return 0
+      })
+    }
 
     // Apply column-to-column status filters in memory
     if (status === 'low') {
