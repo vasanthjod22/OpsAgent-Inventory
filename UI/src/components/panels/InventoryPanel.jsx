@@ -264,6 +264,226 @@ function ImportModal({ onClose, fetchInventory, showToast }) {
 }
 
 /* ─── Main InventoryPanel ────────────────────────────────────── */
+
+const InventoryAutocomplete = ({
+  value,
+  onChange,
+  inventory,
+  placeholder
+}) => {
+  const [suggestions, setSuggestions] = useState([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const inputRef = useRef(null)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    if (!value || value.length < 1) {
+      setSuggestions([])
+      setShowDropdown(false)
+      return
+    }
+
+    const query = value.toLowerCase().trim()
+
+    const prefixMatches = inventory.filter(
+      item =>
+        (item.name || '').toLowerCase().startsWith(query) ||
+        (item.hsn || '').toLowerCase().startsWith(query)
+    )
+
+    const looseMatches = inventory.filter(
+      item =>
+        !(item.name || '').toLowerCase().startsWith(query) &&
+        !(item.hsn || '').toLowerCase().startsWith(query) &&
+        (
+          (item.name || '').toLowerCase().includes(query) ||
+          (item.hsn || '').toLowerCase().includes(query) ||
+          (item.category || '').toLowerCase().includes(query)
+        )
+    )
+
+    const combined = [
+      ...prefixMatches.slice(0, 5),
+      ...looseMatches.slice(0, 3)
+    ]
+
+    setSuggestions(combined)
+    setShowDropdown(combined.length > 0)
+    setActiveIndex(-1)
+  }, [value, inventory])
+
+  const handleKeyDown = (e) => {
+    if (!showDropdown) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
+    }
+    if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault()
+      selectSuggestion(suggestions[activeIndex])
+    }
+    if (e.key === 'Escape') {
+      setShowDropdown(false)
+      setActiveIndex(-1)
+    }
+  }
+
+  const selectSuggestion = (item) => {
+    onChange(item.name)
+    setShowDropdown(false)
+    setSuggestions([])
+    inputRef.current?.focus()
+  }
+
+  const highlightText = (text, query) => {
+    if (!text) return ''
+    if (!query) return text
+    const idx = text.toLowerCase().indexOf(query.toLowerCase())
+    if (idx === -1) return text
+
+    return (
+      <>
+        {text.slice(0, idx)}
+        <strong style={{ color: '#2563EB', fontWeight: 700 }}>
+          {text.slice(idx, idx + query.length)}
+        </strong>
+        {text.slice(idx + query.length)}
+      </>
+    )
+  }
+
+  const getStatusBadge = (item) => {
+    if (item.qty === 0) return { label: 'Out', color: '#4F46E5' }
+    if (item.qty < item.min) return { label: 'Low', color: '#EA580C' }
+    if (item.qty > item.max) return { label: 'Over', color: '#D97706' }
+    return { label: 'OK', color: '#16A34A' }
+  }
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target)
+      ) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [])
+
+  const query = value?.toLowerCase().trim()
+  const prefixCount = suggestions.filter(
+    s => (s.name || '').toLowerCase().startsWith(query) || (s.hsn || '').toLowerCase().startsWith(query)
+  ).length
+
+  return (
+    <div style={{ position: 'relative', flex: 1, minWidth: 250, maxWidth: 360 }}>
+      <div style={{ position: 'relative' }}>
+        <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => { if (suggestions.length > 0) setShowDropdown(true) }}
+          placeholder={placeholder || "Search items..."}
+          style={{ width: '100%', height: 40, paddingLeft: 38, paddingRight: value ? 36 : 12, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, color: '#0F172A', outline: 'none', transition: 'border 0.2s ease', boxSizing: 'border-box' }}
+          onFocusCapture={e => e.target.style.borderColor = '#2563EB'}
+          onBlurCapture={e => e.target.style.borderColor = '#E2E8F0'}
+        />
+        {value && (
+          <button
+            onClick={() => { onChange(''); setSuggestions([]); setShowDropdown(false); inputRef.current?.focus() }}
+            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: '#94A3B8', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', color: 'white', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {showDropdown && suggestions.length > 0 && (
+        <div ref={dropdownRef} style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden', maxHeight: 320, overflowY: 'auto' }}>
+          {prefixCount > 0 && (
+            <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+              Best matches
+            </div>
+          )}
+
+          {suggestions.map((item, index) => {
+            const isPrefix = (item.name||'').toLowerCase().startsWith(query) || (item.hsn||'').toLowerCase().startsWith(query)
+            const statusBadge = getStatusBadge(item)
+            const showDivider = index === prefixCount && prefixCount > 0 && prefixCount < suggestions.length
+
+            return (
+              <div key={item.hsn || index} style={{ display: 'contents' }}>
+                {showDivider && (
+                  <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', borderTop: '1px solid #F1F5F9' }}>
+                    Other matches
+                  </div>
+                )}
+                <div
+                  onClick={() => selectSuggestion(item)}
+                  style={{ padding: '10px 14px', cursor: 'pointer', background: index === activeIndex ? '#EFF6FF' : 'white', borderBottom: '1px solid #F8FAFC', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.15s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; setActiveIndex(index) }}
+                  onMouseLeave={e => { if (index !== activeIndex) e.currentTarget.style.background = 'white' }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>📦</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: '#0F172A', fontWeight: isPrefix ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {highlightText(item.name, value)}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2, display: 'flex', gap: 8 }}>
+                      <span>{highlightText(item.hsn, value)}</span>
+                      <span>•</span>
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.category}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{item.qty} {item.unit}</div>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: statusBadge.color, background: statusBadge.color + '18', padding: '1px 6px', borderRadius: 999 }}>
+                      {statusBadge.label}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          <div style={{ padding: '6px 12px', fontSize: 11, color: '#94A3B8', background: '#F8FAFC', borderTop: '1px solid #F1F5F9', display: 'flex', gap: 12 }}>
+            <span>↑↓ Navigate</span><span>Enter to select</span><span>Esc to close</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const FilterSelect = ({ value, onChange, options }) => (
+  <select
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', background: 'white', cursor: 'pointer', outline: 'none', minWidth: 140 }}
+  >
+    {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+  </select>
+)
+
+const FilterChip = ({ label, onRemove }) => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: 12, color: '#2563EB', fontWeight: 500 }}>
+    {label}
+    <button onClick={onRemove} style={{ background: 'none', border: 'none', color: '#2563EB', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1, display: 'flex' }}>×</button>
+  </div>
+)
+
 export default function InventoryPanel({ showToast }) {
   // Inventory States
   const [items, setItems] = useState([])
@@ -275,6 +495,17 @@ export default function InventoryPanel({ showToast }) {
   const [categories, setCategories] = useState([])
   const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(false)
+  const [allItems, setAllItems] = useState([])
+  
+  useEffect(() => {
+    const fetchAllForAutocomplete = async () => {
+      try {
+        const data = await backendFetch('/inventory?limit=10000&page=1')
+        setAllItems(Array.isArray(data) ? data : (data.items || []))
+      } catch (e) { console.error(e) }
+    }
+    fetchAllForAutocomplete()
+  }, [])
   const formatQty = (q) => {
     const num = Number(q)
     if (isNaN(num)) return q
@@ -514,9 +745,9 @@ export default function InventoryPanel({ showToast }) {
 
   // Render Status Badge (Colored Pill)
   const getStatusBadge = (item) => {
-    if (item.qty === 0) return <span style={{ padding: '4px 10px', background: '#DC2626', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>⭕ Out of Stock</span>
+    if (item.qty === 0) return <span style={{ padding: '4px 10px', background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#4338CA', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🚫 Out of Stock</span>
     if (item.qty < item.min) return <span style={{ padding: '4px 10px', background: '#EA580C', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>⚠️ Low Stock</span>
-    if (item.qty > item.max) return <span style={{ padding: '4px 10px', background: '#F5F3FF', color: '#7C3AED', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>📦 Overstock</span>
+    if (item.qty > item.max) return <span style={{ padding: '4px 10px', background: '#D97706', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>📦 Overstock</span>
     return <span style={{ padding: '4px 10px', background: '#16A34A', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>✅ OK</span>
   }
 
@@ -654,12 +885,12 @@ export default function InventoryPanel({ showToast }) {
           </div>
           <AlertTriangle size={32} color="#DC2626" style={{ opacity: 0.2 }} />
         </div>
-        <div onClick={() => setStatus('out')} style={{ padding: '20px', background: '#450A0A', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+        <div onClick={() => setStatus('out')} style={{ padding: '20px', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#FCA5A5', textTransform: 'uppercase' }}>Out of Stock</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#FEF2F2' }}>{stats.outOfStock || 0}</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Out of Stock</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#312E81' }}>{stats.outOfStock || 0}</span>
           </div>
-          <XCircle size={32} color="#FCA5A5" style={{ opacity: 0.2 }} />
+          <XCircle size={32} color="#4338CA" style={{ opacity: 0.2 }} />
         </div>
         <div style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -693,43 +924,135 @@ export default function InventoryPanel({ showToast }) {
         </div>
 
         {/* Search & Filter Row */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', background: '#FAFBFC', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 250 }}>
-            <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-            <input type="text" placeholder="Search by name, SKU, category..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', height: 40, padding: '0 14px 0 38px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB' }} />
-            {loading && search && <Loader2 size={14} color="#2563EB" className="animate-spin" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }} />}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', background: '#FAFBFC' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <InventoryAutocomplete
+              value={search}
+              onChange={val => setSearch(val)}
+              inventory={allItems}
+              placeholder="Search items by name, SKU..."
+            />
+
+            {(search !== '' || category !== 'all' || status !== 'all' || sortBy !== 'name') && (
+              <button
+                onClick={() => {
+                  setSearch(''); setCategory('all'); setStatus('all'); setSortBy('name');
+                  setPagination(p => ({ ...p, currentPage: 1 }));
+                  fetchInventory({ page: 1, searchTerm: '', cat: 'all', stat: 'all', sort: 'name' });
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s ease', height: 40, boxSizing: 'border-box' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+                onMouseLeave={e => e.currentTarget.style.background = '#FEF2F2'}
+              >
+                <X size={14} /> Clear Filters
+              </button>
+            )}
+
+            <FilterSelect
+              value={category}
+              onChange={val => { setCategory(val); setPagination(p => ({...p, currentPage: 1})); }}
+              options={[{ value: 'all', label: 'All Categories' }, ...categories.map(c => ({ value: c, label: c }))]}
+            />
+
+            <FilterSelect
+              value={status}
+              onChange={val => { setStatus(val); setPagination(p => ({...p, currentPage: 1})); }}
+              options={[
+                { value: 'all', label: 'All Status' },
+                { value: 'low', label: '⚠️ Low Stock' },
+                { value: 'ok', label: '✅ OK' },
+                { value: 'overstock', label: '📦 Overstock' },
+                { value: 'out', label: '🚫 Out of Stock' }
+              ]}
+            />
+
+            <FilterSelect
+              value={sortBy}
+              onChange={val => { setSortBy(val); setPagination(p => ({...p, currentPage: 1})); }}
+              options={[
+                { value: 'name', label: 'Name A-Z' },
+                { value: 'name_desc', label: 'Name Z-A' },
+                { value: 'qty_asc', label: 'Qty: Low → High' },
+                { value: 'qty_desc', label: 'Qty: High → Low' },
+                { value: 'created', label: 'Recently Added' },
+                { value: 'category', label: 'Category' }
+              ]}
+            />
           </div>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={{ height: 40, padding: '0 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB' }}>
-            <option value="all">All Categories</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={status} onChange={e => setStatus(e.target.value)} style={{ height: 40, padding: '0 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB' }}>
-            <option value="all">All Status</option>
-            <option value="low">Low Stock</option>
-            <option value="ok">OK</option>
-            <option value="overstock">Overstock</option>
-            <option value="out">Out of Stock</option>
-          </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: 40, padding: '0 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB' }}>
-            <option value="name">Name A-Z</option>
-            <option value="qty_asc">Qty: Low to High</option>
-            <option value="qty_desc">Qty: High to Low</option>
-            <option value="created">Recently Added</option>
-            <option value="category">Category</option>
-          </select>
+
+          {(search !== '' || category !== 'all' || status !== 'all') && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+              {search && <FilterChip label={`Search: "${search}"`} onRemove={() => setSearch('')} />}
+              {category !== 'all' && <FilterChip label={`Category: ${category}`} onRemove={() => { setCategory('all'); setPagination(p => ({...p, currentPage: 1})) }} />}
+              {status !== 'all' && <FilterChip label={{'low':'Low Stock', 'ok':'OK', 'overstock':'Overstock', 'out':'Out of Stock'}[status]} onRemove={() => { setStatus('all'); setPagination(p => ({...p, currentPage: 1})) }} />}
+            </div>
+          )}
         </div>
 
         {/* Table Content */}
         <div style={{ overflowX: 'auto', padding: '0 24px' }}>
+          {search && items.length > 0 && (
+            <div style={{ fontSize: 13, color: '#2563EB', fontWeight: 600, marginBottom: 12 }}>
+              Showing {pagination.totalItems} items matching "{search}"
+            </div>
+          )}
           {loading && items.length === 0 ? (
             <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 50, background: '#F1F5F9', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />)}
             </div>
           ) : items.length === 0 ? (
             <div style={{ padding: '80px 0', textAlign: 'center', color: '#1E293B' }}>
-              <SearchX size={48} style={{ margin: '0 auto 16px auto', opacity: 0.5 }} />
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#475569' }}>No items found</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>{search ? `No items match '${search}'` : 'Try a different search or clear filters'}</div>
+              {search ? (
+                <>
+                  <SearchX size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Item not found</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8, maxWidth: 300, margin: '8px auto' }}>
+                    No items match '{search}'. Try checking the spelling or search by SKU or category.
+                  </div>
+                  <button onClick={() => setSearch('')} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Search</button>
+                </>
+              ) : status === 'low' ? (
+                <>
+                  <CheckCircle size={56} color="#10B981" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Low Stock Items</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>All items are above minimum levels.</div>
+                  <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
+                </>
+              ) : status === 'ok' ? (
+                <>
+                  <Package size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Items with OK Status</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>Check your min/max levels.</div>
+                  <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
+                </>
+              ) : status === 'overstock' ? (
+                <>
+                  <CheckCircle size={56} color="#10B981" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Overstock Items</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>All items are within limits.</div>
+                  <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
+                </>
+              ) : status === 'out' ? (
+                <>
+                  <CheckCircle size={56} color="#10B981" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Out of Stock Items</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>All items have stock available.</div>
+                  <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
+                </>
+              ) : category !== 'all' ? (
+                <>
+                  <div style={{ fontSize: 56, margin: '0 auto 16px auto' }}>📁</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No items found in '{category}'</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>Try selecting a different category.</div>
+                  <button onClick={() => {setCategory('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
+                </>
+              ) : (
+                <>
+                  <Package size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Items Found</div>
+                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>Try adjusting your filters or search.</div>
+                </>
+              )}
             </div>
           ) : (
             <table className="data-table" style={{ width: '100%', minWidth: 900, marginTop: 16, textAlign: 'left', borderCollapse: 'collapse' }}>
@@ -784,7 +1107,7 @@ export default function InventoryPanel({ showToast }) {
               totalItems={pagination.totalItems}
               itemsPerPage={pagination.itemsPerPage}
               onPageChange={handlePageChange}
-              onLimitChange={limit => setPagination(p => ({ ...p, itemsPerPage: limit }))}
+              onLimitChange={limit => { setPagination(p => ({ ...p, itemsPerPage: limit, currentPage: 1 })); fetchInventory({ page: 1, limit }); }}
             />
           )}
         </div>
