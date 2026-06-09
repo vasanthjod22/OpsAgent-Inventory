@@ -325,7 +325,7 @@ export default function InventoryPanel({ showToast }) {
         // Fallback for old backend
         data.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
         setItems(data)
-        setPagination(prev => ({ ...prev, totalItems: data.length, totalPages: Math.ceil(data.length / prev.itemsPerPage) }))
+        setPagination(prev => ({ ...prev, currentPage: page, totalItems: data.length, totalPages: Math.ceil(data.length / prev.itemsPerPage) }))
         setStats({
           totalItems: data.length,
           lowStock: data.filter(i => i.qty <= i.min && i.qty > 0).length,
