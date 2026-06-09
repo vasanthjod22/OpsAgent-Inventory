@@ -325,7 +325,13 @@ export default function InventoryPanel({ showToast }) {
         // Fallback for old backend
         data.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
         setItems(data)
-        setPagination(prev => ({ ...prev, totalItems: data.length, totalPages: 1 }))
+        setPagination(prev => ({ ...prev, totalItems: data.length, totalPages: Math.ceil(data.length / prev.itemsPerPage) }))
+        setStats({
+          totalItems: data.length,
+          lowStock: data.filter(i => i.qty <= i.min && i.qty > 0).length,
+          outOfStock: data.filter(i => i.qty === 0).length,
+          totalValue: data.reduce((sum, i) => sum + (i.qty * (i.rate || 0)), 0)
+        })
       } else {
         setItems(data.items || [])
         setPagination(data.pagination || {})
@@ -733,7 +739,7 @@ export default function InventoryPanel({ showToast }) {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => {
+                {items.slice((pagination.currentPage - 1) * pagination.itemsPerPage, pagination.currentPage * pagination.itemsPerPage).map((item, index) => {
                   const pct = Math.min((item.qty / (item.max || 1)) * 100, 100)
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
@@ -743,7 +749,7 @@ export default function InventoryPanel({ showToast }) {
                       <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.category}</td>
                       <td style={{ padding: '12px 8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontWeight: 700, color: '#0F172A' }}>{item.qty}</span>
+                          <span style={{ fontWeight: 700, color: '#0F172A' }}>{formatQty(item.qty)}</span>
                           <div style={{ width: 60, height: 4, background: '#F1F5F9', borderRadius: 99, overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${pct}%`, background: item.qty < item.min ? '#DC2626' : item.qty > item.max ? '#D97706' : '#16A34A' }} />
                           </div>
