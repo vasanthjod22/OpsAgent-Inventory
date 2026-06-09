@@ -1118,27 +1118,6 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
           </div>
         </div>
 
-        {/* Tags Filter Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-          <button
-             onClick={() => setSelectedTagFilters([])}
-             style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: '1px solid #E2E8F0', cursor: 'pointer', background: selectedTagFilters.length === 0 ? '#1E293B' : 'white', color: selectedTagFilters.length === 0 ? 'white' : '#64748B' }}
-          >
-            All
-          </button>
-          {availableTags.map((t, i) => {
-             const active = selectedTagFilters.includes(t.label)
-             return (
-               <button
-                 key={i}
-                 onClick={() => setSelectedTagFilters(prev => active ? prev.filter(x => x !== t.label) : [...prev, t.label])}
-                 style={{ padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1px solid ${active ? t.color : '#E2E8F0'}`, cursor: 'pointer', background: active ? `${t.color}15` : 'white', color: active ? t.color : '#64748B', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}
-               >
-                 {t.label}
-               </button>
-             )
-          })}
-        </div>
       </div>
 
       {/* Summary Strip */}

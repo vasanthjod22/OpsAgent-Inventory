@@ -13,20 +13,25 @@ const companyRoutes   = require('./routes/company');
 const aiRoutes        = require('./routes/ai');
 const customerRoutes  = require('./routes/customers');
 const reportsRoutes   = require('./routes/reports');
+const notificationRoutes = require('./routes/notifications');
+const purchaseOrdersRoutes = require('./routes/purchase-orders');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
+
+const initRoutes       = require('./routes/init');
 
 // ─── Middleware ─────────────────────────────────────────────
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-groq-api-key'],
 }));
 app.use(express.json({ limit: '10mb' }));  // 10mb for base64 image uploads
 app.use(express.urlencoded({ extended: true }));
 
 // ─── API Routes ─────────────────────────────────────────────
+app.use('/api/init',       initRoutes);
 app.use('/api/auth',       authRoutes);
 app.use('/api/inventory',  inventoryRoutes);
 app.use('/api/bills',      billingRoutes);
@@ -37,6 +42,8 @@ app.use('/api/company',    companyRoutes);
 app.use('/api/ai',         aiRoutes);
 app.use('/api/customers',  customerRoutes);
 app.use('/api/reports',    reportsRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/purchase-orders', purchaseOrdersRoutes);
 
 // ─── Health Check ───────────────────────────────────────────
 app.get('/', (req, res) => res.redirect('/api/health'));

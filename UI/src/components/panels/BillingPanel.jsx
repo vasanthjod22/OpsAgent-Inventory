@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import jsPDF from 'jspdf'
+import Swal from 'sweetalert2'
 import {
   Plus, Trash2, Download, Eye, X, Receipt, Search,
   CheckCircle, AlertTriangle, ChevronDown, Building2,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import AutocompleteInput from '../AutocompleteInput'
+import { BillProcessingModal } from '../ui/BillProcessingModal'
 const todayISO = () => new Date().toISOString().split('T')[0]
 const fmtDate = (iso) => {
   if (!iso) return ''
@@ -20,17 +22,28 @@ const fmtINR0 = (n) =>
 
 
 
-const generateBillFilename = (customerName) => {
+const generateBillFilename = (customerName, billNumber, dateStr) => {
   const clean = (customerName || 'Customer')
     .trim()
     .replace(/[^a-zA-Z0-9\s]/g, '')
     .replace(/\s+/g, '_')
     .substring(0, 25)
-  const d = new Date()
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const yyyy = d.getFullYear()
-  return `${clean}_BILL_${dd}${mm}${yyyy}.pdf`
+  const yyyy = dateStr ? dateStr.split('-')[0] : new Date().getFullYear()
+  
+  let formattedDate = dateStr || new Date().toISOString().split('T')[0]
+  if (formattedDate.includes('-')) {
+    const parts = formattedDate.split('-')
+    if (parts.length === 3) {
+      formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`
+    }
+  }
+
+  let no = '0001'
+  if (billNumber && billNumber.includes('-')) {
+    const parts = billNumber.split('-')
+    no = parts[parts.length - 1]
+  }
+  return `${clean}_${yyyy}_${formattedDate}_${no}.pdf`
 }
 
 const UNIT_OPTIONS = ['Nos', 'Sqft', 'Sqmt', 'Kg', 'Gram', 'Metre', 'Litre', 'Set', 'Box', 'Bag', 'Ltrs', 'Rmt']
@@ -52,12 +65,19 @@ const makeItem = () => ({
   cgstPercent: '',
   sgstPercent: '',
   amount: 0,
-  inventorySku: null,
+  taxInclAmount: 0,
+  inventoryId: null,
 })
 
 const recalcSno = (items) => (items || []).map((item, i) => ({ ...item, sno: i + 1 }))
 
-const calcAmount = (quantity, rate, cgst, sgst) => {
+const calcAmount = (quantity, rate) => {
+  const q = parseFloat(quantity) || 0
+  const r = parseFloat(rate) || 0
+  return q * r
+}
+
+const calcTaxInclAmount = (quantity, rate, cgst, sgst) => {
   const q = parseFloat(quantity) || 0
   const r = parseFloat(rate) || 0
   const c = parseFloat(cgst) || 0
@@ -76,6 +96,7 @@ const generateBillPDF = (bill, company) => {
 
   // ── Helpers ──────────────────────────────────────────────────
   const amtWords = (amt) => {
+    if (isNaN(amt) || amt === null || amt === undefined) return '';
     const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
       'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']
     const tensW = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']
@@ -386,7 +407,8 @@ const generateBillPDF = (bill, company) => {
   })
 
   // Totals row
-  const tv = ['Total', fmtINR(totTax), '', fmtINR(totCGST), '', fmtINR(totSGST), fmtINR(totCGST+totSGST)]
+  const manualIgst = Number(bill.items?.[0]?._globalIgst || 0)
+    const tv = ['Total', fmtINR(totTax), '', fmtINR(totCGST), '', fmtINR(totSGST), fmtINR(totCGST+totSGST+manualIgst)]
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(gX,y,gW,gRH)
   cx=gX
   gC.forEach((c,ci) => {
@@ -400,9 +422,17 @@ const generateBillPDF = (bill, company) => {
 
   // Tax in words + PAN
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
-  doc.text('Tax Amount (in words)  :  INR ' + amtWords(totCGST+totSGST), mg, y); y+=5
+  doc.text('Tax Amount (in words)  :  ' + amtWords(totCGST+totSGST+Number(bill.items?.[0]?._globalIgst||0)), mg, y); y+=5
   if (company.gstin) {
     doc.text("Company's PAN          :  " + company.gstin.substring(2,12), mg, y); y+=5
+  }
+  if (company.bankName || company.accountNumber || company.ifsc) {
+    const bankDetails = [
+      company.bankName,
+      company.accountNumber ? `A/c No: ${company.accountNumber}` : null,
+      company.ifsc ? `IFSC: ${company.ifsc}` : null
+    ].filter(Boolean).join(' | ')
+    doc.text("Bank Details           :  " + bankDetails, mg, y); y+=5
   }
 
   // ── DECLARATION + SIGNATORY ──────────────────────────────────
@@ -425,7 +455,7 @@ const generateBillPDF = (bill, company) => {
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0)
   doc.text('This is a Computer Generated Invoice', W/2, y, { align:'center' })
 
-  doc.save(generateBillFilename(bill.customerName))
+  doc.save(generateBillFilename(bill.customerName, bill.billNumber, bill.date))
 }
 
 
@@ -433,17 +463,17 @@ const generateBillPDF = (bill, company) => {
 
 function StockModal({ items, inventory, onSkip, onConfirm }) {
   const matchedItems = items.filter(it => {
-    if (!it.inventorySku) return false
-    const inv = inventory.find(i => i.sku === it.inventorySku)
+    if (!it.inventoryId) return false
+    const inv = inventory.find(i => i.id === it.inventoryId)
     return inv && Number(it.quantity) > 0
   }).map(it => {
-    const inv = inventory.find(i => i.sku === it.inventorySku)
+    const inv = inventory.find(i => i.id === it.inventoryId)
     return {
       name: it.description,
-      sku: it.inventorySku,
-      billedQty: Number(it.quantity),
-      currentStock: inv.qty,
-      afterStock: inv.qty - Number(it.quantity),
+      hsn: inv.hsn,
+      billedQty: parseFloat(Number(it.quantity).toFixed(6)),
+      currentStock: parseFloat(Number(inv.qty).toFixed(6)),
+      afterStock: parseFloat((inv.qty - Number(it.quantity)).toFixed(6)),
       unit: inv.unit,
       min: inv.min,
     }
@@ -516,7 +546,24 @@ function LineItemsTable({ items, setItems, inventory }) {
 
   const deleteItem = (id) => {
     if (items.length <= 1) return
-    setItems(prev => recalcSno(prev.filter(i => i.id !== id)))
+    Swal.fire({
+      title: 'Are you sure you want to delete this item?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#F1F5F9',
+      confirmButtonText: 'Yes, Delete it',
+      cancelButtonText: '<span style="color: #475569; font-weight: 600;">Cancel</span>',
+      iconColor: '#FBBF24',
+      customClass: {
+        confirmButton: 'swal2-confirm-btn',
+        cancelButton: 'swal2-cancel-btn'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setItems(prev => recalcSno(prev.filter(i => i.id !== id)))
+      }
+    })
   }
 
   const updateItem = (id, field, value) => {
@@ -524,6 +571,10 @@ function LineItemsTable({ items, setItems, inventory }) {
       if (item.id !== id) return item
       const updated = { ...item, [field]: value }
       updated.amount = calcAmount(
+        field === 'quantity' ? value : item.quantity,
+        field === 'rate' ? value : item.rate
+      )
+      updated.taxInclAmount = calcTaxInclAmount(
         field === 'quantity' ? value : item.quantity,
         field === 'rate' ? value : item.rate,
         field === 'cgstPercent' ? value : item.cgstPercent,
@@ -536,7 +587,7 @@ function LineItemsTable({ items, setItems, inventory }) {
   const selectInventoryItem = (id, invItem) => {
     setItems(prev => (prev || []).map(item => {
       if (item.id !== id) return item
-      return { ...item, unit: invItem.unit || item.unit, inventorySku: invItem.sku }
+      return { ...item, unit: invItem.unit || item.unit, hsnCode: invItem.hsn || item.hsnCode, inventoryId: invItem.id }
     }))
   }
 
@@ -548,14 +599,14 @@ function LineItemsTable({ items, setItems, inventory }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '880px' }}>
           <thead>
             <tr style={{ background: '#0F172A' }}>
-              {[['#', '30px'], ['Product', '200px'], ['Desp', '80px'], ['HSN', '70px'], ['Feet', '60px'], ['Qty', '70px'], ['Unit', '70px'], ['Rate', '80px'], ['CGST %', '60px'], ['SGST %', '60px'], ['Amount', '90px'], ['', '36px']].map(([h, w]) => (
+              {[['#', '30px'], ['Product', '200px'], ['Desp', '80px'], ['HSN', '70px'], ['Feet', '60px'], ['Qty', '70px'], ['Unit', '70px'], ['Rate', '80px'], ['CGST %', '60px'], ['SGST %', '60px'], ['Amount', '90px'], ['Amount(Tax Incl)', '110px'], ['', '36px']].map(([h, w]) => (
                 <th key={h} style={{ padding: '9px 8px', textAlign: 'left', color: 'white', fontSize: '11px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {(items || []).map((item, idx) => {
-              const invItem = item.inventorySku ? inventory.find(i => i.sku === item.inventorySku) : null
+              const invItem = item.inventoryId ? inventory.find(i => i.id === item.inventoryId) : null
               const overStock = invItem && Number(item.quantity) > invItem.qty
               return (
                 <div key={item.id} style={{ display: 'contents' }}>
@@ -594,7 +645,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
                       <div>
                         <input id={`qty-${item.id}`} style={{ ...inp, border: overStock ? '1px solid #EF4444' : inp.border }} type="number" min="0" step="any" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
-                        {overStock && <div style={{ color: '#EF4444', fontSize: '10px', marginTop: '2px', fontWeight: 600 }}>Stock: {invItem.qty}</div>}
+                        {overStock && <div style={{ color: '#EF4444', fontSize: '10px', marginTop: '2px', fontWeight: 600 }}>Stock: {parseFloat(Number(invItem.qty).toFixed(6))}</div>}
                       </div>
                     </td>
                     <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
@@ -615,8 +666,14 @@ function LineItemsTable({ items, setItems, inventory }) {
                       <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
                         {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
                       </div>
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>Qty × Rate</div>
+                    </td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', verticalAlign: 'top' }}>
+                      <div style={{ paddingTop: '8px', fontWeight: 700, color: '#16A34A', whiteSpace: 'nowrap', fontSize: '13px' }}>
+                        {item.taxInclAmount ? `₹${fmtINR(item.taxInclAmount)}` : '-'}
+                      </div>
                       <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>
-                        {(parseFloat(item.cgstPercent)||0) + (parseFloat(item.sgstPercent)||0) > 0 ? `+ ${parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST` : 'Qty × Rate'}
+                        {(parseFloat(item.cgstPercent)||0) + (parseFloat(item.sgstPercent)||0) > 0 ? `+ ${parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST` : ''}
                       </div>
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'top' }}>
@@ -631,7 +688,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                   {overStock && (
                     <tr style={{ background: '#FFFBEB' }}>
                       <td colSpan={8} style={{ padding: '3px 12px 5px', fontSize: '11px', color: '#92400E' }}>
-                        ⚠ Only {invItem.qty} {invItem.unit} in stock
+                        ⚠️ Only {parseFloat(Number(invItem.qty).toFixed(6))} {invItem.unit} in stock
                       </td>
                     </tr>
                   )}
@@ -672,12 +729,23 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
   }
 
   const deleteBill = async (id) => {
-    if (!window.confirm('Delete this bill from history?')) return
-    setBills(prev => prev.filter(b => b.id !== id))
-    showToast?.('Bill deleted', 'info')
-    try {
-      await backendFetch(`/bills/${id}`, { method: 'DELETE' })
-    } catch(err) { console.error(err) }
+    Swal.fire({
+      title: 'Are you sure you want to delete this item?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#E2E8F0',
+      confirmButtonText: 'Yes, Delete it',
+      cancelButtonText: '<span style="color: #475569; font-weight: 600;">Cancel</span>'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setBills(prev => prev.filter(b => b.id !== id))
+        showToast?.('Bill deleted', 'info')
+        try {
+          await backendFetch(`/bills/${id}`, { method: 'DELETE' })
+        } catch(err) { console.error(err) }
+      }
+    })
   }
 
   const redownload = (b) => {
@@ -786,31 +854,106 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
 function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate }) {
   const [company, setCompany] = useState({})
   const [bills, setBills] = useState([])
+  const [editBillId, setEditBillId] = useState(null)
+  const [showProcessing, setShowProcessing] = useState(false)
+  const [billResult, setBillResult] = useState(null)
 
   useEffect(() => {
     backendFetch('/bills').then(setBills).catch(console.error)
     backendFetch('/company').then(setCompany).catch(console.error)
   }, [])
 
+  useEffect(() => {
+    const qStr = localStorage.getItem('opsagent_convert_quotation')
+    if (qStr) {
+      try {
+        const q = JSON.parse(qStr)
+        setCustomerName(q.customerName || '')
+        setCustomerPhone(q.customerPhone || '')
+        setCustomerAddress(q.customerAddress || '')
+        setDiscount(q.discount || '')
+
+        if (q.sections) {
+           const allItems = q.sections.flatMap(s => s.items || []).filter(i => i.description)
+           if (allItems.length > 0) {
+             setItems(allItems.map(i => ({
+               id: Date.now() + Math.random(),
+               description: i.description,
+               hsn: i.hsn || '',
+               quantity: i.quantity || 1,
+               unit: i.unit || 'Nos',
+               rate: i.rate || 0,
+               cgstPercent: i.cgst || 0,
+               sgstPercent: i.sgst || 0
+             })))
+           }
+        } else if (q.items) {
+           const allItems = q.items.filter(i => i.description)
+           if (allItems.length > 0) {
+             setItems(allItems.map(i => ({
+               id: Date.now() + Math.random(),
+               description: i.description,
+               hsn: i.hsn || '',
+               quantity: i.quantity || 1,
+               unit: i.unit || 'Nos',
+               rate: i.rate || 0,
+               cgstPercent: i.cgst || 0,
+               sgstPercent: i.sgst || 0
+             })))
+           }
+        }
+        showToast?.('Quotation converted to bill! Review details.', 'info')
+      } catch(e) {
+        console.error('Failed to convert quotation to bill:', e)
+      }
+      localStorage.removeItem('opsagent_convert_quotation')
+    }
+  }, [showToast])
+
+  const [billDate, setBillDate] = useState(todayISO())
+  const billYear = billDate ? new Date(billDate).getFullYear() : new Date().getFullYear()
   const billNumber = bills.length 
-    ? `BILL-${new Date().getFullYear()}-${String(bills.length + 1).padStart(4, '0')}`
-    : `BILL-${new Date().getFullYear()}-0001`
+    ? `BILL-${billYear}-${String(bills.length + 1).padStart(4, '0')}`
+    : `BILL-${billYear}-0001`
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
   const [items, setItems] = useState([makeItem()])
   const [discount, setDiscount] = useState('')
+  const [igst, setIgst] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('Unpaid')
   const [amountPaid, setAmountPaid] = useState('')
   const [notes, setNotes] = useState('')
   const [includeTerms, setIncludeTerms] = useState(false)
   const [terms, setTerms] = useState('')
-  const [stockModal, setStockModal] = useState(null)
 
   // Derived totals
+  const totalCGST = (items || []).reduce((s, i) => {
+    const q = parseFloat(i.quantity) || 0
+    const r = parseFloat(i.rate) || 0
+    const c = parseFloat(i.cgstPercent) || 0
+    return s + ((q * r) * c / 100)
+  }, 0)
+
+  const totalSGST = (items || []).reduce((s, i) => {
+    const q = parseFloat(i.quantity) || 0
+    const r = parseFloat(i.rate) || 0
+    const sp = parseFloat(i.sgstPercent) || 0
+    return s + ((q * r) * sp / 100)
+  }, 0)
+
+  const igstVal = Number(igst || 0)
+  const sumTaxInclAmount = (items || []).reduce((s, i) => s + (i.taxInclAmount || 0), 0)
   const subtotal = (items || []).reduce((s, i) => s + (i.amount || 0), 0)
   const discountVal = Number(discount || 0)
-  const grandTotal = subtotal - discountVal
+  
+  // Calculate raw grand total before roundoff
+  const rawGrandTotal = sumTaxInclAmount + igstVal - discountVal
+  
+  // Calculate rounded grand total and roundoff amount
+  const grandTotal = Math.round(rawGrandTotal)
+  const roundoffAmount = grandTotal - rawGrandTotal
+  
   const balanceDue = grandTotal - Number(amountPaid || 0)
 
   const inp = { width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', color: '#0F172A', outline: 'none', background: 'white', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }
@@ -825,7 +968,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
     customerName,
     customerPhone,
     customerAddress,
-    items: items.filter(i => i.description),
+    items: items.filter(i => i.description).map((item, idx) => idx === 0 ? { ...item, _globalIgst: igst } : item),
     subtotal,
     discount: discountVal,
     grandTotal,
@@ -835,61 +978,116 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
     notes,
     includeTerms,
     terms,
-    date: todayISO(),
+    date: billDate,
     inventoryUpdated: false,
   })
 
+  const resetForm = () => {
+    setBillDate(todayISO())
+    setCustomerName('')
+    setCustomerPhone('')
+    setCustomerAddress('')
+    setItems([makeItem()])
+    setDiscount('')
+    setIgst('')
+    setPaymentStatus('Unpaid')
+    setAmountPaid('')
+    setNotes('')
+    setIncludeTerms(false)
+    setTerms('')
+  }
+
   const saveBill = async (billData, downloadPDF = false) => {
     try {
-      const savedBill = await backendFetch('/bills', { method: 'POST', body: JSON.stringify(billData) })
-      setBills(prev => [savedBill, ...prev])
-      showToast?.('Bill saved to history', 'success', 'Billing')
+      const method = editBillId ? 'PUT' : 'POST'
+      const url = editBillId ? `/bills/${editBillId}` : '/bills'
+      const savedBill = await backendFetch(url, { method, body: JSON.stringify(billData) })
+      
+      if (editBillId) {
+        setBills(prev => prev.map(b => b.id === editBillId ? savedBill : b))
+        showToast?.('Bill updated successfully', 'success', 'Billing')
+        setEditBillId(null)
+      } else {
+        setBills(prev => [savedBill, ...prev])
+        showToast?.('Bill saved to history', 'success', 'Billing')
+      }
       
       if (downloadPDF) {
         generateBillPDF(savedBill, company)
-        showToast?.(`${generateBillFilename(savedBill.customerName)} downloaded!`, 'success', 'Bill Generated')
+        showToast?.(`${generateBillFilename(savedBill.customerName, savedBill.billNumber, savedBill.date)} downloaded!`, 'success', 'Bill Generated')
       }
+      
+      resetForm()
     } catch (err) {
       showToast?.(err.message, 'error')
     }
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!customerName.trim()) return showToast?.('Customer name is required', 'error')
     if (items.filter(i => i.description).length === 0) return showToast?.('Add at least one line item', 'error')
 
     const bill = buildBillData()
 
-    // Check for inventory items to deduct
-    const invItems = items.filter(i => i.inventorySku && Number(i.quantity) > 0)
-    if (invItems.length > 0) {
-      setStockModal({ bill, items: invItems })
-    } else {
-      saveBill(bill, true)
+    setShowProcessing(true)
+
+    try {
+      // Check for inventory items to deduct
+      const invItems = items.filter(i => i.inventoryId && Number(i.quantity) > 0)
+      let updatedInvItems = []
+      
+      if (invItems.length > 0) {
+        bill.updateInventory = true
+
+        // Update local inventory state immediately
+        const updated = [...inventory]
+        invItems.forEach(m => {
+          const idx = updated.findIndex(i => i.id === m.inventoryId)
+          if (idx !== -1) {
+            const oldQty = updated[idx].qty
+            const newQty = Math.max(0, oldQty - Number(m.quantity))
+            
+            updatedInvItems.push({
+              id: updated[idx].id,
+              name: m.description,
+              oldQty: oldQty,
+              newQty: newQty,
+              min: updated[idx].min,
+              unit: updated[idx].unit || m.unit || 'Nos'
+            })
+            
+            updated[idx] = { ...updated[idx], qty: newQty }
+          }
+        })
+        setInventory(updated)
+      }
+
+      // Pass false to prevent automatic download
+      await saveBill(bill, false)
+      
+      setBillResult({
+        billNumber: billNumber,
+        customerName: customerName,
+        itemCount: items.filter(i => i.description).length,
+        grandTotal: subtotal + totalCGST + totalSGST + Number(igst || 0) - Number(discount || 0),
+        updatedItems: updatedInvItems
+      })
+
+    } catch (err) {
+      setShowProcessing(false)
+      showToast?.('Bill generation failed: ' + err.message, 'error')
     }
   }
 
-  const handleStockUpdate = async (matchedItems) => {
-    const updated = [...inventory]
-    matchedItems.forEach(m => {
-      const idx = updated.findIndex(i => i.sku === m.sku)
-      if (idx !== -1) {
-        updated[idx] = { ...updated[idx], qty: Math.max(0, updated[idx].qty - m.billedQty) }
-        if (updated[idx].qty < updated[idx].min) {
-          showToast?.(`⚠ ${m.name} is now below minimum stock level!`, 'warning', 'Low Stock')
-        }
-      }
-    })
-    setInventory(updated)
-    const billData = { ...stockModal.bill, updateInventory: true }
-    await saveBill(billData, true)
-    setStockModal(null)
-    showToast?.('Bill generated and stock updated!', 'success', 'Stock Updated')
-  }
-
-  const handleSkipStock = () => {
-    saveBill(stockModal.bill, true)
-    setStockModal(null)
+  const handleProcessingComplete = () => {
+    setShowProcessing(false)
+    const res = billResult
+    setBillResult(null)
+    
+    // the form was already reset by saveBill(bill, false) if it wasn't an edit!
+    if (res) {
+      showToast?.(`Bill generated!`, 'success')
+    }
   }
 
   return (
@@ -924,8 +1122,8 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>Bill To (Customer)</div>
               <div><Lbl>Customer Name *</Lbl><input style={inp} value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Customer / Company Name" /></div>
-              <div><Lbl>Phone</Lbl><input style={inp} value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+91 98765 43210" /></div>
-              <div><Lbl>Address</Lbl><textarea style={{ ...inp, resize: 'vertical', minHeight: '64px' }} value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Customer address..." rows={2} /></div>
+              <div><Lbl>Phone (Optional)</Lbl><input style={inp} value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+91 98765 43210" /></div>
+              <div><Lbl>Address (Optional)</Lbl><textarea style={{ ...inp, resize: 'vertical', minHeight: '64px' }} value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Customer address..." rows={2} /></div>
             </div>
 
             {/* Company (read-only) */}
@@ -942,7 +1140,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
                 <input style={readOnly} value={company?.gstin || '—'} readOnly />
                 <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Saved from Company Profile · <button onClick={() => onNavigate?.('settings')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563EB', fontSize: '11px', padding: 0 }}>Update in Settings →</button></div>
               </div>
-              <div><Lbl>Bill Date</Lbl><input style={readOnly} value={fmtDate(todayISO())} readOnly /></div>
+              <div><Lbl>Bill Date</Lbl><input type="date" className="input-base" style={{ padding: '8px 12px', height: '36px' }} value={billDate} onChange={e => setBillDate(e.target.value)} /></div>
             </div>
           </div>
 
@@ -953,17 +1151,45 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           </div>
 
           {/* Totals */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, paddingRight: '24px' }}>
+              {(company.bankName || company.accountNumber || company.ifsc) && (
+                <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', maxWidth: '300px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '8px' }}>Bank Details</div>
+                  {company.bankName && <div style={{ fontSize: '13px', color: '#0F172A', marginBottom: '4px' }}>{company.bankName}</div>}
+                  {company.accountNumber && <div style={{ fontSize: '13px', color: '#0F172A', marginBottom: '4px' }}><span style={{ color: '#64748B' }}>A/c No:</span> {company.accountNumber}</div>}
+                  {company.ifsc && <div style={{ fontSize: '13px', color: '#0F172A' }}><span style={{ color: '#64748B' }}>IFSC Code:</span> {company.ifsc}</div>}
+                </div>
+              )}
+            </div>
             <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
                 <span>Subtotal</span>
                 <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(subtotal)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+                <span>CGST</span>
+                <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(totalCGST)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+                <span>SGST</span>
+                <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(totalSGST)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B' }}>
+                <span>IGST</span>
+                <input type="number" min="0" value={igst} onChange={e => setIgst(e.target.value)}
+                  style={{ width: '100px', padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', outline: 'none', textAlign: 'right' }}
+                  placeholder="0.00" />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B' }}>
                 <span>Discount</span>
                 <input type="number" min="0" value={discount} onChange={e => setDiscount(e.target.value)}
                   style={{ width: '100px', padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', outline: 'none', textAlign: 'right' }}
                   placeholder="0.00" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+                <span>Round Off</span>
+                <span style={{ fontWeight: 600, color: '#0F172A' }}>{roundoffAmount > 0 ? '+' : ''}{fmtINR(roundoffAmount)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', background: '#0F172A', borderRadius: '9px', padding: '10px 14px' }}>
                 <span style={{ fontWeight: 800, color: 'white', fontSize: '14px' }}>Grand Total</span>
@@ -1016,22 +1242,52 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
 
           {/* Action buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
+            {editBillId && (
+              <button onClick={() => {
+                setEditBillId(null)
+                resetForm()
+              }} style={{ height: '44px', padding: '0 28px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>Cancel Edit</button>
+            )}
             <button onClick={handleGenerate}
               style={{ height: '44px', padding: '0 28px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #16A34A, #15803D)', color: 'white', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', boxShadow: '0 4px 14px rgba(22,163,74,0.35)' }}>
-              <Download size={16} /> Generate Bill & Download PDF
+              {editBillId ? 'Save Edited Bill' : 'Generate Bill'}
             </button>
           </div>
         </div>
       </div>
 
       {/* Bill History */}
-      <BillHistory bills={bills} setBills={setBills} inventory={inventory} setInventory={setInventory} company={company} showToast={showToast} />
+      <BillHistory bills={bills} setBills={setBills} inventory={inventory} setInventory={setInventory} company={company} showToast={showToast} 
+        onEditBill={(b) => {
+          setEditBillId(b.id)
+          setCustomerName(b.customerName || '')
+          setCustomerPhone(b.customerPhone || '')
+          setCustomerAddress(b.customerAddress || '')
+          setItems(b.items && b.items.length > 0 ? b.items : [makeItem()])
+          setDiscount(b.discount || '')
+          setPaymentStatus(b.paymentStatus || 'Unpaid')
+          setAmountPaid(b.amountPaid || '')
+          setNotes(b.notes || '')
+          setIncludeTerms(b.includeTerms || false)
+          setTerms(b.terms || '')
+          setBillDate(b.date || todayISO())
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          showToast?.('Editing bill...', 'info')
+        }}
+        />
 
-      {/* Modals */}
-      {stockModal && (
-        <StockModal items={stockModal.items} inventory={inventory} onSkip={handleSkipStock} onConfirm={handleStockUpdate} />
-      )}
-    </div>
+        <BillProcessingModal
+          isOpen={showProcessing}
+          onComplete={handleProcessingComplete}
+          billNumber={billResult?.billNumber}
+          customerName={billResult?.customerName}
+          itemCount={billResult?.itemCount}
+          grandTotal={billResult?.grandTotal}
+          updatedItems={billResult?.updatedItems}
+        />
+  
+        {/* Modals */}
+      </div>
   )
 }
 

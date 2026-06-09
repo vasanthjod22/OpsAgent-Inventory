@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function AutocompleteInput({ 
   value, 
@@ -12,6 +13,27 @@ export default function AutocompleteInput({
   const [activeIndex, setActiveIndex] = useState(-1)
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
+
+  useEffect(() => {
+    if (showDropdown && inputRef.current) {
+      const updateCoords = () => {
+        const rect = inputRef.current.getBoundingClientRect()
+        setCoords({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        })
+      }
+      updateCoords()
+      window.addEventListener('scroll', updateCoords, true)
+      window.addEventListener('resize', updateCoords)
+      return () => {
+        window.removeEventListener('scroll', updateCoords, true)
+        window.removeEventListener('resize', updateCoords)
+      }
+    }
+  }, [showDropdown, suggestions])
 
   // Search inventory when user types
   useEffect(() => {
@@ -22,11 +44,22 @@ export default function AutocompleteInput({
     }
 
     const searchTerm = value.toLowerCase()
-    const matches = inventory.filter(item =>
-      (item.name && item.name.toLowerCase().includes(searchTerm)) ||
-      (item.sku && item.sku.toLowerCase().includes(searchTerm)) ||
-      (item.category && item.category.toLowerCase().includes(searchTerm))
-    ).slice(0, 6) // max 6 suggestions
+    const exactStarts = []
+    const includes = []
+    
+    inventory.forEach(item => {
+      const name = (item.name || '').toLowerCase()
+      const hsn = (item.hsn || '').toLowerCase()
+      const category = (item.category || '').toLowerCase()
+      
+      if (name.startsWith(searchTerm) || hsn.startsWith(searchTerm)) {
+        exactStarts.push(item)
+      } else if (name.includes(searchTerm) || hsn.includes(searchTerm) || category.includes(searchTerm)) {
+        includes.push(item)
+      }
+    })
+    
+    const matches = [...exactStarts, ...includes].slice(0, 8)
 
     setSuggestions(matches)
     setShowDropdown(matches.length > 0)
@@ -146,17 +179,17 @@ export default function AutocompleteInput({
       )}
 
       {/* Dropdown */}
-      {showDropdown && suggestions.length > 0 && (
+      {showDropdown && suggestions.length > 0 && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute top-full left-0 right-0 
-                     mt-1 bg-white border border-gray-200 
-                     rounded-lg shadow-lg z-50 
+          style={{ top: coords.top + 4, left: coords.left, width: coords.width }}
+          className="absolute bg-white border border-gray-200 
+                     rounded-lg shadow-lg z-[99999] 
                      max-h-64 overflow-y-auto"
         >
           {suggestions.map((item, index) => (
             <div
-              key={item.id || item.sku || index}
+              key={item.id || item.hsn || index}
               onClick={() => handleSelect(item)}
               className={`
                 px-3 py-2.5 cursor-pointer 
@@ -173,13 +206,13 @@ export default function AutocompleteInput({
                 {highlightMatch(item.name, value)}
               </div>
 
-              {/* SKU + Stock info */}
+              {/* HSN + Stock info */}
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs text-gray-400">
-                  {item.sku}
+                  {item.hsn}
                 </span>
                 <span className={`text-xs font-medium ${getStockColor(item)}`}>
-                  Stock: {item.qty} {item.unit}
+                  Stock: {parseFloat(Number(item.qty).toFixed(6))} {item.unit}
                 </span>
                 <span className="text-xs text-gray-400">
                   Rate: ₹{item.rate || '-'}
@@ -196,7 +229,7 @@ export default function AutocompleteInput({
             </p>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* No results message */}
       {value.length >= 1 && 

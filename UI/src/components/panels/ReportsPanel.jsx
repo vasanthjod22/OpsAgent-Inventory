@@ -52,7 +52,14 @@ const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Ic
 
 /* ─── Main ReportsPanel ───────────────────────────────────────── */
 export default function ReportsPanel({ bills = [], quotations = [], inventory = [], grnHistory = [], customers = [], showToast }) {
-  const [activeTab, setActiveTab] = useState('sales')
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('opsagent_reports_tab')
+    if (saved) {
+      localStorage.removeItem('opsagent_reports_tab')
+      return saved
+    }
+    return 'sales'
+  })
   const [period, setPeriod] = useState('this_month') // this_week, this_month, this_quarter, this_year, custom
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -141,11 +148,85 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
       yPos += 12
 
       // Top Customers
-      const custData = customers.map(c => [c.name, c.bills.length, fmt(c.totalPurchases), fmt(c.outstanding)])
+      const custData = customers.map(c => [c.name, c.bills?.length || 0, fmt(c.totalPurchases), fmt(c.outstanding)])
       doc.autoTable({
         startY: yPos,
         head: [['Customer', 'Bills', 'Revenue', 'Outstanding']],
         body: custData.slice(0, 10),
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }
+      })
+      yPos = doc.lastAutoTable.finalY + 15
+    } else if (type === 'inventory') {
+      const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.min||10)), 0)
+      doc.setFontSize(14)
+      doc.setFont("helvetica", "bold")
+      doc.text("Inventory Summary", 14, yPos)
+      yPos += 8
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Total Stock Value (Est): ${fmt(totalValue)}`, 14, yPos)
+      yPos += 12
+
+      const invData = inventory.map(i => [i.hsn, i.name, i.qty, i.qty < i.min ? 'Low' : 'OK'])
+      doc.autoTable({
+        startY: yPos,
+        head: [['HSN', 'Item', 'Qty', 'Status']],
+        body: invData,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }
+      })
+      yPos = doc.lastAutoTable.finalY + 15
+    } else if (type === 'gst') {
+      let totCgst = 0, totSgst = 0
+      fBills.forEach(b => (b.items||[]).forEach(i => {
+        const base = (parseFloat(i.quantity)||0) * (parseFloat(i.rate)||0)
+        totCgst += base * (parseFloat(i.cgstPercent)||0)/100
+        totSgst += base * (parseFloat(i.sgstPercent)||0)/100
+      }))
+      doc.setFontSize(14)
+      doc.setFont("helvetica", "bold")
+      doc.text("GST Summary", 14, yPos)
+      yPos += 8
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Total CGST: ${fmt(totCgst)}`, 14, yPos)
+      doc.text(`Total SGST: ${fmt(totSgst)}`, 80, yPos)
+      doc.text(`Total Tax: ${fmt(totCgst + totSgst)}`, 140, yPos)
+      yPos += 12
+      
+      const billData = fBills.map(b => {
+        let bCgst = 0, bSgst = 0
+        ;(b.items||[]).forEach(i => {
+          const base = (parseFloat(i.quantity)||0) * (parseFloat(i.rate)||0)
+          bCgst += base * (parseFloat(i.cgstPercent)||0)/100
+          bSgst += base * (parseFloat(i.sgstPercent)||0)/100
+        })
+        return [b.billNumber, fmtDate(b.date), fmt(b.grandTotal), fmt(bCgst), fmt(bSgst), fmt(bCgst + bSgst)]
+      })
+      doc.autoTable({
+        startY: yPos,
+        head: [['Bill No.', 'Date', 'Amount', 'CGST', 'SGST', 'Total Tax']],
+        body: billData,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }
+      })
+      yPos = doc.lastAutoTable.finalY + 15
+    } else if (type === 'customers') {
+      doc.setFontSize(14)
+      doc.setFont("helvetica", "bold")
+      doc.text("Customers Summary", 14, yPos)
+      yPos += 8
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Total Customers: ${customers.length}`, 14, yPos)
+      yPos += 12
+      
+      const custData = customers.map(c => [c.name, c.phone || '—', c.tags ? c.tags.join(', ') : '—', fmt(c.totalPurchases), fmt(c.outstanding)])
+      doc.autoTable({
+        startY: yPos,
+        head: [['Name', 'Phone', 'Tags', 'Revenue', 'Outstanding']],
+        body: custData,
         theme: 'striped',
         headStyles: { fillColor: [37, 99, 235] }
       })
@@ -240,7 +321,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ textAlign: 'left', padding: '10px' }}>SKU</th>
+                <th style={{ textAlign: 'left', padding: '10px' }}>HSN</th>
                 <th style={{ textAlign: 'left', padding: '10px' }}>Item</th>
                 <th style={{ textAlign: 'right', padding: '10px' }}>Qty</th>
                 <th style={{ textAlign: 'center', padding: '10px' }}>Status</th>
@@ -249,10 +330,109 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
             <tbody>
               {inventory.slice(0, 10).map((i, idx) => (
                 <tr key={idx} style={{ background: i.qty < i.min ? '#FEF2F2' : 'white', borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '10px', fontWeight: 600 }}>{i.sku}</td>
+                  <td style={{ padding: '10px', fontWeight: 600 }}>{i.hsn}</td>
                   <td style={{ padding: '10px' }}>{i.name}</td>
                   <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{i.qty}</td>
                   <td style={{ padding: '10px', textAlign: 'center' }}>{i.qty < i.min ? 'Low ⚠️' : 'OK ✅'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  /* ─── GST TAB ───────────────────────────────────────── */
+  const GstTab = () => {
+    let totCgst = 0, totSgst = 0
+    fBills.forEach(b => (b.items||[]).forEach(i => {
+      const base = (parseFloat(i.quantity)||0) * (parseFloat(i.rate)||0)
+      totCgst += base * (parseFloat(i.cgstPercent)||0)/100
+      totSgst += base * (parseFloat(i.sgstPercent)||0)/100
+    }))
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Btn onClick={() => exportPDF('gst')} variant="primary" icon={Download}>Export GST PDF</Btn>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          <StatCard icon={Receipt} label="Total CGST Collected" value={fmt(totCgst)} color="#2563EB" bg="#EFF6FF" />
+          <StatCard icon={Receipt} label="Total SGST Collected" value={fmt(totSgst)} color="#7C3AED" bg="#F5F3FF" />
+          <StatCard icon={TrendingUp} label="Total Tax Collected" value={fmt(totCgst + totSgst)} color="#059669" bg="#F0FDF4" />
+        </div>
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Tax Breakdown by Bill</h3>
+          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ textAlign: 'left', padding: '10px' }}>Bill No.</th>
+                <th style={{ textAlign: 'left', padding: '10px' }}>Date</th>
+                <th style={{ textAlign: 'right', padding: '10px' }}>Bill Amt</th>
+                <th style={{ textAlign: 'right', padding: '10px' }}>CGST</th>
+                <th style={{ textAlign: 'right', padding: '10px' }}>SGST</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fBills.slice(0, 10).map((b, idx) => {
+                let bc = 0, bs = 0
+                ;(b.items||[]).forEach(i => {
+                  const base = (parseFloat(i.quantity)||0) * (parseFloat(i.rate)||0)
+                  bc += base * (parseFloat(i.cgstPercent)||0)/100
+                  bs += base * (parseFloat(i.sgstPercent)||0)/100
+                })
+                return (
+                  <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '10px', fontWeight: 600, color: '#2563EB' }}>{b.billNumber}</td>
+                    <td style={{ padding: '10px' }}>{fmtDate(b.date)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{fmt(b.grandTotal)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#64748B' }}>{fmt(bc)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#64748B' }}>{fmt(bs)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  /* ─── CUSTOMERS TAB ───────────────────────────────────────── */
+  const CustomersTab = () => {
+    const totalOut = customers.reduce((s, c) => s + (c.outstanding || 0), 0)
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Btn onClick={() => exportPDF('customers')} variant="primary" icon={Download}>Export Customers PDF</Btn>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          <StatCard icon={Users} label="Total Customers" value={customers.length} color="#2563EB" bg="#EFF6FF" />
+          <StatCard icon={AlertCircle} label="Total Outstanding" value={fmt(totalOut)} color="#DC2626" bg="#FEF2F2" />
+        </div>
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Customer Directory</h3>
+          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
+                <th style={{ textAlign: 'left', padding: '10px' }}>Tags</th>
+                <th style={{ textAlign: 'right', padding: '10px' }}>Revenue</th>
+                <th style={{ textAlign: 'right', padding: '10px' }}>Outst.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.slice(0, 10).map((c, idx) => (
+                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <td style={{ padding: '10px', fontWeight: 600 }}>{c.name}</td>
+                  <td style={{ padding: '10px' }}>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {(c.tags || []).map((t, i) => <span key={i} style={{ fontSize: 10, padding: '2px 6px', background: '#F1F5F9', borderRadius: 4 }}>{t}</span>)}
+                    </div>
+                  </td>
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>{fmt(c.totalPurchases)}</td>
+                  <td style={{ padding: '10px', textAlign: 'right', color: c.outstanding > 0 ? '#DC2626' : '#94A3B8' }}>{fmt(c.outstanding)}</td>
                 </tr>
               ))}
             </tbody>
@@ -308,7 +488,8 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
         <div style={{ minHeight: 400 }}>
           {activeTab === 'sales' && <SalesTab />}
           {activeTab === 'inventory' && <InventoryTab />}
-          {(activeTab === 'gst' || activeTab === 'customers') && <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8' }}>Tab under construction...</div>}
+          {activeTab === 'gst' && <GstTab />}
+          {activeTab === 'customers' && <CustomersTab />}
         </div>
       </div>
 

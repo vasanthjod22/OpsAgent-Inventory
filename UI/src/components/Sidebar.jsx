@@ -1,3 +1,6 @@
+import React, { useState, useEffect } from 'react'
+import ConfirmModal from './ConfirmModal'
+import { SignOutAnimation } from './ui/SignOutAnimation'
 import {
   LayoutDashboard,
   DollarSign,
@@ -10,6 +13,7 @@ import {
   LogOut,
   BarChart2,
   Users,
+  ShoppingCart,
 } from 'lucide-react'
 
 const navGroups = [
@@ -24,8 +28,8 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
+      { id: 'purchase_orders', label: 'Purchase Orders', icon: ShoppingCart },
       { id: 'customers', label: 'Customers',  icon: Users },
-      { id: 'grn',       label: 'GRN Upload', icon: Upload },
       { id: 'inventory', label: 'Inventory',  icon: Package },
       { id: 'quotation', label: 'Quotation',  icon: FileText },
       { id: 'billing',   label: 'Billing',    icon: Receipt },
@@ -41,6 +45,34 @@ const navGroups = [
 ]
 
 export default function Sidebar({ active, onNavigate, mobile, currentUser, onLogout }) {
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false)
+  const [showSignOutAnimation, setShowSignOutAnimation] = useState(false)
+  const [pendingPOCount, setPendingPOCount] = useState(0)
+
+  useEffect(() => {
+    const token = localStorage.getItem('opsagent_token')
+    if (token) {
+      fetch(`${import.meta.env.VITE_API_URL}/purchase-orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setPendingPOCount(data.filter(po => ['Draft', 'Sent'].includes(po.status)).length)
+        }
+      })
+      .catch(err => console.error('Error fetching POs for sidebar:', err))
+    }
+  }, [])
+
+  const handleAnimationComplete = () => {
+    localStorage.removeItem('opsagent_auth')
+    localStorage.removeItem('opsagent_token')
+    window.location.hash = ''
+    if (onLogout) onLogout()
+    window.location.href = '/'
+  }
+
   if (mobile) {
     const allItems = [
       ...navGroups.flatMap(g => g.items),
@@ -153,6 +185,8 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
                   >
                     <Icon size={17} color={isActive ? 'white' : '#64748B'} />
                     <span style={{
+                      flex: 1,
+                      textAlign: 'left',
                       fontSize: '14px',
                       fontWeight: 500,
                       color: isActive ? 'white' : '#94A3B8',
@@ -160,6 +194,19 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
                     }}>
                       {label}
                     </span>
+                    {id === 'purchase_orders' && pendingPOCount > 0 && (
+                      <span style={{
+                        background: '#EF4444',
+                        color: 'white',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '99px',
+                        marginLeft: '8px'
+                      }}>
+                        {pendingPOCount}
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -221,9 +268,7 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
         </div>
 
         <button
-          onClick={() => {
-            if (onLogout) onLogout();
-          }}
+          onClick={() => setShowSignoutConfirm(true)}
           className="btn-press"
           style={{
             width: '100%',
@@ -236,18 +281,38 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
-            transition: 'all 0.15s',
-            color: '#64748B',
+            transition: 'background 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748B' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          <LogOut size={16} />
-          <span style={{ fontSize: '13px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
+          <LogOut size={16} color="#DC2626" />
+          <span style={{ fontSize: '13px', fontWeight: 500, color: '#DC2626', fontFamily: "'Inter', sans-serif" }}>
             Sign Out
           </span>
         </button>
       </div>
+
+      {showSignoutConfirm && (
+        <ConfirmModal
+          title="Sign Out"
+          message="Are you sure you want to sign out? You will need to log in again to access your dashboard."
+          confirmLabel="Yes, Sign Out"
+          cancelLabel="Cancel"
+          danger={true}
+          onConfirm={() => {
+            setShowSignoutConfirm(false)
+            setShowSignOutAnimation(true)
+          }}
+          onCancel={() => setShowSignoutConfirm(false)}
+        />
+      )}
+
+      <SignOutAnimation
+        isPlaying={showSignOutAnimation}
+        userName={currentUser?.fullName || 'User'}
+        onComplete={handleAnimationComplete}
+      />
     </aside>
   )
 }

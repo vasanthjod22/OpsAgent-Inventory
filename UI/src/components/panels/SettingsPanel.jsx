@@ -113,6 +113,42 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
       </div>
 
 
+      {/* AI Integrations */}
+      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileCode2 size={16} color="#16A34A" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>AI Integrations</h3>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Configure API keys for AI capabilities like Groq.</p>
+          </div>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Groq API Key</label>
+            <input 
+              type="password"
+              style={inp} 
+              defaultValue={localStorage.getItem('opsagent_groq_key') || ''} 
+              id="groq-key-input"
+              placeholder="gsk_..." 
+            />
+            <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Get your free API key at <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" style={{ color: '#2563EB', textDecoration: 'none' }}>console.groq.com</a>. This key is stored securely in your browser.</div>
+          </div>
+          <button
+            onClick={() => {
+              const val = document.getElementById('groq-key-input').value;
+              localStorage.setItem('opsagent_groq_key', val);
+              showToast?.('AI settings saved successfully!', 'success');
+            }}
+            className="btn-press"
+            style={{ width: '100%', height: '44px', borderRadius: '8px', background: '#16A34A', color: 'white', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(22,163,74,0.3)', marginTop: '16px' }}
+          >
+            <Save size={16} /> Save AI Settings
+          </button>
+        </div>
+      </div>
 
       {/* Demo Data Section */}
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>

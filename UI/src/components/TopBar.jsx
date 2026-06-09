@@ -1,4 +1,5 @@
-import { Search, Bell, ChevronDown } from 'lucide-react'
+import { Search, ChevronDown } from 'lucide-react'
+import NotificationBell from './ui/NotificationBell'
 
 const titles = {
   dashboard: { label: 'Dashboard',  breadcrumb: 'Overview' },
@@ -87,30 +88,7 @@ export default function TopBar({ activeNav }) {
         </div>
 
         {/* Notification Bell */}
-        <button
-          className="btn-press"
-          style={{
-            position: 'relative',
-            width: '36px', height: '36px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <Bell size={18} color="#64748B" />
-          <span style={{
-            position: 'absolute', top: '7px', right: '7px',
-            width: '7px', height: '7px',
-            background: '#EF4444',
-            borderRadius: '50%',
-            border: '1.5px solid white',
-          }} />
-        </button>
+        <NotificationBell token={localStorage.getItem('token')} />
 
         {/* Avatar */}
         <button

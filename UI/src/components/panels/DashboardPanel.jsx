@@ -1,7 +1,7 @@
-import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock } from 'lucide-react'
+import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock, TrendingUp, Users } from 'lucide-react'
 import SummaryCard from '../SummaryCard'
 
-export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [], quotations = [], bills = [] }) {
+export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [], quotations = [], bills = [], purchaseOrders = [], onNavigate }) {
   const pendingApproval = quotations.filter(q => q.status === 'Sent').length
   const billRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
   const pendingBillsCount = bills.filter(b => b.paymentStatus !== 'Paid').length
@@ -14,6 +14,7 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
   const pendingPayables = transactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
   const openGrns = grnHistory.filter(grn => grn.status === 'Pending').length
+  const pendingPOs = purchaseOrders.filter(po => ['Draft', 'Sent'].includes(po.status)).length
 
   const cards = [
     {
@@ -33,7 +34,16 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
       colors: { bg: '#FEF2F2', text: '#DC2626' }
     },
     {
-      id: 'card-stock',
+      id: 'card-pos',
+      icon: Archive,
+      title: 'Pending POs',
+      value: pendingPOs.toString(),
+      trend: `${purchaseOrders.length} Total`,
+      positive: true,
+      colors: { bg: '#F5F3FF', text: '#7C3AED' }
+    },
+    {
+      id: 'card-inventory',
       icon: AlertTriangle,
       title: 'Stock Alerts',
       value: inventory.length === 0 ? '—' : String(stockAlerts),
@@ -175,7 +185,7 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
                        </div>
                        <div style={{ textAlign: 'right' }}>
                          <span className={`badge ${grn.status === 'Processed' ? 'badge-green' : 'badge-amber'}`}>{grn.status}</span>
-                         <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>{grn.items} items</p>
+                         <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>{grn.itemCount || (grn.items ? grn.items.length : 0)} items</p>
                        </div>
                      </div>
                    ))}
@@ -193,7 +203,7 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
                      <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(248, 250, 252, 0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
                        <div>
                          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{item.name}</p>
-                         <p style={{ fontSize: '11px', color: '#64748B' }}>{item.sku}</p>
+                         <p style={{ fontSize: '11px', color: '#64748B' }}>{item.hsn}</p>
                        </div>
                        <div style={{ textAlign: 'right' }}>
                          <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{item.qty} {item.unit}</p>
@@ -238,14 +248,17 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
         <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '16px' }}>Quick Reports</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
           {[
-            { label: 'Sales Report', icon: TrendingUp },
-            { label: 'Stock Report', icon: Package },
-            { label: 'GST Report', icon: Receipt },
-            { label: 'Customer Report', icon: Users },
-          ].map(({ label, icon: Icon }, i) => (
+            { label: 'Sales Report', icon: TrendingUp, tab: 'sales' },
+            { label: 'Stock Report', icon: Package, tab: 'inventory' },
+            { label: 'GST Report', icon: Receipt, tab: 'gst' },
+            { label: 'Customer Report', icon: Users, tab: 'customers' },
+          ].map(({ label, icon: Icon, tab }, i) => (
             <button
               key={i}
-              onClick={() => onNavigate('reports')}
+              onClick={() => {
+                localStorage.setItem('opsagent_reports_tab', tab)
+                onNavigate('reports')
+              }}
               className="btn-press"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',

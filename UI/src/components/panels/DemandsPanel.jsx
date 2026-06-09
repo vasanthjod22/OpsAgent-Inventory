@@ -24,10 +24,10 @@ export default function DemandsPanel({ bills = [] }) {
     })
 
     const sorted = Object.entries(counts)
-      .map(([name, qty]) => ({ name, qty }))
+      .map(([name, qty]) => ({ name, qty: parseFloat(Number(qty).toFixed(6)) }))
       .sort((a, b) => b.qty - a.qty)
 
-    return { sortedItems: sorted, totalSold: total }
+    return { sortedItems: sorted, totalSold: parseFloat(Number(total).toFixed(6)) }
   }, [bills])
 
   const maxSold = sortedItems.length > 0 ? sortedItems[0] : null

@@ -16,11 +16,11 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
  * Body: { messages, systemPrompt }
  */
 router.post('/chat', auth, async (req, res) => {
-  const { messages, systemPrompt } = req.body;
-  const apiKey = process.env.GROQ_API_KEY;
+  const { messages, systemPrompt, tools } = req.body;
+  const apiKey = req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    return res.status(503).json({ error: 'AI service not configured. Set GROQ_API_KEY env variable.' });
+    return res.status(503).json({ error: 'AI service not configured. Set GROQ_API_KEY env variable or configure in Settings.' });
   }
   if (!messages || messages.length === 0) {
     return res.status(400).json({ error: 'messages array is required' });
@@ -41,6 +41,7 @@ router.post('/chat', auth, async (req, res) => {
             { role: 'system', content: systemPrompt || 'You are a helpful assistant.' },
             ...messages,
           ],
+          tools: tools && tools.length > 0 ? tools : undefined,
           temperature: 0.7,
           max_tokens: 1024,
         }),
@@ -48,8 +49,13 @@ router.post('/chat', auth, async (req, res) => {
 
       if (response.ok) {
         const data = await response.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return res.json({ text, model });
+        const message = data.choices?.[0]?.message;
+        const text = message?.content;
+        const tool_calls = message?.tool_calls;
+        
+        if (text || tool_calls) {
+          return res.json({ text, tool_calls, message });
+        }
         lastError = new Error('Empty response from model');
         continue;
       } else {
@@ -73,10 +79,10 @@ router.post('/chat', auth, async (req, res) => {
  */
 router.post('/vision', auth, async (req, res) => {
   const { base64Image, mimeType } = req.body;
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    return res.status(503).json({ error: 'AI service not configured. Set GROQ_API_KEY env variable.' });
+    return res.status(503).json({ error: 'AI service not configured. Set GROQ_API_KEY env variable or configure in Settings.' });
   }
   if (!base64Image || !mimeType) {
     return res.status(400).json({ error: 'base64Image and mimeType are required' });
@@ -104,17 +110,17 @@ router.post('/vision', auth, async (req, res) => {
                 text: `Extract all data from this Goods Receipt Note (GRN) or delivery document. Return ONLY valid JSON:
 {
   "supplier_name": "string or null",
-  "grn_number": "string or null",
   "po_number": "string or null",
   "date": "string or null",
-  "items": [{ "sku": "string or null", "description": "string", "quantity": number, "unit": "string or null", "unit_price": number or null }]
+  "items": [{ "hsn": "string or null", "description": "string", "quantity": number, "unit_price": number or null }]
 }`,
               },
             ],
           },
         ],
         temperature: 0.1,
-        max_tokens: 1024,
+        max_tokens: 2048,
+        response_format: { type: 'json_object' }
       }),
     });
 
@@ -127,9 +133,23 @@ router.post('/vision', auth, async (req, res) => {
     const text = data.choices?.[0]?.message?.content;
     if (!text) return res.status(502).json({ error: 'Empty vision response' });
 
-    const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(clean);
-    res.json(parsed);
+    let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      clean = clean.substring(firstBrace, lastBrace + 1);
+    }
+    
+    // Fix trailing commas
+    clean = clean.replace(/,\s*([}\]])/g, '$1');
+
+    try {
+      const parsed = JSON.parse(clean);
+      res.json(parsed);
+    } catch (parseErr) {
+      console.error("JSON parse error:", parseErr, "Raw Text:", clean);
+      res.status(502).json({ error: `Could not parse AI response perfectly. Please try a clearer photo. Detail: ${parseErr.message}` });
+    }
   } catch (err) {
     res.status(502).json({ error: err.message || 'Vision extraction failed' });
   }

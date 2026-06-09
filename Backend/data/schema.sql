@@ -18,16 +18,16 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Inventory Table
 CREATE TABLE IF NOT EXISTS inventory (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  sku TEXT NOT NULL,
+  hsn TEXT NOT NULL,
   name TEXT NOT NULL,
   category TEXT DEFAULT 'Uncategorized',
   qty NUMERIC DEFAULT 0,
   unit TEXT DEFAULT 'Nos',
   min NUMERIC DEFAULT 0,
   max NUMERIC DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  PRIMARY KEY (user_id, sku)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Finance Table

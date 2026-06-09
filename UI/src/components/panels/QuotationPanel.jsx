@@ -854,7 +854,7 @@ function FixedForm({ form, setForm }) {
 }
 
 /* ─── Quotation History ───────────────────────────────────────────────────── */
-function QuotationHistory({ quotations, onChangeStatus, onRedownload, onDelete }) {
+function QuotationHistory({ quotations, onChangeStatus, onRedownload, onDelete, onConvertToBill }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
   const [editStatusId, setEditStatusId] = useState(null)
@@ -982,6 +982,11 @@ function QuotationHistory({ quotations, onChangeStatus, onRedownload, onDelete }
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <button onClick={() => onConvertToBill(q)} title="Convert to Bill" style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.borderColor = '#6EE7B7' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = '#10B981'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                          <FileCheck size={14} />
+                        </button>
                         <button onClick={() => onRedownload(q)} title="Download PDF" style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.borderColor = '#93C5FD' }}
                           onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
@@ -1167,10 +1172,10 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
     showToast?.('Converted to Fixed Quotation! Review the details below.', 'info', 'Converted')
   }
 
-  /* ── Download PDF */
+  /* ✨ Save Quotation */
   const handleDownload = async () => {
     if (!form.customerName.trim()) {
-      showToast?.('Please enter customer name before downloading', 'warning', 'Missing Info')
+      showToast?.('Please enter customer name before generating', 'warning', 'Missing Info')
       return
     }
 
@@ -1182,16 +1187,15 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
         body: JSON.stringify(payload)
       })
       setQuotations(prev => [savedQuotation, ...prev])
-      const pdfData = { ...form, ...company, companyName: company.name || form.companyName, quotationNumber: savedQuotation.quotationNumber }
-      if (quotationType === 'fixed') {
-        generateFixedPDF(pdfData)
-      } else {
-        generateBreakdownPDF(pdfData)
-      }
-      showToast?.(`Downloaded ${generateFilename(form.customerName, form.date)}`, 'success', 'PDF Generated')
+      showToast?.(`Quotation saved to history`, 'success', 'Generated')
     } catch (err) {
       showToast?.(err.message, 'error')
     }
+  }
+
+  const convertToBill = (q) => {
+    localStorage.setItem('opsagent_convert_quotation', JSON.stringify(q))
+    onNavigate('billing')
   }
 
   const changeStatus = async (id, status) => {
@@ -1332,7 +1336,7 @@ export default function QuotationPanel({ apiKey, showToast, onNavigate }) {
             className="btn-press"
             style={{ height: '44px', padding: '0 22px', borderRadius: '10px', background: 'linear-gradient(135deg,#16A34A,#15803D)', color: 'white', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(22,163,74,0.35)' }}
           >
-            <Download size={16} /> Download PDF
+            <FileCheck size={16} /> Generate Quotation
           </button>
         </div>
 

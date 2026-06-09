@@ -4,12 +4,12 @@ import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import DashboardPanel from './components/panels/DashboardPanel'
 import FinancePanel from './components/panels/FinancePanel'
-import GRNPanel from './components/panels/GRNPanel'
 import InventoryPanel from './components/panels/InventoryPanel'
 import ChatPanel from './components/panels/ChatPanel'
 import SettingsPanel from './components/panels/SettingsPanel'
 import QuotationPanel from './components/panels/QuotationPanel'
 import BillingPanel from './components/panels/BillingPanel'
+import PurchaseOrdersPanel from './components/panels/PurchaseOrdersPanel'
 import DemandsPanel from './components/panels/DemandsPanel'
 import CustomersPanel from './components/panels/CustomersPanel'
 import ReportsPanel from './components/panels/ReportsPanel'
@@ -22,8 +22,8 @@ const panels = {
   customers: CustomersPanel,
   dashboard: DashboardPanel,
   finance: FinancePanel,
-  grn: GRNPanel,
   inventory: InventoryPanel,
+  purchase_orders: PurchaseOrdersPanel,
   quotation: QuotationPanel,
   billing:   BillingPanel,
   demands:   DemandsPanel,
@@ -49,6 +49,7 @@ export default function App() {
   }, [])
 
   const handleAuthSuccess = (user) => {
+    window.location.hash = 'dashboard'
     setDashboardVisible(true)
     // Small delay so the slide-in class is applied before auth state flips
     setTimeout(() => {
@@ -61,6 +62,15 @@ export default function App() {
     setAuthState({ isLoggedIn: false, currentUser: null })
     localStorage.removeItem('opsagent_token')
   }
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      handleLogout()
+      showToast('Session expired or unauthorized. Please log in again.', 'warning')
+    }
+    window.addEventListener('opsagent_unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('opsagent_unauthorized', handleUnauthorized)
+  }, [showToast, setAuthState])
 
   const toastIcons = {
     success: { Icon: CheckCircle,   color: 'text-[var(--success)]', border: 'border-l-[var(--success)]' },
@@ -152,28 +162,22 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
   const [quotations, setQuotations]     = useState([])
   const [bills, setBills]               = useState([])
   const [customers, setCustomers]       = useState([])
+  const [purchaseOrders, setPurchaseOrders] = useState([])
   
   // Persisted chat history
   const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, [])
 
   const loadData = async () => {
     try {
-      const [inv, finSum, fin, grn, qts, bll, cust] = await Promise.all([
-        backendFetch('/inventory'),
-        backendFetch('/finance/summary'),
-        backendFetch('/finance'),
-        backendFetch('/grn'),
-        backendFetch('/quotations'),
-        backendFetch('/bills'),
-        backendFetch('/customers'),
-      ])
-      setInventory(inv)
-      setFinanceSummary(finSum)
-      setTransactions(fin)
-      setGrnHistory(grn)
-      setQuotations(qts)
-      setBills(bll)
-      setCustomers(cust)
+      const data = await backendFetch('/init')
+      setInventory(data.inventory || [])
+      setFinanceSummary(data.financeSummary || { totalRevenue: 0, totalExpenses: 0, balance: 0 })
+      setTransactions(data.finance || [])
+      setGrnHistory(data.grn || [])
+      setQuotations(data.quotations || [])
+      setBills(data.bills || [])
+      setCustomers(data.customers || [])
+      setPurchaseOrders(data.purchase_orders || [])
     } catch (err) {
       console.error('Failed to load initial data:', err)
       showToast('Failed to load data from server', 'error')
@@ -224,6 +228,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
               bills={bills}
               customers={customers}
               setCustomers={setCustomers}
+              purchaseOrders={purchaseOrders}
               chatMessages={chatMessages}
               setChatMessages={setChatMessages}
               onClearAll={handleClearAll}

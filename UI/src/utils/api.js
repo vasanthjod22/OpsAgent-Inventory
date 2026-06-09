@@ -1,12 +1,15 @@
 import { backendFetch } from './backend'
 
-export const callAI = async (apiKey, messages, systemPrompt) => {
+export const callAI = async (apiKey, messages, systemPrompt, tools = undefined) => {
   try {
     const data = await backendFetch('/ai/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages, systemPrompt })
+      headers: {
+        'x-groq-api-key': apiKey || localStorage.getItem('opsagent_groq_key') || ''
+      },
+      body: JSON.stringify({ messages, systemPrompt, tools })
     })
-    return data.text
+    return data
   } catch (err) {
     throw new Error(err.message || 'AI chat failed')
   }
@@ -16,6 +19,9 @@ export const callVisionAI = async (apiKey, base64Image, mimeType) => {
   try {
     return await backendFetch('/ai/vision', {
       method: 'POST',
+      headers: {
+        'x-groq-api-key': apiKey || localStorage.getItem('opsagent_groq_key') || ''
+      },
       body: JSON.stringify({ base64Image, mimeType })
     })
   } catch (err) {

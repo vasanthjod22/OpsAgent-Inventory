@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Send, Sparkles, Mic, MicOff } from 'lucide-react'
 import { callAI } from '../../utils/api'
+import { backendFetch } from '../../utils/backend'
 
 const renderMarkdown = (text) => {
   const lines = text.split('\n')
@@ -80,11 +81,58 @@ const renderMarkdown = (text) => {
 export default function ChatPanel({ inventory = [], financeSummary, chatMessages: messages, setChatMessages: setMessages, showToast }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const bottomRef = useRef()
+  const recognitionRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      recognitionRef.current = new SpeechRecognition()
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
+
+      recognitionRef.current.onresult = (event) => {
+        let finalTranscript = ''
+        let interimTranscript = ''
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript
+          } else {
+            interimTranscript += event.results[i][0].transcript
+          }
+        }
+        if (finalTranscript) {
+          setInput(prev => (prev + ' ' + finalTranscript).trim())
+        }
+      }
+
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error", event.error)
+        setIsListening(false)
+      }
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false)
+      }
+    }
+  }, [])
+
+  const toggleListen = () => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+    } else {
+      setInput('')
+      recognitionRef.current?.start()
+      setIsListening(true)
+    }
+  }
 
   const sendMessage = async (overrideText = null) => {
     const text = overrideText || input.trim()
@@ -98,25 +146,96 @@ export default function ChatPanel({ inventory = [], financeSummary, chatMessages
     setLoading(true)
 
     try {
-      const conversationHistory = messages.map(m => ({ role: m.role, content: m.content })).concat(userMsg)
+      let conversationHistory = messages.map(m => ({ role: m.role, content: m.content })).concat(userMsg)
       const systemPrompt = `You are OpsAgent, an AI back-office manager for a small service business.
 Current inventory data: ${JSON.stringify(inventory)}
 Current finance data: ${JSON.stringify(financeSummary)}
-Answer questions with specific numbers and practical insights. Be concise and helpful. 
+
+You can answer questions with specific numbers and practical insights.
+You also have access to TOOLS to perform actions on behalf of the user. If the user asks you to perform an action (e.g. "Add a customer", "Create an inventory item"), use the appropriate tool. If you use a tool, you will receive the result and should summarize it for the user.
 IMPORTANT: When asked about "low stock", carefully check all inventory items. An item is "low stock" if its "qty" is less than its "min" threshold.`
 
-      const groqMessages = conversationHistory.map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content
-      }))
+      const tools = [
+        {
+          type: "function",
+          function: {
+            name: "add_customer",
+            description: "Add a new customer to the database.",
+            parameters: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Name of the customer" },
+                phone: { type: "string", description: "Phone number" },
+                email: { type: "string", description: "Email address" }
+              },
+              required: ["name"]
+            }
+          }
+        },
+        {
+          type: "function",
+          function: {
+            name: "add_inventory_item",
+            description: "Add a new item to the inventory.",
+            parameters: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Name of the item" },
+                hsn: { type: "string", description: "HSN code" },
+                qty: { type: "number", description: "Initial quantity" },
+                unit: { type: "string", description: "Unit of measurement (e.g. Nos, Kg)" }
+              },
+              required: ["name", "qty"]
+            }
+          }
+        }
+      ]
 
-      const aiReply = await callAI(null, groqMessages, systemPrompt)
+      let aiReply = await callAI(null, conversationHistory, systemPrompt, tools)
       
       if (!aiReply) throw new Error("Empty response from AI")
+
+      if (aiReply.tool_calls && aiReply.tool_calls.length > 0) {
+        // Handle tool calls
+        setMessages(prev => [...prev, { role: 'assistant', content: "Executing action...", isSystem: true, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }])
+        
+        for (const toolCall of aiReply.tool_calls) {
+          conversationHistory.push(aiReply.message) // Add the assistant's tool call message
+          
+          let result = ""
+          try {
+            const args = JSON.parse(toolCall.function.arguments)
+            if (toolCall.function.name === 'add_customer') {
+              const res = await backendFetch('/customers', { method: 'POST', body: JSON.stringify(args) })
+              result = `Successfully added customer: ${res.name} (ID: ${res.id})`
+            } else if (toolCall.function.name === 'add_inventory_item') {
+              const res = await backendFetch('/inventory', { method: 'POST', body: JSON.stringify(args) })
+              result = `Successfully added inventory item: ${res.name} with quantity ${res.qty}`
+            } else {
+              result = `Error: Unknown function ${toolCall.function.name}`
+            }
+          } catch (e) {
+            result = `Error executing tool: ${e.message}`
+          }
+
+          // Provide tool response
+          conversationHistory.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: result
+          })
+        }
+
+        // Call AI again with tool results
+        aiReply = await callAI(null, conversationHistory, systemPrompt, tools)
+      }
       
-      setMessages(prev => [...prev, { role: 'assistant', content: aiReply, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }])
+      const finalContent = aiReply.text || "Action completed."
+      setMessages(prev => prev.filter(m => !m.isSystem).concat([{ role: 'assistant', content: finalContent, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }]))
+      
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}. Please check your API key in Settings.`, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }])
+      setMessages(prev => prev.filter(m => !m.isSystem).concat([{ role: 'assistant', content: `Error: ${err.message}. Please check your API key in Settings.`, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }]))
     } finally {
       setLoading(false)
     }
@@ -219,6 +338,22 @@ IMPORTANT: When asked about "low stock", carefully check all inventory items. An
                 fontFamily: "'Inter', sans-serif", paddingTop: '10px', overflowY: 'auto'
               }}
             />
+            <button
+              onClick={toggleListen}
+              disabled={loading}
+              className="btn-press"
+              style={{
+                width: '36px', height: '36px', flexShrink: 0,
+                background: isListening ? '#EF4444' : '#F1F5F9',
+                color: isListening ? 'white' : '#64748B', border: 'none', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: loading ? 'not-allowed' : 'pointer', marginRight: '8px',
+                transition: 'background 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              title={isListening ? "Stop listening" : "Start speaking"}
+            >
+              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+            </button>
             <button
               onClick={() => { sendMessage(null); setInput(''); }}
               disabled={!input.trim() || loading}
