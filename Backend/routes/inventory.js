@@ -69,7 +69,7 @@ router.get('/', auth, async (req, res) => {
       .eq('user_id', req.user.id)
 
     if (search && search.trim()) {
-      query = query.or(`name.ilike.%${search}%,hsn.ilike.%${search}%,category.ilike.%${search}%`)
+      query = query.or(`name.ilike.${search}%,hsn.ilike.${search}%,category.ilike.${search}%`)
     }
 
     if (category && category !== 'all') {
@@ -88,7 +88,8 @@ router.get('/', auth, async (req, res) => {
       'created': 'created_at'
     }[sortBy] || 'name'
 
-    const ascending = sortOrder === 'asc' || sortBy === 'name' || sortBy === 'qty_asc' || sortBy === 'category'
+    const isDesc = sortBy.endsWith('_desc') || sortOrder === 'desc';
+    const ascending = !isDesc;
     query = query.order(sortColumn, { ascending })
 
     let { data, error } = await query
@@ -96,9 +97,9 @@ router.get('/', auth, async (req, res) => {
 
     // Apply column-to-column status filters in memory
     if (status === 'low') {
-      data = data.filter(i => i.qty < i.min)
+      data = data.filter(i => i.qty <= i.min && i.qty > 0)
     } else if (status === 'ok') {
-      data = data.filter(i => i.qty >= i.min && i.qty <= i.max)
+      data = data.filter(i => i.qty > i.min && i.qty <= i.max)
     } else if (status === 'overstock') {
       data = data.filter(i => i.qty > i.max)
     }
