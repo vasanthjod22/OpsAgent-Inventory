@@ -739,7 +739,7 @@ export default function InventoryPanel({ showToast }) {
                 </tr>
               </thead>
               <tbody>
-                {items.slice((pagination.currentPage - 1) * pagination.itemsPerPage, pagination.currentPage * pagination.itemsPerPage).map((item, index) => {
+                {(items.length > pagination.itemsPerPage ? items.slice((pagination.currentPage - 1) * pagination.itemsPerPage, pagination.currentPage * pagination.itemsPerPage) : items).map((item, index) => {
                   const pct = Math.min((item.qty / (item.max || 1)) * 100, 100)
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
