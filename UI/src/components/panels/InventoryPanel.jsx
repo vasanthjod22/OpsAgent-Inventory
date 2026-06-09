@@ -316,8 +316,14 @@ export default function InventoryPanel({ showToast }) {
       })
 
       const data = await backendFetch(`/inventory?${queryParams}`)
-      setItems(data.items || [])
-      setPagination(data.pagination || {})
+      if (Array.isArray(data)) {
+        // Fallback for old backend
+        setItems(data)
+        setPagination(prev => ({ ...prev, totalItems: data.length, totalPages: 1 }))
+      } else {
+        setItems(data.items || [])
+        setPagination(data.pagination || {})
+      }
     } catch (err) {
       console.error(err)
     } finally {
