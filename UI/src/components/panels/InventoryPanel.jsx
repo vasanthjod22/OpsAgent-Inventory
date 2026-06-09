@@ -99,7 +99,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid #E2E8F0' }}>
-      <span style={{ fontSize: 13, color: '#333333' }}>
+      <span style={{ fontSize: 13, color: '#0F172A' }}>
         Showing {startItem}–{endItem} of <strong>{totalItems}</strong> items
       </span>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -107,7 +107,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
         <PageBtn onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>‹</PageBtn>
         {getPageNumbers().map((page, i) => (
           page === '...' ? (
-            <span key={i} style={{ padding: '0 8px', color: '#555555' }}>...</span>
+            <span key={i} style={{ padding: '0 8px', color: '#1E293B' }}>...</span>
           ) : (
             <PageBtn key={i} active={page === currentPage} onClick={() => onPageChange(page)}>{page}</PageBtn>
           )
@@ -116,7 +116,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
         <PageBtn onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>»</PageBtn>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, color: '#333333' }}>Per page:</span>
+        <span style={{ fontSize: 13, color: '#0F172A' }}>Per page:</span>
         <select
           value={itemsPerPage}
           onChange={e => onLimitChange(Number(e.target.value))}
@@ -278,8 +278,7 @@ export default function InventoryPanel({ showToast }) {
   const formatQty = (q) => {
     const num = Number(q)
     if (isNaN(num)) return q
-    if (Number.isInteger(num)) return num.toFixed(1)
-    return num.toString()
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 3 }).format(num)
   }
   
   // Modals
@@ -511,7 +510,7 @@ export default function InventoryPanel({ showToast }) {
   const getStatusBadge = (item) => {
     if (item.qty === 0) return <span style={{ padding: '4px 10px', background: '#DC2626', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>⭕ Out of Stock</span>
     if (item.qty < item.min) return <span style={{ padding: '4px 10px', background: '#EA580C', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>⚠️ Low Stock</span>
-    if (item.qty > item.max) return <span style={{ padding: '4px 10px', background: '#D97706', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>📦 Overstock</span>
+    if (item.qty > item.max) return <span style={{ padding: '4px 10px', background: '#F5F3FF', color: '#7C3AED', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>📦 Overstock</span>
     return <span style={{ padding: '4px 10px', background: '#16A34A', color: 'white', borderRadius: 99, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>✅ OK</span>
   }
 
@@ -543,7 +542,7 @@ export default function InventoryPanel({ showToast }) {
               >
                 <CloudUpload size={40} color={grnDragging ? '#2563EB' : '#94A3B8'} style={{ margin: '0 auto 12px auto' }} />
                 <div style={{ fontWeight: 600, color: '#0F172A' }}>Drop GRN photo or PDF here</div>
-                <div style={{ fontSize: 13, color: '#333333', marginTop: 4 }}>Accepts jpg, png, pdf</div>
+                <div style={{ fontSize: 13, color: '#0F172A', marginTop: 4 }}>Accepts jpg, png, pdf</div>
                 <input ref={grnFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => processGrnFile(e.target.files[0])} style={{ display: 'none' }} />
               </div>
             )}
@@ -619,7 +618,7 @@ export default function InventoryPanel({ showToast }) {
                     <tbody>
                       {grnHistory.map(g => (
                         <tr key={g.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                          <td style={{ padding: '10px 16px', color: '#333333' }}>{new Date(g.date || g.created_at).toLocaleDateString()}</td>
+                          <td style={{ padding: '10px 16px', color: '#0F172A' }}>{new Date(g.date || g.created_at).toLocaleDateString()}</td>
                           <td style={{ padding: '10px 16px', fontWeight: 600 }}>{g.supplier}</td>
                           <td style={{ padding: '10px 16px' }}>{g.items?.length || 0} items</td>
                         </tr>
@@ -721,7 +720,7 @@ export default function InventoryPanel({ showToast }) {
               {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 50, background: '#F1F5F9', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />)}
             </div>
           ) : items.length === 0 ? (
-            <div style={{ padding: '80px 0', textAlign: 'center', color: '#555555' }}>
+            <div style={{ padding: '80px 0', textAlign: 'center', color: '#1E293B' }}>
               <SearchX size={48} style={{ margin: '0 auto 16px auto', opacity: 0.5 }} />
               <div style={{ fontSize: 16, fontWeight: 600, color: '#475569' }}>No items found</div>
               <div style={{ fontSize: 13, marginTop: 4 }}>{search ? `No items match '${search}'` : 'Try a different search or clear filters'}</div>
@@ -730,7 +729,7 @@ export default function InventoryPanel({ showToast }) {
             <table className="data-table" style={{ width: '100%', minWidth: 900, marginTop: 16, textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0' }}>
-                  <th style={{ padding: '12px 8px', color: '#333333', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#333333' }}>SKU</th><th style={{ padding: '12px 8px', color: '#333333' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#333333' }}>Category</th><th style={{ padding: '12px 8px', color: '#333333' }}>Qty</th><th style={{ padding: '12px 8px', color: '#333333' }}>Unit</th><th style={{ padding: '12px 8px', color: '#333333' }}>Min</th><th style={{ padding: '12px 8px', color: '#333333' }}>Max</th><th style={{ padding: '12px 8px', color: '#333333' }}>Rate</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#333333' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#333333' }}>Actions</th>
+                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>SKU</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Rate</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -738,10 +737,10 @@ export default function InventoryPanel({ showToast }) {
                   const pct = Math.min((item.qty / (item.max || 1)) * 100, 100)
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                      <td style={{ fontSize: 13, color: '#555555', fontWeight: 600, padding: '12px 8px' }}>{(pagination.currentPage - 1) * pagination.itemsPerPage + index + 1}</td>
-                      <td style={{ fontSize: 13, color: '#333333', fontWeight: 600, padding: '12px 8px' }}>{item.hsn}</td>
+                      <td style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, padding: '12px 8px' }}>{(pagination.currentPage - 1) * pagination.itemsPerPage + index + 1}</td>
+                      <td style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, padding: '12px 8px' }}>{item.hsn}</td>
                       <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{item.name}</td>
-                      <td style={{ color: '#333333', padding: '12px 8px' }}>{item.category}</td>
+                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.category}</td>
                       <td style={{ padding: '12px 8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           <span style={{ fontWeight: 700, color: '#0F172A' }}>{item.qty}</span>
@@ -750,10 +749,10 @@ export default function InventoryPanel({ showToast }) {
                           </div>
                         </div>
                       </td>
-                      <td style={{ color: '#333333', padding: '12px 8px' }}>{item.unit}</td>
-                      <td style={{ color: '#555555', padding: '12px 8px' }}>{item.min}</td>
-                      <td style={{ color: '#555555', padding: '12px 8px' }}>{item.max}</td>
-                      <td style={{ color: '#333333', padding: '12px 8px' }}>{item.rate ? `₹${item.rate}` : '—'}</td>
+                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.unit}</td>
+                      <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.min}</td>
+                      <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.max}</td>
+                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.rate ? `₹${item.rate}` : '—'}</td>
                       <td style={{ textAlign: 'center', padding: '12px 8px' }}>{getStatusBadge(item)}</td>
                       <td style={{ textAlign: 'right', padding: '12px 8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
@@ -791,28 +790,28 @@ export default function InventoryPanel({ showToast }) {
           <div style={{ background: 'white', borderRadius: 12, width: '100%', maxWidth: 540, overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>{editingItemId ? 'Edit Item' : 'Add New Item'}</h3>
-              <button onClick={() => setAdding(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555555' }}><X size={20} /></button>
+              <button onClick={() => setAdding(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1E293B' }}><X size={20} /></button>
             </div>
             <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>SKU</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>SKU</label>
                 <input type="text" value={newItem.hsn} onChange={e => setNewItem({ ...newItem, hsn: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Item Name</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Item Name</label>
                 <input type="text" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
                 <input type="text" list="cat-list" value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
                 <datalist id="cat-list">{categories.map(c => <option key={c} value={c} />)}</datalist>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Current Qty</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Current Qty</label>
                 <input type="number" value={newItem.qty} onChange={e => setNewItem({ ...newItem, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>
                 <select value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }}>
                   <option value="">Select...</option>
                   <option value="Nos">Nos</option>
@@ -824,15 +823,15 @@ export default function InventoryPanel({ showToast }) {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Rate (₹)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Rate (₹)</label>
                 <input type="number" value={newItem.rate || ''} onChange={e => setNewItem({ ...newItem, rate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Min Level</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Min Level</label>
                 <input type="number" value={newItem.min} onChange={e => setNewItem({ ...newItem, min: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#333333', textTransform: 'uppercase', marginBottom: 6 }}>Max Level</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Max Level</label>
                 <input type="number" value={newItem.max} onChange={e => setNewItem({ ...newItem, max: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
             </div>
