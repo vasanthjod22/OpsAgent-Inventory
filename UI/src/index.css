@@ -463,3 +463,9 @@ body {
 }
 
 @keyframes fadeInDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } } .notification-item:hover .delete-btn { opacity: 1 !important; }
+
+/* AI Animations */
+@keyframes pulse-shadow {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(37,99,235,0.1); }
+}

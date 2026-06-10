@@ -5,7 +5,7 @@ import {
   Search, Plus, X, Package, Trash2, Edit2,
   AlertTriangle, AlertCircle, Upload, Download,
   CheckCircle, XCircle, CloudUpload, FileText, ChevronDown, Check,
-  Camera, FileImage, Bot, ScanLine, SearchX, Pencil, TrendingUp, ChevronUp, Loader2
+  Camera, FileImage, Bot, ScanLine, SearchX, Pencil, TrendingUp, ChevronUp, Loader2, CheckSquare, Square
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import { callVisionAI } from '../../utils/api'
@@ -467,6 +467,85 @@ const InventoryAutocomplete = ({
   )
 }
 
+const CategoryAutocomplete = ({ value, onChange, categories }) => {
+  const [inputValue, setInputValue] = useState(value === 'all' ? '' : value)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const wrapperRef = useRef(null)
+
+  useEffect(() => {
+    setInputValue(value === 'all' ? '' : value)
+  }, [value])
+
+  const filtered = categories.filter(c => c.toLowerCase().includes(inputValue.toLowerCase()))
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setShowDropdown(false)
+        if (inputValue.trim() !== '' && inputValue !== (value === 'all' ? '' : value)) {
+          onChange(inputValue.trim())
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [inputValue, value, onChange])
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', width: 180 }}>
+      <input
+        type="text"
+        value={inputValue}
+        placeholder="All Categories"
+        onChange={e => {
+          setInputValue(e.target.value)
+          setShowDropdown(true)
+        }}
+        onFocus={() => setShowDropdown(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            onChange(inputValue.trim() || 'all')
+            setShowDropdown(false)
+          }
+        }}
+        style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
+      />
+      <ChevronDown size={14} color="#64748B" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      {showDropdown && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 200, overflowY: 'auto' }}>
+          <div
+            onClick={() => { onChange('all'); setInputValue(''); setShowDropdown(false) }}
+            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A', borderBottom: '1px solid #F1F5F9' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            All Categories
+          </div>
+          {filtered.map(c => (
+            <div
+              key={c}
+              onClick={() => { onChange(c); setInputValue(c); setShowDropdown(false) }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {c}
+            </div>
+          ))}
+          {inputValue && !categories.includes(inputValue) && (
+            <div
+              onClick={() => { onChange(inputValue.trim()); setShowDropdown(false) }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#2563EB', fontWeight: 500, background: '#EFF6FF' }}
+            >
+              Search "{inputValue}"
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const FilterSelect = ({ value, onChange, options }) => (
   <select
     value={value}
@@ -497,15 +576,27 @@ export default function InventoryPanel({ showToast }) {
   const [loading, setLoading] = useState(false)
   const [allItems, setAllItems] = useState([])
   
+  const fetchAllForAutocomplete = async () => {
+    try {
+      const data = await backendFetch('/inventory?limit=10000&page=1')
+      setAllItems(Array.isArray(data) ? data : (data.items || []))
+    } catch (e) { console.error(e) }
+  }
+
   useEffect(() => {
-    const fetchAllForAutocomplete = async () => {
-      try {
-        const data = await backendFetch('/inventory?limit=10000&page=1')
-        setAllItems(Array.isArray(data) ? data : (data.items || []))
-      } catch (e) { console.error(e) }
-    }
     fetchAllForAutocomplete()
   }, [])
+
+  useEffect(() => {
+    setStats({
+      totalItems: allItems.length,
+      lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
+      outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
+      overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
+      totalValue: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0) * (1 + (Number(i.gst) || 0)/100)), 0)
+    })
+  }, [allItems])
+
   const formatQty = (q) => {
     const num = Number(q)
     if (isNaN(num)) return q
@@ -515,7 +606,7 @@ export default function InventoryPanel({ showToast }) {
   // Modals
   const [adding, setAdding] = useState(false)
   const [editingItemId, setEditingItemId] = useState(null)
-  const [newItem, setNewItem] = useState({ hsn: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '' })
+  const [newItem, setNewItem] = useState({ hsn: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '', rate: '', gst: '18' })
   const [confirmModal, setConfirmModal] = useState(null)
   const [showImport, setShowImport] = useState(false)
   
@@ -599,12 +690,7 @@ export default function InventoryPanel({ showToast }) {
     } catch (e) { console.error(e) }
   }
 
-  const fetchStats = async () => {
-    try {
-      const data = await backendFetch('/inventory/stats')
-      setStats(data || {})
-    } catch (e) { console.error(e) }
-  }
+
 
   const fetchGrnHistory = async () => {
     try {
@@ -615,16 +701,31 @@ export default function InventoryPanel({ showToast }) {
 
   useEffect(() => {
     fetchCategories()
-    fetchStats()
     fetchGrnHistory()
   }, [])
 
   // Action Handlers
   const handleEditClick = (item) => {
-    setNewItem({ ...item })
+    setNewItem({ ...item, gst: item.gst ?? '18' })
     setEditingItemId(item.id)
     setAdding(true)
   }
+
+  const handleToggleGst = async (item) => {
+    const newGst = (item.gst && Number(item.gst) > 0) ? 0 : 18;
+    try {
+      setItems(items.map(i => i.id === item.id ? { ...i, gst: newGst } : i));
+      setAllItems(allItems.map(i => i.id === item.id ? { ...i, gst: newGst } : i));
+      await backendFetch(`/inventory/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ gst: newGst })
+      });
+      showToast?.('GST Updated', 'success');
+    } catch (err) {
+      showToast?.('Failed to update GST', 'error');
+      fetchInventory(); // revert
+    }
+  };
 
   const handleDamage = (item) => {
     setConfirmModal({
@@ -636,8 +737,8 @@ export default function InventoryPanel({ showToast }) {
         try {
           await backendFetch(`/inventory/${item.id}/stock`, { method: 'PATCH', body: JSON.stringify({ delta: -1 }) })
           showToast?.('Item marked as damaged', 'success')
+          showToast?.('Item marked as damaged', 'success')
           fetchInventory()
-          fetchStats()
         } catch (e) { showToast?.(e.message, 'error') }
         setConfirmModal(null)
       }
@@ -655,7 +756,7 @@ export default function InventoryPanel({ showToast }) {
           await backendFetch(`/inventory/${item.id}`, { method: 'DELETE' })
           showToast?.('Item deleted', 'success')
           fetchInventory()
-          fetchStats()
+          fetchAllForAutocomplete()
           fetchCategories()
         } catch (e) { showToast?.(e.message, 'error') }
         setConfirmModal(null)
@@ -676,7 +777,7 @@ export default function InventoryPanel({ showToast }) {
       }
       setAdding(false)
       fetchInventory()
-      fetchStats()
+      fetchAllForAutocomplete()
       fetchCategories()
     } catch (e) { showToast?.(e.message, 'error') }
   }
@@ -734,7 +835,7 @@ export default function InventoryPanel({ showToast }) {
       setGrnExpanded(false)
       setGrnFile(null); setGrnBase64(''); setGrnData(null);
       fetchInventory()
-      fetchStats()
+      fetchAllForAutocomplete()
       fetchGrnHistory()
     } catch (err) {
       showToast?.(err.message || 'Failed to approve GRN', 'error')
@@ -878,19 +979,19 @@ export default function InventoryPanel({ showToast }) {
           </div>
           <Package size={32} color="#2563EB" style={{ opacity: 0.2 }} />
         </div>
+        <div onClick={() => setStatus('overstock')} style={{ padding: '20px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#D97706', textTransform: 'uppercase' }}>Overstock</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#92400E' }}>{stats.overstock || 0}</span>
+          </div>
+          <Package size={32} color="#D97706" style={{ opacity: 0.2 }} />
+        </div>
         <div onClick={() => setStatus('low')} style={{ padding: '20px', background: '#FEF2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase' }}>Low Stock</span>
             <span style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B' }}>{stats.lowStock || 0}</span>
           </div>
           <AlertTriangle size={32} color="#DC2626" style={{ opacity: 0.2 }} />
-        </div>
-        <div onClick={() => setStatus('out')} style={{ padding: '20px', background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Out of Stock</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#312E81' }}>{stats.outOfStock || 0}</span>
-          </div>
-          <XCircle size={32} color="#4338CA" style={{ opacity: 0.2 }} />
         </div>
         <div style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -948,10 +1049,10 @@ export default function InventoryPanel({ showToast }) {
               </button>
             )}
 
-            <FilterSelect
+            <CategoryAutocomplete
               value={category}
               onChange={val => { setCategory(val); setPagination(p => ({...p, currentPage: 1})); }}
-              options={[{ value: 'all', label: 'All Categories' }, ...categories.map(c => ({ value: c, label: c }))]}
+              categories={categories}
             />
 
             <FilterSelect
@@ -1058,7 +1159,7 @@ export default function InventoryPanel({ showToast }) {
             <table className="data-table" style={{ width: '100%', minWidth: 900, marginTop: 16, textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0' }}>
-                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>SKU</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Rate</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
+                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>SKU</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Rate</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>GST</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1081,7 +1182,27 @@ export default function InventoryPanel({ showToast }) {
                       <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.unit}</td>
                       <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.min}</td>
                       <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.max}</td>
-                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.rate ? `₹${item.rate}` : '—'}</td>
+                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>
+                        {item.rate ? (
+                           <div style={{ display: 'flex', flexDirection: 'column' }}>
+                             <span style={{ fontWeight: 600 }}>₹{(Number(item.rate) * (1 + (Number(item.gst) || 0) / 100)).toFixed(2)}</span>
+                             {Number(item.gst) > 0 && <span style={{ fontSize: 10, color: '#64748B' }}>inc. {item.gst}% GST</span>}
+                           </div>
+                        ) : '—'}
+                      </td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <button 
+                          onClick={() => handleToggleGst(item)}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 4, borderRadius: 4
+                          }}
+                          title={Number(item.gst) > 0 ? 'Remove 18% GST' : 'Add 18% GST'}
+                        >
+                          {Number(item.gst) > 0 ? <CheckSquare size={20} color="#16A34A" /> : <Square size={20} color="#94A3B8" />}
+                        </button>
+                      </td>
                       <td style={{ textAlign: 'center', padding: '12px 8px' }}>{getStatusBadge(item)}</td>
                       <td style={{ textAlign: 'right', padding: '12px 8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
@@ -1163,6 +1284,16 @@ export default function InventoryPanel({ showToast }) {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Max Level</label>
                 <input type="number" value={newItem.max} onChange={e => setNewItem({ ...newItem, max: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>GST (%)</label>
+                <select value={newItem.gst || ''} onChange={e => setNewItem({ ...newItem, gst: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }}>
+                  <option value="">None (0%)</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18">18%</option>
+                  <option value="28">28%</option>
+                </select>
+              </div>
             </div>
             <div style={{ padding: '16px 24px', background: '#FAFBFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setAdding(false)} style={{ padding: '0 20px', height: 40, borderRadius: 8, border: 'none', background: '#DC2626', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
@@ -1174,7 +1305,7 @@ export default function InventoryPanel({ showToast }) {
 
       {/* Confirm Modal */}
       {confirmModal && <ConfirmModal {...confirmModal} onCancel={() => setConfirmModal(null)} />}
-      {showImport && <ImportModal onClose={() => setShowImport(false)} fetchInventory={() => {fetchInventory(); fetchStats(); fetchCategories()}} showToast={showToast} />}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} fetchInventory={() => {fetchInventory(); fetchCategories()}} showToast={showToast} />}
     </div>
   )
 }

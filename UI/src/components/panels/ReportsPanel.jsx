@@ -5,6 +5,7 @@ import {
   RefreshCw, Copy, Archive
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
+import FormattedAIResponse from '../ui/FormattedAIResponse'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -158,7 +159,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
       })
       yPos = doc.lastAutoTable.finalY + 15
     } else if (type === 'inventory') {
-      const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.min||10)), 0)
+      const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.rate||0) * (1 + (i.gst||0)/100)), 0)
       doc.setFontSize(14)
       doc.setFont("helvetica", "bold")
       doc.text("Inventory Summary", 14, yPos)
@@ -251,6 +252,169 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
     showToast(`Downloaded ${filename}`, 'success')
   }
 
+  /* ─── AI INSIGHTS LOGIC ───────────────────────────────────────── */
+  const [insight, setInsight] = useState(null)
+  const [insightLoading, setInsightLoading] = useState(false)
+  const [chatHistory, setChatHistory] = useState([])
+  const [question, setQuestion] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+
+  useEffect(() => {
+    setInsight(null)
+    setChatHistory([])
+    setQuestion('')
+  }, [activeTab])
+
+  const getCurrentReportData = () => {
+    switch(activeTab) {
+      case 'sales': 
+        return { 
+          totalRevenue: fBills.reduce((s,b)=>s+(b.paymentStatus==='Paid'?(b.grandTotal||0):0),0), 
+          outstanding: fBills.reduce((s, b) => s + ((b.paymentStatus||b.payment_status)==='Unpaid' ? (b.grandTotal||0) : 0), 0),
+          totalBills: fBills.length,
+          topCustomers: [...customers].sort((a,b) => b.totalPurchases - a.totalPurchases).slice(0, 5), 
+          recentBills: fBills.slice(0, 10) 
+        }
+      case 'inventory': 
+        return {
+          totalValue: inventory.reduce((s, i) => s + (i.qty * (i.rate||0) * (1 + (i.gst||0)/100)), 0),
+          lowStockCount: inventory.filter(i => i.qty < i.min).length,
+          totalItems: inventory.length,
+          topItemsByValue: [...inventory].sort((a,b) => (b.qty * (b.rate||0)) - (a.qty * (a.rate||0))).slice(0, 10),
+          lowStockItems: inventory.filter(i => i.qty < i.min).slice(0, 10)
+        }
+      case 'gst': 
+        let totCgst = 0, totSgst = 0
+        fBills.forEach(b => (b.items||[]).forEach(i => {
+          const base = (parseFloat(i.quantity)||0) * (parseFloat(i.rate)||0)
+          totCgst += base * (parseFloat(i.cgstPercent)||0)/100
+          totSgst += base * (parseFloat(i.sgstPercent)||0)/100
+        }))
+        return {
+          totalCgst: totCgst,
+          totalSgst: totSgst,
+          totalTax: totCgst + totSgst,
+          recentBillsWithTax: fBills.slice(0, 10).map(b => ({ billNumber: b.billNumber, total: b.grandTotal }))
+        }
+      case 'customers': 
+        return {
+          totalCustomers: customers.length,
+          totalOutstanding: customers.reduce((s, c) => s + (c.outstanding || 0), 0),
+          topCustomersByRevenue: [...customers].sort((a,b) => b.totalPurchases - a.totalPurchases).slice(0, 10),
+          topCustomersByOutstanding: [...customers].sort((a,b) => (b.outstanding||0) - (a.outstanding||0)).slice(0, 10)
+        }
+      default: return []
+    }
+  }
+
+  const generateInsight = async () => {
+    setInsightLoading(true)
+    try {
+      const data = await backendFetch('/ai/report-insight', {
+        method: 'POST',
+        body: JSON.stringify({
+          reportType: activeTab,
+          reportData: getCurrentReportData()
+        })
+      })
+      if (data.success) setInsight(data.insight)
+    } catch (err) {
+      console.error(err)
+      setInsight(`⚠️ **Error Generating Insights**\n\n${err.message}`)
+    } finally {
+      setInsightLoading(false)
+    }
+  }
+
+  const askQuestion = async () => {
+    if (!question.trim()) return
+
+    const userMsg = { role: 'user', content: question }
+    const newHistory = [...chatHistory, userMsg]
+    setChatHistory(newHistory)
+    setQuestion('')
+    setChatLoading(true)
+
+    try {
+      const data = await backendFetch('/ai/ask-report', {
+        method: 'POST',
+        body: JSON.stringify({
+          reportType: activeTab,
+          reportData: getCurrentReportData(),
+          question: question,
+          chatHistory: chatHistory
+        })
+      })
+      if (data.success) {
+        setChatHistory([...newHistory, { role: 'assistant', content: data.answer }])
+      }
+    } catch (err) {
+      console.error(err)
+      setChatHistory([...newHistory, { role: 'assistant', content: `⚠️ Error: ${err.message}` }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  const getSuggestedQuestions = (type) => {
+    const questions = {
+      sales: ['Who is my top customer?', 'Which month had highest revenue?', 'What is the average bill value?', 'Which items sell the most?'],
+      inventory: ['Which items need reordering?', 'What is my total stock value?', 'Which items are not moving?', 'What should I reorder first?'],
+      gst: ['What is my total GST liability?', 'Which GST rate is most common?', 'Am I ready for GST filing?', 'Show CGST vs SGST split'],
+      customers: ['Who owes the most money?', 'Which customer is most loyal?', 'Who has not ordered recently?', 'Who pays on time?']
+    }
+    return questions[type] || questions.sales
+  }
+
+  const AIInsightSection = ({ reportType }) => (
+    <div style={{ background: 'linear-gradient(135deg, #F0F7FF 0%, #FAF5FF 100%)', border: '1px solid #BFDBFE', borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
+      <div style={{ padding: '16px 20px', borderBottom: insight ? '1px solid #BFDBFE' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563EB', boxShadow: '0 0 0 3px rgba(37,99,235,0.2)', animation: 'pulse-shadow 2s infinite' }}/>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#1E40AF' }}>✨ AI Insights</span>
+          <span style={{ fontSize: 11, color: '#93C5FD', background: '#DBEAFE', padding: '2px 8px', borderRadius: 999, fontWeight: 500 }}>Powered by Llama 3.1</span>
+        </div>
+        <button onClick={generateInsight} disabled={insightLoading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: insightLoading ? '#94A3B8' : '#2563EB', color: 'white', fontSize: 12, fontWeight: 600, cursor: insightLoading ? 'not-allowed' : 'pointer' }}>
+          {insightLoading ? <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>Analyzing...</> : insight ? '🔄 Refresh' : '✨ Generate Insights'}
+        </button>
+      </div>
+      {insight && <div style={{ padding: '16px 20px' }}><FormattedAIResponse text={insight} /></div>}
+      {!insight && !insightLoading && <div style={{ padding: '16px 20px', color: '#64748B', fontSize: 13 }}>Click "Generate Insights" to get AI analysis of this report data.</div>}
+      <div style={{ borderTop: '1px solid #BFDBFE', padding: '16px 20px', background: 'rgba(255,255,255,0.5)' }}>
+        {chatHistory.length > 0 && (
+          <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {chatHistory.map((msg, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '80%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px', background: msg.role === 'user' ? '#2563EB' : 'white', color: msg.role === 'user' ? 'white' : '#374151', fontSize: 13, lineHeight: 1.5, border: msg.role === 'user' ? 'none' : '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                  {msg.role === 'assistant' ? <FormattedAIResponse text={msg.content} /> : msg.content}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{ padding: '10px 16px', borderRadius: '12px 12px 12px 4px', background: 'white', border: '1px solid #E2E8F0', display: 'flex', gap: 4, alignItems: 'center' }}>
+                  {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#94A3B8', animation: `dotBounce 1.2s ease ${i * 0.2}s infinite` }}/>)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion() } }} placeholder={`Ask about this ${activeTab} data... (e.g. "Who owes the most?")`} disabled={chatLoading} style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 10, border: '1px solid #BFDBFE', fontSize: 13, background: 'white', color: '#0F172A', outline: 'none' }} />
+          <button onClick={askQuestion} disabled={!question.trim() || chatLoading} style={{ width: 40, height: 40, borderRadius: 10, border: 'none', background: !question.trim() || chatLoading ? '#E2E8F0' : '#2563EB', color: !question.trim() || chatLoading ? '#94A3B8' : 'white', cursor: !question.trim() || chatLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}>➤</button>
+          {chatHistory.length > 0 && <button onClick={() => setChatHistory([])} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E2E8F0', background: 'white', color: '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }} title="Clear chat">🗑</button>}
+        </div>
+        {chatHistory.length === 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+            {getSuggestedQuestions(activeTab).map(q => (
+              <button key={q} onClick={() => { setQuestion(q); setTimeout(askQuestion, 100) }} style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid #BFDBFE', background: 'white', color: '#2563EB', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s ease' }}>{q}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   /* ─── SALES TAB ───────────────────────────────────────── */
   const SalesTab = () => {
     const revPaid = fBills.reduce((s, b) => s + ((b.paymentStatus||b.payment_status)==='Paid' ? (b.grandTotal||b.grand_total||0) : 0), 0)
@@ -261,6 +425,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+        <AIInsightSection reportType="sales" />
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Btn onClick={() => exportPDF('sales')} variant="primary" icon={Download}>Export Sales Report PDF</Btn>
         </div>
@@ -302,12 +467,13 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
 
   /* ─── INVENTORY TAB ───────────────────────────────────────── */
   const InventoryTab = () => {
-    const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.min||10)), 0) // rough
+    const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.rate||0) * (1 + (i.gst||0)/100)), 0)
     const lowStock = inventory.filter(i => i.qty < i.min).length
     const received = fGrn.reduce((s, g) => s + (g.item_count || 0), 0)
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+        <AIInsightSection reportType="inventory" />
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Btn onClick={() => exportPDF('inventory')} variant="primary" icon={Download}>Export Inventory PDF</Btn>
         </div>
@@ -354,6 +520,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
     
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+        <AIInsightSection reportType="gst" />
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Btn onClick={() => exportPDF('gst')} variant="primary" icon={Download}>Export GST PDF</Btn>
         </div>
@@ -404,6 +571,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
     const totalOut = customers.reduce((s, c) => s + (c.outstanding || 0), 0)
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+        <AIInsightSection reportType="customers" />
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Btn onClick={() => exportPDF('customers')} variant="primary" icon={Download}>Export Customers PDF</Btn>
         </div>

@@ -160,6 +160,8 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
   const [inventory, setInventory]       = useState([])
   const [grnHistory, setGrnHistory]     = useState([])
   const [quotations, setQuotations]     = useState([])
+  const [breakdownQuotations, setBreakdownQuotations] = useState([])
+  const [finalizedQuotations, setFinalizedQuotations] = useState([])
   const [bills, setBills]               = useState([])
   const [customers, setCustomers]       = useState([])
   const [purchaseOrders, setPurchaseOrders] = useState([])
@@ -175,6 +177,8 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
       setTransactions(data.finance || [])
       setGrnHistory(data.grn || [])
       setQuotations(data.quotations || [])
+      setBreakdownQuotations(data.breakdown_quotations || [])
+      setFinalizedQuotations(data.finalized_quotations || [])
       setBills(data.bills || [])
       setCustomers(data.customers || [])
       setPurchaseOrders(data.purchase_orders || [])
@@ -225,6 +229,8 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
               grnHistory={grnHistory}
               setGrnHistory={setGrnHistory}
               quotations={quotations}
+              breakdownQuotations={breakdownQuotations}
+              finalizedQuotations={finalizedQuotations}
               bills={bills}
               customers={customers}
               setCustomers={setCustomers}

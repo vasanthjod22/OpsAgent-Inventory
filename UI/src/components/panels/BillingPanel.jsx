@@ -863,53 +863,6 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
     backendFetch('/company').then(setCompany).catch(console.error)
   }, [])
 
-  useEffect(() => {
-    const qStr = localStorage.getItem('opsagent_convert_quotation')
-    if (qStr) {
-      try {
-        const q = JSON.parse(qStr)
-        setCustomerName(q.customerName || '')
-        setCustomerPhone(q.customerPhone || '')
-        setCustomerAddress(q.customerAddress || '')
-        setDiscount(q.discount || '')
-
-        if (q.sections) {
-           const allItems = q.sections.flatMap(s => s.items || []).filter(i => i.description)
-           if (allItems.length > 0) {
-             setItems(allItems.map(i => ({
-               id: Date.now() + Math.random(),
-               description: i.description,
-               hsn: i.hsn || '',
-               quantity: i.quantity || 1,
-               unit: i.unit || 'Nos',
-               rate: i.rate || 0,
-               cgstPercent: i.cgst || 0,
-               sgstPercent: i.sgst || 0
-             })))
-           }
-        } else if (q.items) {
-           const allItems = q.items.filter(i => i.description)
-           if (allItems.length > 0) {
-             setItems(allItems.map(i => ({
-               id: Date.now() + Math.random(),
-               description: i.description,
-               hsn: i.hsn || '',
-               quantity: i.quantity || 1,
-               unit: i.unit || 'Nos',
-               rate: i.rate || 0,
-               cgstPercent: i.cgst || 0,
-               sgstPercent: i.sgst || 0
-             })))
-           }
-        }
-        showToast?.('Quotation converted to bill! Review details.', 'info')
-      } catch(e) {
-        console.error('Failed to convert quotation to bill:', e)
-      }
-      localStorage.removeItem('opsagent_convert_quotation')
-    }
-  }, [showToast])
-
   const [billDate, setBillDate] = useState(todayISO())
   const billYear = billDate ? new Date(billDate).getFullYear() : new Date().getFullYear()
   const billNumber = bills.length 
@@ -926,6 +879,53 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
   const [notes, setNotes] = useState('')
   const [includeTerms, setIncludeTerms] = useState(false)
   const [terms, setTerms] = useState('')
+  
+  // FQ Link logic
+  const [linkedFQId, setLinkedFQId] = useState(null)
+  const [linkedFQNumber, setLinkedFQNumber] = useState(null)
+
+  useEffect(() => {
+    const loadPrefill = () => {
+      const qStr = localStorage.getItem('opsagent_billing_prefill') || localStorage.getItem('opsagent_convert_quotation')
+      if (qStr) {
+        try {
+          const q = JSON.parse(qStr)
+          setCustomerName(q.customerName || '')
+          setCustomerPhone(q.customerPhone || '')
+          setCustomerAddress(q.customerAddress || '')
+          setDiscount(q.discount || '')
+
+          if (q.linkedFQId) {
+            setLinkedFQId(q.linkedFQId)
+            setLinkedFQNumber(q.linkedFQNumber)
+            setPaymentStatus(q.paymentTerms === 'Immediate' ? 'Unpaid' : 'Unpaid') // Or handle custom terms
+          }
+
+          if (q.items) {
+             const allItems = q.items.filter(i => i.description)
+             if (allItems.length > 0) {
+               setItems(allItems.map(i => ({
+                 id: Date.now() + Math.random(),
+                 description: i.description,
+                 hsn: i.hsn || '',
+                 quantity: i.quantity || i.qty || 1,
+                 unit: i.unit || 'Nos',
+                 rate: i.rate || 0,
+                 cgstPercent: i.cgstPercent || i.cgst || 0,
+                 sgstPercent: i.sgstPercent || i.sgst || 0
+               })))
+             }
+          }
+          showToast?.(q.linkedFQId ? `Loaded data from FQ: ${q.linkedFQNumber}` : 'Loaded data for bill', 'info')
+        } catch(e) {
+          console.error('Failed to parse prefill:', e)
+        }
+        localStorage.removeItem('opsagent_billing_prefill')
+        localStorage.removeItem('opsagent_convert_quotation')
+      }
+    }
+    loadPrefill()
+  }, [showToast])
 
   // Derived totals
   const totalCGST = (items || []).reduce((s, i) => {
@@ -1010,6 +1010,20 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
       } else {
         setBills(prev => [savedBill, ...prev])
         showToast?.('Bill saved to history', 'success', 'Billing')
+        
+        // FQ Update
+        if (linkedFQId) {
+          try {
+            await backendFetch(`/quotations/finalized/${linkedFQId}/status`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'Converted to Bill', bill_number: billData.billNumber })
+            })
+            setLinkedFQId(null)
+            setLinkedFQNumber(null)
+          } catch(fqe) {
+            console.error('Failed to update FQ status', fqe)
+          }
+        }
       }
       
       if (downloadPDF) {
@@ -1100,6 +1114,21 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Create tax invoices and manage payment history</p>
         </div>
       </div>
+
+      {linkedFQNumber && (
+        <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <FileText size={20} color="#16A34A" />
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#15803D' }}>Pre-filled from Finalized Quotation</div>
+              <div style={{ fontSize: '13px', color: '#16A34A', marginTop: '2px' }}>FQ: {linkedFQNumber} | Total: ₹{fmtINR(grandTotal)}</div>
+            </div>
+          </div>
+          <button onClick={() => { setLinkedFQId(null); setLinkedFQNumber(null) }} style={{ background: 'white', border: '1px solid #BBF7D0', padding: '6px 12px', borderRadius: '6px', color: '#15803D', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+            Clear Pre-fill ✕
+          </button>
+        </div>
+      )}
 
       {/* Bill Form Card */}
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

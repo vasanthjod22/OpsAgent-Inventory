@@ -155,4 +155,221 @@ router.post('/vision', auth, async (req, res) => {
   }
 });
 
+const callGroq = async (systemPrompt, userMessage, apiKey) => {
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.1-8b-instant',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userMessage  }
+      ],
+      temperature: 0.4,
+      max_tokens: 1024
+    })
+  })
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Groq API error')
+  }
+  return data.choices?.[0]?.message?.content
+}
+
+// ─────────────────────────────────────────────
+// ENDPOINT 1: Executive Summary (Dashboard)
+// POST /api/ai/executive-summary
+// ─────────────────────────────────────────────
+router.post('/executive-summary', auth, async (req, res) => {
+  try {
+    const { inventory, bills, transactions, quotations, apiKey: reqApiKey } = req.body
+    const apiKey = reqApiKey || req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
+
+    if (!apiKey) return res.status(503).json({ error: 'AI service not configured.' });
+
+    // Calculate key metrics
+    const totalRevenue = (bills||[])
+      .filter(b => b.payment_status === 'Paid' || b.paymentStatus === 'Paid')
+      .reduce((s, b) => s + (b.grand_total || b.grandTotal || 0), 0)
+
+    const outstanding = (bills||[])
+      .filter(b => b.payment_status !== 'Paid' && b.paymentStatus !== 'Paid')
+      .reduce((s, b) => s + (b.grand_total || b.grandTotal || 0), 0)
+
+    const lowStockItems = (inventory||[])
+      .filter(i => i.qty < i.min)
+      .map(i => i.name)
+
+    const topCustomers = Object.entries(
+      (bills||[]).reduce((acc, b) => {
+        const cname = b.customer_name || b.customerName
+        if (cname) acc[cname] = (acc[cname] || 0) + (b.grand_total || b.grandTotal || 0)
+        return acc
+      }, {})
+    )
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, amt]) => `${name}: ₹${Number(amt).toLocaleString('en-IN')}`)
+
+    const systemPrompt = `
+You are OpsAgent, an expert AI business analyst for small Indian service businesses.
+Analyze the provided business data and give a clear, actionable executive summary.
+
+Format your response with these sections:
+1. 🏥 Business Health (1-2 sentences, overall status)
+2. 💰 Revenue & Cash (key financial metrics)
+3. 📦 Inventory (stock concerns if any)
+4. 👥 Top Customers (who's driving revenue)
+5. ⚠️ Action Items (2-3 specific things to do NOW)
+
+Keep each section concise — 2-3 sentences max.
+Use Indian Rupee format (₹).
+Be direct and specific, not generic.
+Tone: professional but conversational.`
+
+    const userMessage = `
+Analyze this business data and generate an executive summary:
+
+FINANCIAL OVERVIEW:
+- Total Revenue (Paid Bills): ₹${Number(totalRevenue).toLocaleString('en-IN')}
+- Outstanding Receivables: ₹${Number(outstanding).toLocaleString('en-IN')}
+- Total Bills: ${(bills||[]).length}
+- Total Quotations: ${(quotations||[]).length}
+
+TOP 3 CUSTOMERS BY REVENUE:
+${topCustomers.join('\n')}
+
+INVENTORY STATUS:
+- Total SKUs: ${(inventory||[]).length}
+- Low Stock Items: ${lowStockItems.length}
+- Low Stock: ${lowStockItems.slice(0,5).join(', ') || 'None'}
+
+RECENT TRANSACTIONS (last 10):
+${JSON.stringify((transactions||[]).slice(0,10), null, 2)}
+
+Generate a comprehensive executive summary.`
+
+    const insight = await callGroq(systemPrompt, userMessage, apiKey)
+
+    res.json({ success: true, insight })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────────
+// ENDPOINT 2: Report Insights
+// POST /api/ai/report-insight
+// ─────────────────────────────────────────────
+router.post('/report-insight', auth, async (req, res) => {
+  try {
+    const { reportType, reportData, apiKey: reqApiKey } = req.body
+    const apiKey = reqApiKey || req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
+
+    if (!apiKey) return res.status(503).json({ error: 'AI service not configured.' });
+
+    const systemPrompts = {
+      sales: `
+You are an expert sales analyst for a small Indian business. Analyze the sales report data and provide actionable insights.
+Focus on: revenue trends, top performers, concerning patterns, and specific action items.
+Format with bullet points. Be specific with numbers. Use ₹ for currency.`,
+      inventory: `
+You are an expert inventory manager for a small Indian business. Analyze the stock data.
+Focus on: critical low stock, overstock items, slow-moving inventory, reorder recommendations.
+Format with bullet points. Be specific.`,
+      gst: `
+You are a GST compliance expert for Indian businesses. Analyze the tax data.
+Focus on: total tax liability, unusual patterns, filing readiness, compliance notes.
+Format with bullet points. Use Indian tax terms.`,
+      customers: `
+You are a CRM expert for small Indian businesses. Analyze the customer data.
+Focus on: top customers, payment behavior, at-risk customers, growth opportunities.
+Format with bullet points. Be specific.`
+    }
+
+    const reportLabels = {
+      sales: 'Sales Report',
+      inventory: 'Inventory Report',
+      gst: 'GST Tax Report',
+      customers: 'Customer Report'
+    }
+
+    const userMessage = `
+Analyze this ${reportLabels[reportType]} and provide key insights:
+
+${JSON.stringify(reportData, null, 2)}
+
+Provide 4-6 specific, actionable insights.
+Each insight should start with an emoji.
+End with 2 specific "Action Items" to take.`
+
+    const insight = await callGroq(systemPrompts[reportType] || systemPrompts.sales, userMessage, apiKey)
+
+    res.json({ success: true, insight })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─────────────────────────────────────────────
+// ENDPOINT 3: Ask AI (Report Chat)
+// POST /api/ai/ask-report
+// ─────────────────────────────────────────────
+router.post('/ask-report', auth, async (req, res) => {
+  try {
+    const { reportType, reportData, question, chatHistory, apiKey: reqApiKey } = req.body
+    const apiKey = reqApiKey || req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
+
+    if (!apiKey) return res.status(503).json({ error: 'AI service not configured.' });
+
+    const systemPrompt = `
+You are OpsAgent AI, a business analyst assistant for a small Indian service business.
+
+You have access to the following ${reportType} report data:
+${JSON.stringify(reportData, null, 2)}
+
+Answer questions ONLY based on this data.
+If the data doesn't contain the answer, say so.
+Be specific with numbers and names.
+Use ₹ for currency, Indian number format.
+Keep answers concise — 3-5 sentences max.
+If asked for a list, use bullet points.`
+
+    const messages = [
+      ...(chatHistory || []).map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: question }
+    ]
+
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages
+        ],
+        temperature: 0.3,
+        max_tokens: 512
+      })
+    })
+
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Groq API error')
+    }
+    const answer = data.choices?.[0]?.message?.content || 'No answer received.'
+
+    res.json({ success: true, answer })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router;

@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock, TrendingUp, Users } from 'lucide-react'
 import SummaryCard from '../SummaryCard'
+import FormattedAIResponse from '../ui/FormattedAIResponse'
+import { backendFetch } from '../../utils/backend'
 
-export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [], quotations = [], bills = [], purchaseOrders = [], onNavigate }) {
-  const pendingApproval = quotations.filter(q => q.status === 'Sent').length
+export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [], quotations = [], breakdownQuotations = [], finalizedQuotations = [], bills = [], purchaseOrders = [], onNavigate }) {
+  const bqPending = breakdownQuotations.filter(q => ['Draft', 'Sent'].includes(q.status)).length
+  const fqPendingBill = finalizedQuotations.filter(q => q.status === 'Active').length
   const billRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
   const pendingBillsCount = bills.filter(b => b.paymentStatus !== 'Paid').length
   const pendingBillsAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : (b.grandTotal || 0)), 0)
@@ -15,6 +19,43 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
 
   const openGrns = grnHistory.filter(grn => grn.status === 'Pending').length
   const pendingPOs = purchaseOrders.filter(po => ['Draft', 'Sent'].includes(po.status)).length
+
+  const [summary, setSummary] = useState(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryError, setSummaryError] = useState(null)
+
+  const generateExecutiveSummary = async () => {
+    setSummaryLoading(true)
+    setSummaryError(null)
+    setSummary(null)
+
+    try {
+      const data = await backendFetch('/ai/executive-summary', {
+        method: 'POST',
+        body: JSON.stringify({
+          summary: {
+            revenue: totalRevenue,
+            pendingPayables: pendingPayables,
+            pendingBillsCount: pendingBillsCount,
+            pendingBillsAmount: pendingBillsAmount,
+            lowStockItemsCount: lowStockItems.length,
+            overstockItemsCount: overstockItems.length,
+            openGrns: openGrns,
+            pendingPOs: pendingPOs
+          },
+          inventory: inventory.slice(0, 10),
+          recentBills: bills.slice(0, 10),
+          recentTransactions: transactions.slice(0, 10)
+        })
+      })
+      if (data.success) setSummary(data.insight)
+      else setSummaryError(data.error)
+    } catch (err) {
+      setSummaryError(err.message)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
 
   const cards = [
     {
@@ -67,12 +108,20 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
       colors: { bg: '#F5F3FF', text: '#7C3AED' }
     },
     {
-      id: 'card-pending-approval',
+      id: 'card-pending-bq',
       icon: Clock,
-      title: 'Pending Approval',
-      value: String(pendingApproval),
-      trend: pendingApproval > 0 ? 'up' : 'neutral', trendValue: pendingApproval > 0 ? 'Awaiting' : '0',
+      title: 'Pending BQs',
+      value: String(bqPending),
+      trend: bqPending > 0 ? 'up' : 'neutral', trendValue: bqPending > 0 ? 'Awaiting' : '0',
       colors: { bg: '#FFF7ED', text: '#EA580C' }
+    },
+    {
+      id: 'card-pending-fq',
+      icon: FileText,
+      title: 'Active FQs',
+      value: String(fqPendingBill),
+      trend: fqPendingBill > 0 ? 'up' : 'neutral', trendValue: fqPendingBill > 0 ? 'To Bill' : '0',
+      colors: { bg: '#F3E8FF', text: '#7E22CE' }
     },
   ]
 
@@ -271,6 +320,180 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
               <Icon size={16} color="#2563EB" /> {label}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div style={{
+        background: 'white',
+        borderRadius: 16,
+        border: '1px solid #E2E8F0',
+        overflow: 'hidden',
+        marginTop: 24
+      }}>
+        
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+          padding: '20px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h3 style={{
+              margin: 0,
+              fontSize: 16,
+              fontWeight: 700,
+              color: 'white'
+            }}>
+              ✨ AI Executive Summary
+            </h3>
+            <p style={{
+              margin: '4px 0 0',
+              fontSize: 12,
+              color: '#94A3B8'
+            }}>
+              AI-powered analysis of your business performance
+            </p>
+          </div>
+
+          <button
+            onClick={generateExecutiveSummary}
+            disabled={summaryLoading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 20px',
+              borderRadius: 10,
+              border: 'none',
+              background: summaryLoading ? '#374151' : 'linear-gradient(135deg, #2563EB, #7C3AED)',
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: summaryLoading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: summaryLoading ? 'none' : '0 4px 15px rgba(37,99,235,0.4)'
+            }}
+          >
+            {summaryLoading ? (
+              <>
+                <div style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  border: '2px solid white',
+                  borderTopColor: 'transparent',
+                  animation: 'spin 0.8s linear infinite'
+                }}/>
+                Analyzing...
+              </>
+            ) : (
+              <>
+                ✨ Generate Summary
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Content area */}
+        <div style={{ padding: 24 }}>
+          
+          {/* Default state */}
+          {!summary && !summaryLoading && !summaryError && (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🤖</div>
+              <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>
+                Click "Generate Summary" to get an AI-powered analysis of your current business performance
+              </p>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {summaryLoading && (
+            <div style={{ padding: '16px 0' }}>
+              {[
+                'Reading your sales data...',
+                'Analyzing inventory levels...',
+                'Identifying key trends...',
+                'Preparing insights...'
+              ].map((step, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 0',
+                    animation: `fadeIn 0.5s ease ${i * 0.3}s both`
+                  }}
+                >
+                  <div style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    border: '2px solid #2563EB',
+                    borderTopColor: 'transparent',
+                    animation: 'spin 0.8s linear infinite'
+                  }}/>
+                  <span style={{ fontSize: 13, color: '#64748B' }}>
+                    {step}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error state */}
+          {summaryError && (
+            <div style={{
+              background: '#FEF2F2',
+              border: '1px solid #FCA5A5',
+              borderRadius: 8,
+              padding: 16,
+              color: '#DC2626',
+              fontSize: 13
+            }}>
+              ⚠️ {summaryError}
+            </div>
+          )}
+
+          {/* Summary result */}
+          {summary && !summaryLoading && (
+            <div style={{ animation: 'fadeInUp 0.5s ease' }}>
+              <div style={{ fontSize: 14, lineHeight: 1.7, color: '#374151' }}>
+                <FormattedAIResponse text={summary} />
+              </div>
+
+              {/* Regenerate button */}
+              <div style={{
+                marginTop: 20,
+                paddingTop: 16,
+                borderTop: '1px solid #F1F5F9',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 11, color: '#94A3B8' }}>
+                  Generated just now by Llama 3.1 via Groq
+                </span>
+                <button
+                  onClick={generateExecutiveSummary}
+                  style={{
+                    background: 'none',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    color: '#64748B',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Regenerate
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

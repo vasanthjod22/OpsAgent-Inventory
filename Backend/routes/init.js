@@ -26,33 +26,46 @@ const formatBill = (b) => ({
   createdAt: b.created_at
 });
 
-const formatQuotation = (q) => ({
+const formatBreakdownQuotation = (q) => ({
   id: q.id,
-  quotationNumber: q.quotation_number,
-  type: q.type || 'breakdown',
-  customerName: q.customer_name,
-  customerPhone: q.customer_phone,
-  customerEmail: q.customer_email,
-  customerAddress: q.customer_address,
-  date: q.date || q.created_at,
-  validity: q.validity,
-  projectName: q.project_name || '',
-  sections: q.sections || [],
+  qt_number: q.qt_number,
+  customer_name: q.customer_name,
+  customer_phone: q.customer_phone,
+  customer_email: q.customer_email,
+  customer_address: q.customer_address,
+  validity_date: q.validity_date,
+  project_name: q.project_name || '',
   items: q.items || [],
-  packageName: q.package_name || '',
-  packageDescription: q.package_description || '',
-  inclusions: q.inclusions || [],
-  exclusions: q.exclusions || [],
-  basePrice: q.base_price || 0,
-  gstPercent: q.gst_percent || 18,
   subtotal: q.subtotal,
   discount: q.discount,
-  grandTotal: q.grand_total,
+  grand_total: q.grand_total,
   notes: q.notes,
-  includeTerms: q.include_terms,
+  include_terms: q.include_terms,
   terms: q.terms,
   status: q.status,
-  createdAt: q.created_at
+  converted_to: q.converted_to,
+  created_at: q.created_at
+});
+
+const formatFinalizedQuotation = (q) => ({
+  id: q.id,
+  fq_number: q.fq_number,
+  original_qt_number: q.original_qt_number,
+  customer_name: q.customer_name,
+  customer_phone: q.customer_phone,
+  customer_email: q.customer_email,
+  customer_address: q.customer_address,
+  items: q.items || [],
+  subtotal: q.subtotal,
+  discount: q.discount,
+  grand_total: q.grand_total,
+  notes: q.notes,
+  include_terms: q.include_terms,
+  terms: q.terms,
+  status: q.status,
+  bill_number: q.bill_number,
+  finalized_at: q.finalized_at,
+  created_at: q.created_at
 });
 
 const formatPO = (po) => ({
@@ -97,7 +110,8 @@ router.get('/', auth, async (req, res) => {
     const [
       { data: inventory },
       { data: bills },
-      { data: quotations },
+      { data: breakdown_quotations },
+      { data: finalized_quotations },
       { data: finance },
       { data: grn },
       { data: customers },
@@ -105,7 +119,8 @@ router.get('/', auth, async (req, res) => {
     ] = await Promise.all([
       supabase.from('inventory').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabase.from('bills').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-      supabase.from('quotations').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('breakdown_quotations').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('finalized_quotations').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabase.from('finance').select('*').eq('user_id', userId).order('date', { ascending: false }),
       supabase.from('grn').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabase.from('customers').select('*, contacts:customer_contacts(*)').eq('user_id', userId).order('created_at', { ascending: false }),
@@ -152,7 +167,9 @@ const formatGRN = (g) => ({
     res.json({
       inventory: inventory || [],
       bills: (bills || []).map(formatBill),
-      quotations: (quotations || []).map(formatQuotation),
+      quotations: (breakdown_quotations || []).map(formatBreakdownQuotation), // Temporary back-compat for UI if needed
+      breakdown_quotations: (breakdown_quotations || []).map(formatBreakdownQuotation),
+      finalized_quotations: (finalized_quotations || []).map(formatFinalizedQuotation),
       finance: finance || [],
       financeSummary,
       grn: (grn || []).map(formatGRN),

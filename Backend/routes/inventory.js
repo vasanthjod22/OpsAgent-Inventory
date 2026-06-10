@@ -36,7 +36,7 @@ router.get('/stats', auth, async (req, res) => {
 
     const stats = {
       totalItems: data.length,
-      lowStock: data.filter(i => i.qty < i.min).length,
+      lowStock: data.filter(i => i.qty <= i.min && i.qty > 0).length,
       outOfStock: data.filter(i => i.qty === 0).length,
       overstock: data.filter(i => i.qty > i.max).length,
       totalValue: data.reduce((sum, i) => sum + (i.qty * (i.rate || 0)), 0)
@@ -152,7 +152,7 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'hsn, name, category, qty and unit are required' });
   }
 
-  const item = { user_id: req.user.id, hsn, name, category, qty: Number(qty), unit, min: Number(min) || 0, max: Number(max) || 0 };
+  const item = { user_id: req.user.id, hsn, name, category, qty: Number(qty), unit, min: Number(min) || 0, max: Number(max) || 0, rate: Number(req.body.rate) || 0, gst: Number(req.body.gst) || 0 };
   const { data: inserted, error } = await supabase.from('inventory').insert([item]).select().single();
 
   if (error) return res.status(500).json({ error: error.message });
@@ -240,7 +240,7 @@ router.post('/import', auth, async (req, res) => {
     if (!item.hsn) {
       skipped.push('(no hsn)');
     } else {
-      const newItem = { user_id: req.user.id, hsn: item.hsn, name: item.name || '', category: item.category || 'General', qty: Number(item.qty) || 0, unit: item.unit || 'Nos', min: Number(item.min) || 0, max: Number(item.max) || 0 };
+      const newItem = { user_id: req.user.id, hsn: item.hsn, name: item.name || '', category: item.category || 'General', qty: Number(item.qty) || 0, unit: item.unit || 'Nos', min: Number(item.min) || 0, max: Number(item.max) || 0, rate: Number(item.rate) || 0, gst: Number(item.gst) || 0 };
       toInsert.push(newItem);
       added.push(newItem);
     }
