@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://opsagent-inventory-ui-backend.onrender.com/api' : 'http://localhost:3001/api');
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://opsagent-backend.vercel.app/api' : 'http://localhost:3001/api');
 
 /**
  * Standard fetch wrapper that automatically includes the JWT token
