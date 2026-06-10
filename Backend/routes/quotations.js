@@ -4,239 +4,387 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// ─────────────────────────────────────────────────────────────
+// Apply auth middleware to all routes in this router
+router.use(auth);
+
+// ─────────────────────────────────────────
+// HELPER: Generate document number
+// ─────────────────────────────────────────
+const generateDocNumber = async (userId, tableName, prefix, startKey) => {
+  const year = new Date().getFullYear();
+
+  // Get start number from company settings
+  const { data: company } = await supabase
+    .from('company')
+    .select(startKey)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const startNumber = company?.[startKey] || 1001;
+
+  // Count existing docs this year
+  const { count } = await supabase
+    .from(tableName)
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', `${year}-01-01T00:00:00`);
+
+  const nextNumber = startNumber + (count || 0);
+  return `${prefix}-${year}-${nextNumber}`;
+};
+
+// ─────────────────────────────────────────
 // BREAKDOWN QUOTATIONS
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────
 
-// GET /api/quotations/breakdown
-router.get('/breakdown', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('breakdown_quotations')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .order('created_at', { ascending: false });
+// GET all breakdown quotations
+router.get('/breakdown', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('breakdown_quotations')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// POST /api/quotations/breakdown
-router.post('/breakdown', auth, async (req, res) => {
-  const { count, error: countErr } = await supabase
-    .from('breakdown_quotations')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', req.user.id);
+// POST create breakdown quotation
+router.post('/breakdown', async (req, res) => {
+  try {
+    const {
+      customer_name,
+      customer_phone,
+      customer_email,
+      customer_address,
+      project_name,
+      validity_date,
+      items,
+      subtotal,
+      discount,
+      grand_total,
+      include_terms,
+      terms,
+      notes,
+      status
+    } = req.body;
 
-  if (countErr) return res.status(500).json({ error: countErr.message });
+    // Validate required fields
+    if (!customer_name) {
+      return res.status(400).json({ error: 'Customer name is required' });
+    }
 
-  const next = (count || 0) + 1;
-  const qtNumber = req.body.qt_number || `QT-${new Date().getFullYear()}-${String(next).padStart(4, '0')}`;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: 'At least one item is required' });
+    }
 
-  const payload = {
-    ...req.body,
-    user_id: req.user.id,
-    qt_number: qtNumber
-  };
+    // Generate QT number
+    const qt_number = await generateDocNumber(
+      req.user.id,
+      'breakdown_quotations',
+      'QT',
+      'qt_start_number'
+    );
 
-  const { data, error } = await supabase
-    .from('breakdown_quotations')
-    .insert([payload])
-    .select()
-    .single();
+    // Save to database
+    const { data, error } = await supabase
+      .from('breakdown_quotations')
+      .insert([{
+        user_id: req.user.id,
+        qt_number,
+        customer_name,
+        customer_phone: customer_phone || '',
+        customer_email: customer_email || '',
+        customer_address: customer_address || '',
+        project_name: project_name || '',
+        validity_date: validity_date || null,
+        items: items || [],
+        subtotal: subtotal || 0,
+        discount: discount || 0,
+        grand_total: grand_total || 0,
+        include_terms: include_terms || false,
+        terms: terms || '',
+        notes: notes || '',
+        status: status || 'Draft'
+      }])
+      .select()
+      .single();
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json(data);
+    if (error) throw error;
+
+    res.status(201).json({ 
+      success: true, 
+      data,
+      message: `Quotation ${qt_number} saved!`
+    });
+  } catch (err) {
+    console.error('Create QT error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PUT /api/quotations/breakdown/:id
-router.put('/breakdown/:id', auth, async (req, res) => {
-  const payload = { ...req.body };
-  delete payload.id;
-  delete payload.user_id;
+// PUT update breakdown quotation
+router.put('/breakdown/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('breakdown_quotations')
+      .update({
+        ...req.body,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
 
-  const { data, error } = await supabase
-    .from('breakdown_quotations')
-    .update(payload)
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .select()
-    .single();
-
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data) return res.status(404).json({ error: 'Not found' });
-  res.json(data);
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// DELETE /api/quotations/breakdown/:id
-router.delete('/breakdown/:id', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('breakdown_quotations')
-    .delete()
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .select();
+// PATCH update status only
+router.patch('/breakdown/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    const { data, error } = await supabase
+      .from('breakdown_quotations')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
 
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data || data.length === 0) return res.status(404).json({ error: 'Not found' });
-  res.json({ message: 'Deleted' });
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PATCH /api/quotations/breakdown/:id/status
-router.patch('/breakdown/:id/status', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('breakdown_quotations')
-    .update({ status: req.body.status })
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .select()
-    .single();
+// DELETE breakdown quotation
+router.delete('/breakdown/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('breakdown_quotations')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
 
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data) return res.status(404).json({ error: 'Not found' });
-  res.json(data);
+    if (error) throw error;
+    res.json({ success: true, message: 'Quotation deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// ─────────────────────────────────────────────────────────────
-// CONVERT BREAKDOWN TO FINALIZED
-// ─────────────────────────────────────────────────────────────
-// POST /api/quotations/breakdown/:id/finalize
-router.post('/breakdown/:id/finalize', auth, async (req, res) => {
-  // 1. Get original
-  const { data: bq, error: getErr } = await supabase
-    .from('breakdown_quotations')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .single();
-
-  if (getErr || !bq) return res.status(404).json({ error: 'Breakdown quotation not found' });
-
-  // 2. Generate new FQ number
-  const { count, error: countErr } = await supabase
-    .from('finalized_quotations')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', req.user.id);
-
-  if (countErr) return res.status(500).json({ error: countErr.message });
-
-  const next = (count || 0) + 1;
-  const fqNumber = `FQ-${new Date().getFullYear()}-${String(next).padStart(4, '0')}`;
-
-  // Use overrides from body or fallback to original
-  const payload = {
-    user_id: req.user.id,
-    fq_number: fqNumber,
-    original_qt_number: bq.qt_number,
-    customer_name: bq.customer_name,
-    customer_phone: bq.customer_phone,
-    customer_email: bq.customer_email,
-    customer_address: bq.customer_address,
-    items: req.body.items || bq.items,
-    subtotal: req.body.subtotal !== undefined ? req.body.subtotal : bq.subtotal,
-    discount: req.body.discount !== undefined ? req.body.discount : bq.discount,
-    grand_total: req.body.grand_total !== undefined ? req.body.grand_total : bq.grand_total,
-    include_terms: bq.include_terms,
-    terms: bq.terms,
-    notes: bq.notes,
-    status: 'Active'
-  };
-
-  // 3. Insert into finalized
-  const { data: fq, error: insErr } = await supabase
-    .from('finalized_quotations')
-    .insert([payload])
-    .select()
-    .single();
-
-  if (insErr) return res.status(500).json({ error: insErr.message });
-
-  // 4. Update breakdown status
-  await supabase
-    .from('breakdown_quotations')
-    .update({ status: 'Converted', converted_to: fqNumber })
-    .eq('id', bq.id);
-
-  res.status(201).json(fq);
-});
-
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────
 // FINALIZED QUOTATIONS
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────
 
-// GET /api/quotations/finalized
-router.get('/finalized', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('finalized_quotations')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .order('created_at', { ascending: false });
+// GET all finalized quotations
+router.get('/finalized', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('finalized_quotations')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// DELETE /api/quotations/finalized/:id
-router.delete('/finalized/:id', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('finalized_quotations')
-    .delete()
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .select();
+// POST convert breakdown to finalized
+router.post('/breakdown/:id/finalize', async (req, res) => {
+  try {
+    const {
+      items,
+      subtotal,
+      discount,
+      grand_total,
+      notes,
+      include_terms,
+      terms
+    } = req.body;
 
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data || data.length === 0) return res.status(404).json({ error: 'Not found' });
-  res.json({ message: 'Deleted' });
+    // Get original breakdown QT
+    const { data: original, error: fetchError } = await supabase
+        .from('breakdown_quotations')
+        .select('*')
+        .eq('id', req.params.id)
+        .eq('user_id', req.user.id)
+        .single();
+
+    if (fetchError) throw fetchError;
+    if (!original) {
+      return res.status(404).json({ error: 'Quotation not found' });
+    }
+
+    // Generate FQ number
+    const fq_number = await generateDocNumber(
+      req.user.id,
+      'finalized_quotations',
+      'FQ',
+      'fq_start_number'
+    );
+
+    // Create finalized quotation
+    const { data: finalized, error: createError } = await supabase
+        .from('finalized_quotations')
+        .insert([{
+          user_id: req.user.id,
+          fq_number,
+          original_qt_number: original.qt_number,
+          customer_name: original.customer_name,
+          customer_phone: original.customer_phone,
+          customer_email: original.customer_email,
+          customer_address: original.customer_address,
+          items: items || original.items,
+          subtotal: subtotal || original.subtotal,
+          discount: discount || original.discount,
+          grand_total: grand_total || original.grand_total,
+          include_terms: include_terms || original.include_terms,
+          terms: terms || original.terms,
+          notes: notes || original.notes,
+          status: 'Active',
+          finalized_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+    if (createError) throw createError;
+
+    // Update original to Converted
+    await supabase
+      .from('breakdown_quotations')
+      .update({ 
+        status: 'Converted',
+        converted_to: fq_number,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+
+    res.status(201).json({ 
+      success: true, 
+      data: finalized,
+      message: `Finalized as ${fq_number}`
+    });
+  } catch (err) {
+    console.error('Finalize error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PATCH /api/quotations/finalized/:id/status
-router.patch('/finalized/:id/status', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('finalized_quotations')
-    .update({ 
-      status: req.body.status,
-      bill_number: req.body.bill_number || ''
-    })
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .select()
-    .single();
+// GET bill prefill data from finalized QT
+router.get('/finalized/:id/bill-data', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('finalized_quotations')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
 
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data) return res.status(404).json({ error: 'Not found' });
-  res.json(data);
+    if (error) throw error;
+    
+    // Map to bill payload
+    const billData = {
+      customerName: data.customer_name,
+      customerPhone: data.customer_phone,
+      customerEmail: data.customer_email,
+      customerAddress: data.customer_address,
+      items: data.items.map(i => ({
+        ...i,
+        quantity: i.qty || i.quantity, // Handle either qty or quantity based on frontend
+      })),
+      subtotal: data.subtotal,
+      discount: data.discount,
+      grandTotal: data.grand_total,
+      linkedFQNumber: data.fq_number,
+      linkedFQId: data.id
+    };
+    
+    res.json({ success: true, data: billData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// GET /api/quotations/finalized/:id/bill-data
-router.get('/finalized/:id/bill-data', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('finalized_quotations')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .eq('id', req.params.id)
-    .single();
+// PATCH update finalized QT status
+router.patch('/finalized/:id/status', async (req, res) => {
+  try {
+    const { status, bill_number } = req.body;
 
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data) return res.status(404).json({ error: 'Not found' });
+    const { data, error } = await supabase
+      .from('finalized_quotations')
+      .update({ 
+        status,
+        bill_number: bill_number || '',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
 
-  // Map to bill payload
-  const billData = {
-    customerName: data.customer_name,
-    customerPhone: data.customer_phone,
-    customerEmail: data.customer_email,
-    customerAddress: data.customer_address,
-    items: data.items.map(i => ({
-      ...i,
-      quantity: i.qty, // Map qty to quantity for bills
-    })),
-    subtotal: data.subtotal,
-    discount: data.discount,
-    grandTotal: data.grand_total,
-    linkedFQNumber: data.fq_number,
-    linkedFQId: data.id
-  };
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  res.json(billData);
+// ─────────────────────────────────────────
+// NEXT NUMBER PREVIEW
+// ─────────────────────────────────────────
+
+router.get('/next-number', async (req, res) => {
+  try {
+    const { type } = req.query;
+
+    const config = {
+      qt: {
+        table: 'breakdown_quotations',
+        prefix: 'QT',
+        key: 'qt_start_number'
+      },
+      fq: {
+        table: 'finalized_quotations',
+        prefix: 'FQ',
+        key: 'fq_start_number'
+      }
+    };
+
+    const conf = config[type];
+    if (!conf) {
+      return res.status(400).json({ error: 'Invalid type. Use qt or fq' });
+    }
+
+    const number = await generateDocNumber(
+      req.user.id,
+      conf.table,
+      conf.prefix,
+      conf.key
+    );
+
+    res.json({ number });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
