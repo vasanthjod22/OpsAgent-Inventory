@@ -8,6 +8,7 @@ import { backendFetch } from '../../utils/backend'
 import FormattedAIResponse from '../ui/FormattedAIResponse'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 
 /* ─── Helpers ─────────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -146,6 +147,56 @@ const InventoryTab = ({ start, end, categories, exportPDF }) => {
               </div>
             ))}
           </div>
+
+          {/* ── CHARTS ── */}
+          {data.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, marginTop: 24, marginBottom: 24 }}>
+              {/* Category Stock Value Pie Chart */}
+              <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Stock Value by Category</h3>
+                <div style={{ height: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data}
+                        dataKey="totalValue"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        innerRadius={55}
+                        paddingAngle={2}
+                      >
+                        {data.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip formatter={(value) => fmt(value)} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Items vs Quantities Bar Chart */}
+              <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Category Quantities</h3>
+                <div style={{ height: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="category" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
+                      <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="totalQty" name="Total Qty" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                      <Bar dataKey="soldQty" name="Sold Qty" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── EMPTY STATE ── */}
           {data.length === 0 && (
