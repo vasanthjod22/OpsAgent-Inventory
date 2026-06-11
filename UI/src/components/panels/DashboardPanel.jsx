@@ -131,7 +131,7 @@ export default function DashboardPanel({ onNavigate }) {
     }
   }
 
-  const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`
+  const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const timeAgo = (dateStr) => {
     const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -309,7 +309,7 @@ export default function DashboardPanel({ onNavigate }) {
             <LineChart data={salesTrend}>
               <CartesianGrid {...gridStyle} />
               <XAxis dataKey="date" {...axisStyle} />
-              <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+              <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
               <RechartsTooltip {...tooltipStyle} formatter={(v, n) => [n === 'sales' ? formatCurrency(v) : v, n === 'sales' ? 'Sales' : 'Orders']} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
               <Line name="Sales Revenue" type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} dot={{ fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
@@ -326,7 +326,7 @@ export default function DashboardPanel({ onNavigate }) {
             <BarChart data={categorySales}>
               <CartesianGrid {...gridStyle} />
               <XAxis dataKey="category" {...axisStyle} tick={{ fontSize: 11, fill: '#64748B' }} interval={0} angle={-30} textAnchor="end" height={60} />
-              <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+              <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
               <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} cursor={{ fill: '#F1F5F9' }} />
               <Bar dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
                 {categorySales.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
@@ -342,7 +342,7 @@ export default function DashboardPanel({ onNavigate }) {
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
             <CartesianGrid {...gridStyle} horizontal={false}/>
-            <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+            <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
             <YAxis type="category" dataKey="name" width={180} {...axisStyle} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
             <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v, n) => [n === 'revenue' ? formatCurrency(v) : v, n === 'revenue' ? 'Revenue' : 'Units Sold']} />
             <Bar dataKey="revenue" name="Revenue" radius={[0,4,4,0]} maxBarSize={28}>

@@ -15,9 +15,9 @@ router.get('/kpis', auth, async (req, res) => {
     // TODAY'S SALES
     const { data: todayBills } = await supabase
       .from('bills')
-      .select('grand_total, payment_status')
+      .select('grand_total, payment_status, date')
       .eq('user_id', userId)
-      .gte('created_at', `${todayStr}T00:00:00`);
+      .eq('date', todayStr);
 
     const todaySales = todayBills
       ?.filter(b => b.payment_status === 'Paid')
@@ -28,10 +28,9 @@ router.get('/kpis', auth, async (req, res) => {
     // YESTERDAY COMPARISON
     const { data: yesterdayBills } = await supabase
       .from('bills')
-      .select('grand_total, payment_status')
+      .select('grand_total, payment_status, date')
       .eq('user_id', userId)
-      .gte('created_at', `${yesterdayStr}T00:00:00`)
-      .lt('created_at', `${todayStr}T00:00:00`);
+      .eq('date', yesterdayStr);
 
     const yesterdaySales = yesterdayBills
       ?.filter(b => b.payment_status === 'Paid')
@@ -44,10 +43,10 @@ router.get('/kpis', auth, async (req, res) => {
     // Let's do a simplified calculation based on items in todayBills if we fetch them.
     const { data: todayBillsWithItems } = await supabase
       .from('bills')
-      .select('items, payment_status')
+      .select('items, payment_status, date')
       .eq('user_id', userId)
       .eq('payment_status', 'Paid')
-      .gte('created_at', `${todayStr}T00:00:00`);
+      .eq('date', todayStr);
 
     const { data: inventoryData } = await supabase
       .from('inventory')
@@ -68,11 +67,10 @@ router.get('/kpis', auth, async (req, res) => {
     let yesterdayProfit = 0;
     const { data: yesterdayBillsWithItems } = await supabase
       .from('bills')
-      .select('items, payment_status')
+      .select('items, payment_status, date')
       .eq('user_id', userId)
       .eq('payment_status', 'Paid')
-      .gte('created_at', `${yesterdayStr}T00:00:00`)
-      .lt('created_at', `${todayStr}T00:00:00`);
+      .eq('date', yesterdayStr);
 
     yesterdayBillsWithItems?.forEach(b => {
       (b.items || []).forEach(item => {
@@ -156,19 +154,22 @@ router.get('/kpis', auth, async (req, res) => {
 router.get('/sales-trend', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
+    
+    const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
+    const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
 
     const { data: bills } = await supabase
       .from('bills')
-      .select('grand_total, created_at, payment_status')
+      .select('grand_total, date, payment_status')
       .eq('user_id', req.user.id)
-      .gte('created_at', from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-      .lte('created_at', to || new Date().toISOString())
-      .order('created_at');
+      .gte('date', fromDate)
+      .lte('date', toDate)
+      .order('date');
 
     // Group by date
     const grouped = {};
     bills?.forEach(bill => {
-      const dateObj = new Date(bill.created_at);
+      const dateObj = new Date(bill.date || bill.created_at || new Date());
       // Format to "DD MMM"
       const date = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       if (!grouped[date]) {
@@ -195,13 +196,16 @@ router.get('/sales-by-category', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
 
+    const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
+    const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
+
     const { data: bills } = await supabase
       .from('bills')
-      .select('items, payment_status, created_at')
+      .select('items, payment_status, date')
       .eq('user_id', req.user.id)
       .eq('payment_status', 'Paid')
-      .gte('created_at', from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-      .lte('created_at', to || new Date().toISOString());
+      .gte('date', fromDate)
+      .lte('date', toDate);
 
     const { data: inventory } = await supabase
       .from('inventory')
@@ -214,7 +218,7 @@ router.get('/sales-by-category', auth, async (req, res) => {
       (bill.items || []).forEach(item => {
         const invItem = inventory?.find(i =>
           i.name?.toLowerCase() === item.description?.toLowerCase() ||
-          i.sku === item.sku
+          (i.sku && i.sku === item.inventorySku)
         );
         const category = invItem?.category || 'Other';
 
@@ -240,13 +244,16 @@ router.get('/top-products', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
 
+    const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
+    const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
+
     const { data: bills } = await supabase
       .from('bills')
       .select('items')
       .eq('user_id', req.user.id)
       .eq('payment_status', 'Paid')
-      .gte('created_at', from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-      .lte('created_at', to || new Date().toISOString());
+      .gte('date', fromDate)
+      .lte('date', toDate);
 
     const productMap = {};
     bills?.forEach(bill => {
