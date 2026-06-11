@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import { 
   TrendingUp, DollarSign, FileText, ShoppingCart, AlertTriangle, Users, Package, UserCheck, 
-  Receipt, ArrowRight, X, UserPlus, Box, DollarSign as MoneyIcon, FileSignature
+  Receipt, ArrowRight, X, UserPlus, Box, DollarSign as MoneyIcon, FileSignature, RefreshCw
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
