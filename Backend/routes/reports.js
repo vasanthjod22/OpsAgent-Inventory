@@ -75,12 +75,9 @@ router.get('/category-inventory', auth, async (req, res) => {
     if (from) periodStart = new Date(from).toISOString();
     if (to) periodEnd = new Date(to).toISOString();
 
-    if (from || to || period) {
-      // Filter inventory by date_added if the user selects a custom range or period
-      const sDate = periodStart.split('T')[0];
-      const eDate = periodEnd.split('T')[0];
-      inventoryQuery = inventoryQuery.gte('date_added', sDate).lte('date_added', eDate);
-    }
+    // We do NOT filter the inventory items themselves by period.
+    // The period only applies to the sales/bills data to show what was sold in that period.
+    // If we filter inventory by date_added, old items will just disappear from the report!
 
     const { data: items, error: invErr } = await inventoryQuery;
     if (invErr) throw invErr;
