@@ -1,547 +1,482 @@
-import { useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock, TrendingUp, Users } from 'lucide-react'
-import SummaryCard from '../SummaryCard'
-import FormattedAIResponse from '../ui/FormattedAIResponse'
+import { useState, useEffect, useCallback } from 'react'
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, Cell
+} from 'recharts'
+import { 
+  TrendingUp, DollarSign, FileText, ShoppingCart, AlertTriangle, Users, Package, UserCheck, 
+  Receipt, ArrowRight, X, UserPlus, Box, DollarSign as MoneyIcon, FileSignature
+} from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
+import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
+import { CHART_COLORS, CHART_DEFAULTS, tooltipStyle, gridStyle, axisStyle } from '../../utils/chartTheme'
 
-export default function DashboardPanel({ inventory = [], financeSummary = null, transactions = [], grnHistory = [], quotations = [], breakdownQuotations = [], finalizedQuotations = [], bills = [], purchaseOrders = [], onNavigate }) {
-  const bqPending = breakdownQuotations.filter(q => ['Draft', 'Sent'].includes(q.status)).length
-  const fqPendingBill = finalizedQuotations.filter(q => q.status === 'Active').length
-  const billRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
-  const pendingBillsCount = bills.filter(b => b.paymentStatus !== 'Paid').length
-  const pendingBillsAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : (b.grandTotal || 0)), 0)
-  const lowStockItems = inventory.filter(item => item.qty < item.min)
-  const overstockItems = inventory.filter(item => item.qty > item.max)
-  const stockAlerts = lowStockItems.length + overstockItems.length
+export default function DashboardPanel({ onNavigate }) {
+  const [loading, setLoading] = useState(true)
+  const [kpis, setKpis] = useState(null)
+  
+  // Sales Trend State
+  const [trendFilter, setTrendFilter] = useState('week')
+  const [trendCustomFrom, setTrendCustomFrom] = useState(null)
+  const [trendCustomTo, setTrendCustomTo] = useState(null)
+  const [salesTrend, setSalesTrend] = useState([])
 
-  const totalRevenue = transactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0)
-  const pendingPayables = transactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Math.abs(t.amount), 0)
+  // Other Charts Data
+  const [categorySales, setCategorySales] = useState([])
+  const [topProducts, setTopProducts] = useState([])
+  
+  // Lists
+  const [lowStockList, setLowStockList] = useState([])
+  const [activities, setActivities] = useState([])
 
-  const openGrns = grnHistory.filter(grn => grn.status === 'Pending').length
-  const pendingPOs = purchaseOrders.filter(po => ['Draft', 'Sent'].includes(po.status)).length
+  // Modal State
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [expenseForm, setExpenseForm] = useState({
+    title: '', category: 'General', amount: '', payment_method: 'Cash', date: new Date().toISOString().split('T')[0], notes: ''
+  })
 
-  const [summary, setSummary] = useState(null)
-  const [summaryLoading, setSummaryLoading] = useState(false)
-  const [summaryError, setSummaryError] = useState(null)
-
-  const generateExecutiveSummary = async () => {
-    setSummaryLoading(true)
-    setSummaryError(null)
-    setSummary(null)
-
+  // ─── FETCH LOGIC ──────────────────────────────────────────────
+  
+  const fetchKpis = async () => {
     try {
-      const data = await backendFetch('/ai/executive-summary', {
-        method: 'POST',
-        body: JSON.stringify({
-          summary: {
-            revenue: totalRevenue,
-            pendingPayables: pendingPayables,
-            pendingBillsCount: pendingBillsCount,
-            pendingBillsAmount: pendingBillsAmount,
-            lowStockItemsCount: lowStockItems.length,
-            overstockItemsCount: overstockItems.length,
-            openGrns: openGrns,
-            pendingPOs: pendingPOs
-          },
-          inventory: inventory.slice(0, 10),
-          recentBills: bills.slice(0, 10),
-          recentTransactions: transactions.slice(0, 10)
-        })
-      })
-      if (data.success) setSummary(data.insight)
-      else setSummaryError(data.error)
-    } catch (err) {
-      setSummaryError(err.message)
-    } finally {
-      setSummaryLoading(false)
+      const res = await backendFetch('/dashboard/kpis')
+      if (res.success) setKpis(res)
+    } catch (err) { console.error('Failed to fetch KPIs', err) }
+  }
+
+  const fetchSalesTrend = async () => {
+    try {
+      let from, to;
+      if (trendFilter === 'custom') {
+        if (!trendCustomFrom) return;
+        from = trendCustomFrom.toISOString()
+        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
+      } else {
+        const range = getDateRange(trendFilter)
+        from = range.from
+        to = range.to
+      }
+      const res = await backendFetch(`/dashboard/sales-trend?from=${from}&to=${to}`)
+      if (res.success) setSalesTrend(res.data)
+    } catch (err) { console.error('Failed to fetch sales trend', err) }
+  }
+
+  const fetchCategorySales = async () => {
+    try {
+      const range = getDateRange('month')
+      const res = await backendFetch(`/dashboard/sales-by-category?from=${range.from}&to=${range.to}`)
+      if (res.success) setCategorySales(res.data)
+    } catch (err) { console.error('Failed to fetch category sales', err) }
+  }
+
+  const fetchTopProducts = async () => {
+    try {
+      const range = getDateRange('month')
+      const res = await backendFetch(`/dashboard/top-products?from=${range.from}&to=${range.to}`)
+      if (res.success) setTopProducts(res.data)
+    } catch (err) { console.error('Failed to fetch top products', err) }
+  }
+
+  const fetchLowStock = async () => {
+    try {
+      const inventoryRes = await backendFetch('/inventory')
+      const low = (inventoryRes || []).filter(i => (i.qty || 0) < (i.min || 0))
+      setLowStockList(low.slice(0, 8))
+    } catch (err) { console.error('Failed to fetch low stock', err) }
+  }
+
+  const fetchActivities = async () => {
+    try {
+      const res = await backendFetch('/activity?limit=10')
+      if (res.success) setActivities(res.data)
+    } catch (err) { console.error('Failed to fetch activities', err) }
+  }
+
+  const fetchAllData = useCallback(async () => {
+    setLoading(true)
+    await Promise.all([
+      fetchKpis(),
+      fetchSalesTrend(),
+      fetchCategorySales(),
+      fetchTopProducts(),
+      fetchLowStock(),
+      fetchActivities()
+    ])
+    setLoading(false)
+  }, [trendFilter, trendCustomFrom, trendCustomTo])
+
+  // ─── EFFECTS ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    fetchAllData()
+    const interval = setInterval(fetchAllData, 60000)
+    return () => clearInterval(interval)
+  }, [fetchAllData])
+
+  useEffect(() => {
+    fetchSalesTrend()
+  }, [trendFilter, trendCustomFrom, trendCustomTo])
+
+  // ─── HELPERS ──────────────────────────────────────────────────
+
+  const getChange = (current, previous) => {
+    if (!previous || previous === 0) return { value: '0.0', direction: 'none', color: '#94A3B8', arrow: '—' }
+    const pct = ((current - previous) / Math.abs(previous)) * 100
+    if (pct === 0) return { value: '0.0', direction: 'none', color: '#94A3B8', arrow: '—' }
+    return {
+      value: Math.abs(pct).toFixed(1),
+      direction: pct > 0 ? 'up' : 'down',
+      color: pct > 0 ? '#16A34A' : '#DC2626',
+      arrow: pct > 0 ? '↑' : '↓'
     }
   }
 
-  const cards = [
-    {
-      id: 'card-revenue',
-      icon: DollarSign,
-      title: 'Bill Revenue',
-      value: `₹${Number(billRevenue).toLocaleString('en-IN')}`,
-      trend: billRevenue > 0 ? 'up' : 'neutral', trendValue: billRevenue > 0 ? 'Paid bills' : '₹0',
-      colors: { bg: '#EFF6FF', text: '#2563EB' }
-    },
-    {
-      id: 'card-pending-bills',
-      icon: Receipt,
-      title: 'Pending Bills',
-      value: String(pendingBillsCount),
-      trend: pendingBillsCount > 0 ? 'up' : 'neutral', trendValue: pendingBillsCount > 0 ? `₹${Number(pendingBillsAmount).toLocaleString('en-IN')}` : '₹0',
-      colors: { bg: '#FEF2F2', text: '#DC2626' }
-    },
-    {
-      id: 'card-pos',
-      icon: Archive,
-      title: 'Pending POs',
-      value: pendingPOs.toString(),
-      trend: `${purchaseOrders.length} Total`,
-      positive: true,
-      colors: { bg: '#F5F3FF', text: '#7C3AED' }
-    },
-    {
-      id: 'card-inventory',
-      icon: AlertTriangle,
-      title: 'Stock Alerts',
-      value: inventory.length === 0 ? '—' : String(stockAlerts),
-      trend: stockAlerts > 0 ? 'up' : 'neutral', trendValue: stockAlerts === 0 ? '0' : String(stockAlerts),
-      colors: { bg: '#FFFBEB', text: '#D97706' }
-    },
-    {
-      id: 'card-items',
-      icon: Package,
-      title: 'Open GRNs',
-      value: String(openGrns),
-      trend: openGrns > 0 ? 'up' : 'neutral', trendValue: `${openGrns} pending`,
-      colors: { bg: '#F0FDF4', text: '#16A34A' }
-    },
-    {
-      id: 'card-quotations',
-      icon: FileText,
-      title: 'Total Quotations',
-      value: String(quotations.length),
-      trend: quotations.length > 0 ? 'up' : 'neutral', trendValue: quotations.length > 0 ? 'All time' : '0',
-      colors: { bg: '#F5F3FF', text: '#7C3AED' }
-    },
-    {
-      id: 'card-pending-bq',
-      icon: Clock,
-      title: 'Pending BQs',
-      value: String(bqPending),
-      trend: bqPending > 0 ? 'up' : 'neutral', trendValue: bqPending > 0 ? 'Awaiting' : '0',
-      colors: { bg: '#FFF7ED', text: '#EA580C' }
-    },
-    {
-      id: 'card-pending-fq',
-      icon: FileText,
-      title: 'Active FQs',
-      value: String(fqPendingBill),
-      trend: fqPendingBill > 0 ? 'up' : 'neutral', trendValue: fqPendingBill > 0 ? 'To Bill' : '0',
-      colors: { bg: '#F3E8FF', text: '#7E22CE' }
-    },
-  ]
+  const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`
 
-  const recentTransactions = transactions.slice(0, 5)
-  const recentGrns = grnHistory.slice(0, 3)
-  const recentInventory = inventory.slice(0, 2)
+  const timeAgo = (dateStr) => {
+    const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000)
+    if (seconds < 60) return 'Just now'
+    if (seconds < 3600) return `${Math.floor(seconds/60)}m ago`
+    if (seconds < 86400) return `${Math.floor(seconds/3600)}h ago`
+    return `${Math.floor(seconds/86400)}d ago`
+  }
+
+  const getLowStockStatus = (qty, min) => {
+    if (qty === 0) return { label: 'Out of Stock', color: '#DC2626', bg: '#FEF2F2' }
+    const pct = (qty / min) * 100
+    if (pct <= 25) return { label: 'Critical', color: '#DC2626', bg: '#FEF2F2' }
+    if (pct <= 50) return { label: 'Very Low', color: '#EA580C', bg: '#FFF7ED' }
+    return { label: 'Low Stock', color: '#D97706', bg: '#FFFBEB' }
+  }
+
+  const handleExpenseSave = async (e) => {
+    e.preventDefault()
+    try {
+      await backendFetch('/dashboard/expenses', {
+        method: 'POST',
+        body: JSON.stringify(expenseForm)
+      })
+      setShowExpenseModal(false)
+      setExpenseForm({ title: '', category: 'General', amount: '', payment_method: 'Cash', date: new Date().toISOString().split('T')[0], notes: '' })
+      fetchAllData()
+    } catch (err) {
+      alert('Failed to save expense: ' + err.message)
+    }
+  }
+
+  // ─── RENDER KPI CARDS ─────────────────────────────────────────
+
+  const renderKPIs = () => {
+    if (!kpis) return null
+
+    const kpiData = [
+      { 
+        title: "Today's Sales", val: formatCurrency(kpis.todaySales), sub: "Revenue today", 
+        icon: TrendingUp, color: '#16A34A', 
+        change: kpis.todaySalesChange !== undefined ? { pct: kpis.todaySalesChange } : null
+      },
+      { 
+        title: "Today's Profit", val: formatCurrency(kpis.todayProfit), sub: "Profit today", 
+        icon: DollarSign, color: '#2563EB', 
+        change: kpis.todayProfitChange !== undefined ? { pct: kpis.todayProfitChange } : null
+      },
+      { 
+        title: "Pending Bills", val: kpis.pendingBills?.count || 0, sub: "Awaiting payment", 
+        valSub: `(${formatCurrency(kpis.pendingBills?.amount)})`,
+        icon: FileText, color: '#D97706', onClick: () => onNavigate('billing')
+      },
+      { 
+        title: "Pending POs", val: kpis.pendingPOs || 0, sub: "Orders pending", 
+        icon: ShoppingCart, color: '#9333EA', onClick: () => onNavigate('purchase_orders')
+      },
+      { 
+        title: "Low Stock Products", val: kpis.lowStock || 0, sub: "Below reorder level", 
+        icon: AlertTriangle, color: '#DC2626', onClick: () => onNavigate('inventory')
+      },
+      { 
+        title: "Customer Due Amount", val: formatCurrency(kpis.customerDue), sub: "Outstanding receivables", 
+        icon: Users, color: '#EA580C', onClick: () => onNavigate('customers')
+      },
+      { 
+        title: "Today's Orders", val: kpis.todayOrders || 0, sub: "Bills created today", 
+        icon: Package, color: '#0891B2', 
+        change: kpis.todayOrdersChange !== undefined ? { pct: kpis.todayOrdersChange } : null
+      },
+      { 
+        title: "Total Customers", val: kpis.totalCustomers || 0, sub: "Registered customers", 
+        icon: UserCheck, color: '#4F46E5', 
+        change: kpis.newCustomersThisWeek !== undefined ? { pct: kpis.newCustomersThisWeek, label: 'new this week' } : null
+      }
+    ]
+
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+        {kpiData.map((item, i) => {
+          const Icon = item.icon
+          return (
+            <div 
+              key={i} 
+              onClick={item.onClick}
+              style={{ 
+                background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20, 
+                cursor: item.onClick ? 'pointer' : 'default', transition: 'all 0.2s',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onMouseEnter={(e) => { if(item.onClick) e.currentTarget.style.borderColor = item.color }}
+              onMouseLeave={(e) => { if(item.onClick) e.currentTarget.style.borderColor = '#E2E8F0' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 500, marginBottom: 4 }}>{item.title}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    {item.val}
+                    {item.valSub && <span style={{ fontSize: 14, color: '#64748B', fontWeight: 500 }}>{item.valSub}</span>}
+                  </div>
+                </div>
+                <div style={{ background: `${item.color}15`, width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color }}>
+                  <Icon size={20} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                <span style={{ fontSize: 12, color: '#94A3B8' }}>{item.sub}</span>
+                {item.change && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: item.change.pct >= 0 ? '#16A34A' : '#DC2626' }}>
+                    {item.change.label ? (
+                      <span style={{ color: '#16A34A' }}>+{item.change.pct} {item.change.label}</span>
+                    ) : (
+                      <>
+                        <span>{item.change.pct >= 0 ? '↑' : '↓'}</span>
+                        <span>{Math.abs(item.change.pct).toFixed(1)}%</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ─── MAIN RENDER ──────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
-      {/* Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        {cards.map(card => <SummaryCard key={card.id} {...card} />)}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }} className="grid-cols-1 lg:grid-cols-3">
-        {/* Transactions */}
-        <div className="lg:col-span-2 glass-card hover-up" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid #E2E8F0' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', fontFamily: "'Inter', sans-serif" }}>Recent Activity</h3>
-          </div>
-          
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9' }}>
-             <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Finance Transactions</h4>
-             {recentTransactions.length > 0 ? (
-               <div style={{ overflowX: 'auto' }}>
-                 <table className="data-table">
-                   <thead><tr><th>Date</th><th>Description</th><th>Entity</th><th style={{ textAlign: 'right' }}>Amount</th><th style={{ textAlign: 'center' }}>Status</th></tr></thead>
-                   <tbody>
-                     {recentTransactions.map((tx, i) => (
-                       <tr key={i}>
-                         <td style={{ fontSize: '13px', color: '#64748B' }}>{tx.date}</td>
-                         <td style={{ fontWeight: 600, color: '#0F172A' }}>{tx.description}</td>
-                         <td style={{ color: '#64748B' }}>{tx.customer}</td>
-                         <td style={{ textAlign: 'right', fontWeight: 600, color: tx.type === 'Income' ? '#16A34A' : '#0F172A' }}>{tx.type === 'Income' ? '+' : '-'}₹{Math.abs(tx.amount).toLocaleString('en-IN')}</td>
-                         <td style={{ textAlign: 'center' }}>
-                           <span className={`badge ${tx.status === 'Completed' ? 'badge-green' : 'badge-amber'}`}>{tx.status}</span>
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
-             ) : (
-                <div style={{ padding: '24px', textAlign: 'center', background: '#F8FAFC', borderRadius: '8px' }}>
-                  <p style={{ fontSize: '14px', color: '#64748B' }}>Upload finance data to see activity</p>
-                </div>
-             )}
-          </div>
-
-          {/* Recent Bills */}
-          {bills.length > 0 && (
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Recent Bills</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {bills.slice(0, 3).map((b, i) => {
-                  const sc = { Paid: '#16A34A', Unpaid: '#DC2626', Partial: '#D97706' }
-                  const sb = { Paid: '#F0FDF4', Unpaid: '#FEF2F2', Partial: '#FFFBEB' }
-                  return (
-                    <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(248,250,252,0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                      <div>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB' }}>{b.billNumber}</p>
-                        <p style={{ fontSize: '11px', color: '#64748B' }}>{b.customerName}</p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>₹{Number(b.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 0 })}</p>
-                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: sb[b.paymentStatus] || '#F1F5F9', color: sc[b.paymentStatus] || '#64748B' }}>{b.paymentStatus}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Recent Quotations */}
-          {quotations.length > 0 && (
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Recent Quotations</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {quotations.slice(0, 3).map((q, i) => {
-                  const statusColors = { Draft: '#64748B', Sent: '#2563EB', Approved: '#16A34A', Rejected: '#DC2626' }
-                  const statusBgs = { Draft: '#F1F5F9', Sent: '#EFF6FF', Approved: '#F0FDF4', Rejected: '#FEF2F2' }
-                  return (
-                    <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(248,250,252,0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                      <div>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB' }}>{q.quotationNumber}</p>
-                        <p style={{ fontSize: '11px', color: '#64748B' }}>{q.customerName}</p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>₹{Number(q.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 0 })}</p>
-                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: statusBgs[q.status] || '#F1F5F9', color: statusColors[q.status] || '#64748B' }}>{q.status}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', md: {flexDirection: 'row'} }}>
-            <div style={{ flex: 1, padding: '20px 24px', borderRight: '1px solid #F1F5F9' }}>
-               <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Recent GRNs</h4>
-               {recentGrns.length > 0 ? (
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                   {recentGrns.map((grn, i) => (
-                     <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(248, 250, 252, 0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                       <div>
-                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{grn.id}</p>
-                         <p style={{ fontSize: '11px', color: '#64748B' }}>{grn.supplier}</p>
-                       </div>
-                       <div style={{ textAlign: 'right' }}>
-                         <span className={`badge ${grn.status === 'Processed' ? 'badge-green' : 'badge-amber'}`}>{grn.status}</span>
-                         <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>{grn.itemCount || (grn.items ? grn.items.length : 0)} items</p>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               ) : (
-                  <div style={{ padding: '16px', textAlign: 'center' }}><p style={{ fontSize: '13px', color: '#94A3B8' }}>No recent GRNs</p></div>
-               )}
-            </div>
-            
-            <div style={{ flex: 1, padding: '20px 24px' }}>
-               <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Inventory Changes</h4>
-               {recentInventory.length > 0 ? (
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                   {recentInventory.map((item, i) => (
-                     <div key={i} className="hover-up" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(248, 250, 252, 0.6)', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                       <div>
-                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{item.name}</p>
-                         <p style={{ fontSize: '11px', color: '#64748B' }}>{item.hsn}</p>
-                       </div>
-                       <div style={{ textAlign: 'right' }}>
-                         <p style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{item.qty} {item.unit}</p>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               ) : (
-                  <div style={{ padding: '16px', textAlign: 'center' }}><p style={{ fontSize: '13px', color: '#94A3B8' }}>No inventory items</p></div>
-               )}
-            </div>
-          </div>
-        </div>
-
-        {/* AI Insights */}
-        <div className="glass-card hover-up" style={{ borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={16} color="#2563EB" />
-            </div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', fontFamily: "'Inter', sans-serif" }}>Agent Insights</h3>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {lowStockItems.slice(0, 2).map((item, i) => (
-              <div key={`low-${i}`} style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px' }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626', marginBottom: '4px' }}>Low Stock Alert</p>
-                <p style={{ fontSize: '13px', color: '#7F1D1D', lineHeight: 1.4 }}>Reorder <strong style={{ fontWeight: 600 }}>{item.name}</strong>. Only {item.qty} {item.unit} left (min: {item.min}).</p>
-              </div>
-            ))}
-            {(!lowStockItems.length && !overstockItems.length) && (
-              <div style={{ padding: '12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px' }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#16A34A', marginBottom: '4px' }}>System Healthy</p>
-                <p style={{ fontSize: '13px', color: '#14532D', lineHeight: 1.4 }}>All inventory levels are optimal. No immediate actions required.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Reports */}
-      <div className="glass-card hover-up" style={{ borderRadius: '12px', padding: '24px', marginTop: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', marginBottom: '16px' }}>Quick Reports</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-          {[
-            { label: 'Sales Report', icon: TrendingUp, tab: 'sales' },
-            { label: 'Stock Report', icon: Package, tab: 'inventory' },
-            { label: 'GST Report', icon: Receipt, tab: 'gst' },
-            { label: 'Customer Report', icon: Users, tab: 'customers' },
-            { label: '🗂️ Category Report', icon: null, tab: 'category' },
-          ].map(({ label, icon: Icon, tab }, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                localStorage.setItem('opsagent_reports_tab', tab)
-                onNavigate('reports')
-              }}
-              className="btn-press"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                padding: '12px', background: tab === 'category' ? '#EDE9FE' : '#F8FAFC',
-                border: tab === 'category' ? '1px solid #C4B5FD' : '1px solid #E2E8F0',
-                borderRadius: '8px', color: tab === 'category' ? '#7C3AED' : '#334155',
-                fontWeight: 600, fontSize: '13px', cursor: 'pointer'
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = tab === 'category' ? '#DDD6FE' : '#EFF6FF'}
-              onMouseLeave={e => e.currentTarget.style.background = tab === 'category' ? '#EDE9FE' : '#F8FAFC'}
-            >
-              {Icon ? <Icon size={16} color={tab === 'category' ? '#7C3AED' : '#2563EB'} /> : null} {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Category Health Widget */}
-      {inventory.length > 0 && (() => {
-        const catMap = {}
-        inventory.forEach(item => {
-          const cat = item.category || 'Uncategorized'
-          if (!catMap[cat]) catMap[cat] = 0
-          catMap[cat] += (Number(item.qty) || 0) * (Number(item.rate) || 0)
-        })
-        const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
-        const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626']
-        
-        const chartData = sorted.map(([name, value]) => ({ name, value }))
-
-        return (
-          <div className="glass-card hover-up" style={{ borderRadius: '12px', padding: '20px 24px', marginTop: '0', cursor: 'pointer' }} onClick={() => { localStorage.setItem('opsagent_reports_tab', 'category'); onNavigate('reports') }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', margin: 0 }}>🗂️ Inventory by Category</h3>
-              <span style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4 }}>View full report <ArrowRight size={11} /></span>
-            </div>
-            
-            <div style={{ height: 160, width: '100%', marginBottom: 8 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
-                  <Tooltip 
-                    cursor={{ fill: '#F1F5F9' }}
-                    formatter={(value) => ['₹' + Math.round(value).toLocaleString('en-IN'), 'Value']}
-                    contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            
-          </div>
-        )
-      })()}
-
-      <div style={{
-        background: 'white',
-        borderRadius: 16,
-        border: '1px solid #E2E8F0',
-        overflow: 'hidden',
-        marginTop: 24
-      }}>
-        
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-          padding: '20px 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <h3 style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 700,
-              color: 'white'
-            }}>
-              ✨ AI Executive Summary
-            </h3>
-            <p style={{
-              margin: '4px 0 0',
-              fontSize: 12,
-              color: '#94A3B8'
-            }}>
-              AI-powered analysis of your business performance
-            </p>
-          </div>
-
-          <button
-            onClick={generateExecutiveSummary}
-            disabled={summaryLoading}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              borderRadius: 10,
-              border: 'none',
-              background: summaryLoading ? '#374151' : 'linear-gradient(135deg, #2563EB, #7C3AED)',
-              color: 'white',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: summaryLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: summaryLoading ? 'none' : '0 4px 15px rgba(37,99,235,0.4)'
+    <div style={{ padding: 24, background: '#F8FAFC', minHeight: '100%' }}>
+      
+      {/* ── QUICK ACTIONS ── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
+        {[
+          { label: 'Create Bill', icon: Receipt, onClick: () => onNavigate('billing') },
+          { label: 'Add Customer', icon: UserPlus, onClick: () => onNavigate('customers') },
+          { label: 'Add Product', icon: Box, onClick: () => onNavigate('inventory') },
+          { label: 'Create PO', icon: ShoppingCart, onClick: () => onNavigate('purchase_orders') },
+          { label: 'Record Expense', icon: MoneyIcon, onClick: () => setShowExpenseModal(true) },
+          { label: 'Create Quotation', icon: FileSignature, onClick: () => onNavigate('quotations') }
+        ].map((btn, i) => (
+          <button 
+            key={i} onClick={btn.onClick}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 16px', 
+              background: 'white', border: '1px solid #2563EB', borderRadius: 8, color: '#2563EB',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              transition: 'all 0.2s'
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#2563EB'; e.currentTarget.style.color = 'white' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#2563EB' }}
           >
-            {summaryLoading ? (
-              <>
-                <div style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  border: '2px solid white',
-                  borderTopColor: 'transparent',
-                  animation: 'spin 0.8s linear infinite'
-                }}/>
-                Analyzing...
-              </>
-            ) : (
-              <>
-                ✨ Generate Summary
-              </>
-            )}
+            <btn.icon size={16} /> {btn.label}
           </button>
+        ))}
+      </div>
+
+      {renderKPIs()}
+
+      {/* ── CHARTS ROW 1 ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 24 }}>
+        
+        {/* Sales Trend */}
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Sales Trend</h3>
+            <DateRangePicker 
+              value={trendFilter} onChange={setTrendFilter}
+              customFrom={trendCustomFrom} customTo={trendCustomTo}
+              onCustomChange={(type, val) => type === 'from' ? setTrendCustomFrom(val) : setTrendCustomTo(val)}
+            />
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={salesTrend}>
+              <CartesianGrid {...gridStyle} />
+              <XAxis dataKey="date" {...axisStyle} />
+              <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+              <RechartsTooltip {...tooltipStyle} formatter={(v, n) => [n === 'sales' ? formatCurrency(v) : v, n === 'sales' ? 'Sales' : 'Orders']} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+              <Line name="Sales Revenue" type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} dot={{ fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
+              <Line name="Total Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={2} dot={{ fill: '#7C3AED', r: 3 }} strokeDasharray="5 5" yAxisId="right" />
+              <YAxis yAxisId="right" orientation="right" {...axisStyle} tickLine={false} axisLine={false} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Content area */}
-        <div style={{ padding: 24 }}>
-          
-          {/* Default state */}
-          {!summary && !summaryLoading && !summaryError && (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🤖</div>
-              <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>
-                Click "Generate Summary" to get an AI-powered analysis of your current business performance
-              </p>
-            </div>
-          )}
-
-          {/* Loading state */}
-          {summaryLoading && (
-            <div style={{ padding: '16px 0' }}>
-              {[
-                'Reading your sales data...',
-                'Analyzing inventory levels...',
-                'Identifying key trends...',
-                'Preparing insights...'
-              ].map((step, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 0',
-                    animation: `fadeIn 0.5s ease ${i * 0.3}s both`
-                  }}
-                >
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    border: '2px solid #2563EB',
-                    borderTopColor: 'transparent',
-                    animation: 'spin 0.8s linear infinite'
-                  }}/>
-                  <span style={{ fontSize: 13, color: '#64748B' }}>
-                    {step}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Error state */}
-          {summaryError && (
-            <div style={{
-              background: '#FEF2F2',
-              border: '1px solid #FCA5A5',
-              borderRadius: 8,
-              padding: 16,
-              color: '#DC2626',
-              fontSize: 13
-            }}>
-              ⚠️ {summaryError}
-            </div>
-          )}
-
-          {/* Summary result */}
-          {summary && !summaryLoading && (
-            <div style={{ animation: 'fadeInUp 0.5s ease' }}>
-              <div style={{ fontSize: 14, lineHeight: 1.7, color: '#374151' }}>
-                <FormattedAIResponse text={summary} />
-              </div>
-
-              {/* Regenerate button */}
-              <div style={{
-                marginTop: 20,
-                paddingTop: 16,
-                borderTop: '1px solid #F1F5F9',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span style={{ fontSize: 11, color: '#94A3B8' }}>
-                  Generated just now by Llama 3.1 via Groq
-                </span>
-                <button
-                  onClick={generateExecutiveSummary}
-                  style={{
-                    background: 'none',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    color: '#64748B',
-                    cursor: 'pointer'
-                  }}
-                >
-                  🔄 Regenerate
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Category Sales */}
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Revenue by Category</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={categorySales}>
+              <CartesianGrid {...gridStyle} />
+              <XAxis dataKey="category" {...axisStyle} tick={{ fontSize: 11, fill: '#64748B' }} interval={0} angle={-30} textAnchor="end" height={60} />
+              <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+              <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} cursor={{ fill: '#F1F5F9' }} />
+              <Bar dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
+                {categorySales.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
+
+      {/* ── TOP PRODUCTS ── */}
+      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Top 5 Selling Products (This Month)</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
+            <CartesianGrid {...gridStyle} horizontal={false}/>
+            <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+            <YAxis type="category" dataKey="name" width={180} {...axisStyle} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
+            <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v, n) => [n === 'revenue' ? formatCurrency(v) : v, n === 'revenue' ? 'Revenue' : 'Units Sold']} />
+            <Bar dataKey="revenue" name="Revenue" radius={[0,4,4,0]} maxBarSize={28}>
+              {topProducts.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── BOTTOM ROW ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        
+        {/* Low Stock */}
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A' }}>Low Stock Alerts</h3>
+            <button onClick={() => onNavigate('inventory')} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              View All <ArrowRight size={14} />
+            </button>
+          </div>
+          {lowStockList.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#64748B', fontSize: 14 }}>All stock levels are healthy!</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                  <tr>
+                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Product</th>
+                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Current Qty</th>
+                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Min Level</th>
+                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lowStockList.map((item, i) => {
+                    const status = getLowStockStatus(item.qty, item.min)
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#0F172A', fontWeight: 500 }}>{item.name}</td>
+                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#374151' }}>{item.qty} {item.unit}</td>
+                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#64748B' }}>{item.min} {item.unit}</td>
+                        <td style={{ padding: '14px 20px' }}>
+                          <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: status.bg, color: status.color }}>
+                            {status.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity */}
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A' }}>Recent Activity</h3>
+            <button onClick={() => fetchActivities()} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+          </div>
+          <div style={{ padding: '20px', flex: 1, overflowY: 'auto', maxHeight: 400 }}>
+            {activities.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#64748B', marginTop: 40 }}>No recent activity</div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: 20, top: 20, bottom: 20, width: 2, background: '#E2E8F0' }} />
+                {activities.map((act, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 16, marginBottom: 20, position: 'relative' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: `${act.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, zIndex: 2, border: '4px solid white', flexShrink: 0 }}>
+                      {act.icon}
+                    </div>
+                    <div style={{ paddingTop: 4 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{act.title}</div>
+                      <div style={{ fontSize: 13, color: '#475569', margin: '4px 0' }}>{act.description}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{timeAgo(act.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── EXPENSE MODAL ── */}
+      {showExpenseModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'white', borderRadius: 12, width: 450, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Record Expense</h3>
+              <button onClick={() => setShowExpenseModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={20}/></button>
+            </div>
+            <form onSubmit={handleExpenseSave} style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Expense Title *</label>
+                <input required value={expenseForm.title} onChange={e => setExpenseForm({...expenseForm, title: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} placeholder="e.g. Office Supplies" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Amount *</label>
+                  <input required type="number" min="0" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} placeholder="0.00" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Category</label>
+                  <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'white' }}>
+                    {['General', 'Fuel', 'Labour', 'Rent', 'Maintenance', 'Utilities', 'Other'].map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Payment Method</label>
+                  <select value={expenseForm.payment_method} onChange={e => setExpenseForm({...expenseForm, payment_method: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'white' }}>
+                    {['Cash', 'Bank', 'UPI'].map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Date</label>
+                  <input required type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Notes</label>
+                <textarea value={expenseForm.notes} onChange={e => setExpenseForm({...expenseForm, notes: e.target.value})} style={{ width: '100%', height: 60, borderRadius: 6, border: '1px solid #CBD5E1', padding: '8px 12px', fontSize: 14, fontFamily: 'inherit', resize: 'none' }} placeholder="Optional notes..." />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#2563EB', color: 'white', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Save Expense</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   )
