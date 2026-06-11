@@ -803,7 +803,25 @@ export default function InventoryPanel({ showToast }) {
   const handleAdd = async () => {
     if (!newItem.hsn || !newItem.name) return showToast?.('HSN and Name are required', 'error')
     try {
-      const processedItem = { ...newItem, qty: Number(newItem.qty) || 0, min: Number(newItem.min) || 0, max: Number(newItem.max) || 0 };
+      const parseDate = (dStr) => {
+        if (!dStr) return dStr;
+        const s = String(dStr).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        const p = s.split(/[-/]/);
+        if (p.length === 3 && p[0].length <= 2 && p[2].length === 4) {
+           return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+        }
+        return s;
+      }
+      
+      const processedItem = { 
+        ...newItem, 
+        qty: Number(newItem.qty) || 0, 
+        min: Number(newItem.min) || 0, 
+        max: Number(newItem.max) || 0,
+        date_added: parseDate(newItem.date_added),
+        last_restocked: parseDate(newItem.last_restocked)
+      };
       if (editingItemId) {
         await backendFetch(`/inventory/${editingItemId}`, { method: 'PUT', body: JSON.stringify(processedItem) })
         showToast?.('Item updated successfully', 'success')
@@ -1094,7 +1112,7 @@ export default function InventoryPanel({ showToast }) {
             <button onClick={() => exportCSV(items)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'white', color: '#16A34A', border: '1.5px solid #16A34A', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Export CSV
             </button>
-            <button onClick={() => { setNewItem({ hsn: '', name: '', category: 'General', qty: '', unit: '', min: '', max: '' }); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', qty: '', unit: prev?.unit || '', min: '', max: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Plus size={16} /> Add Item
             </button>
           </div>
@@ -1429,11 +1447,11 @@ export default function InventoryPanel({ showToast }) {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Date Added</label>
-                <input type="date" value={newItem.date_added ? newItem.date_added.split('T')[0] : ''} onChange={e => setNewItem({ ...newItem, date_added: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <input type="text" placeholder="DD-MM-YYYY or YYYY-MM-DD" value={newItem.date_added || ''} onChange={e => setNewItem({ ...newItem, date_added: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Last Restocked</label>
-                <input type="date" value={newItem.last_restocked ? newItem.last_restocked.split('T')[0] : ''} onChange={e => setNewItem({ ...newItem, last_restocked: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <input type="text" placeholder="DD-MM-YYYY or YYYY-MM-DD" value={newItem.last_restocked || ''} onChange={e => setNewItem({ ...newItem, last_restocked: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>GST (%)</label>
