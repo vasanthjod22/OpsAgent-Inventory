@@ -60,7 +60,6 @@ router.get('/category-inventory', auth, async (req, res) => {
   try {
     const { category, period, from, to } = req.query;
 
-    // Get all inventory items
     let inventoryQuery = supabase
       .from('inventory')
       .select('*')
@@ -70,15 +69,23 @@ router.get('/category-inventory', auth, async (req, res) => {
       inventoryQuery = inventoryQuery.eq('category', category);
     }
 
-    const { data: items, error: invErr } = await inventoryQuery;
-    if (invErr) throw invErr;
-
-    // Get bills for sold quantities in the selected period
     let periodStart = getPeriodStart(period || 'month');
     let periodEnd = new Date().toISOString();
     
     if (from) periodStart = new Date(from).toISOString();
     if (to) periodEnd = new Date(to).toISOString();
+
+    if (from || to || period) {
+      // Filter inventory by date_added if the user selects a custom range or period
+      const sDate = periodStart.split('T')[0];
+      const eDate = periodEnd.split('T')[0];
+      inventoryQuery = inventoryQuery.gte('date_added', sDate).lte('date_added', eDate);
+    }
+
+    const { data: items, error: invErr } = await inventoryQuery;
+    if (invErr) throw invErr;
+
+    // Get bills for sold quantities in the selected period
 
     const { data: bills } = await supabase
       .from('bills')

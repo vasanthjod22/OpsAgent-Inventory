@@ -1310,7 +1310,7 @@ export default function InventoryPanel({ showToast }) {
                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                                <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{fmtD(dateAdded)}</span>
                                {dateAdded && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: ageBg, color: ageColor }}>{ageLabel}</span>}
-                               {dateAdded && <span style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2 }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
+                               {dateAdded && <span onClick={() => handleEditClick(item)} style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
                              </div>
                            )
                          })()}
@@ -1331,7 +1331,7 @@ export default function InventoryPanel({ showToast }) {
                            return (
                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                                <span style={{ fontSize: 12, fontWeight: 600, color: lastR ? rColor : '#94A3B8', background: lastR ? rBg : 'transparent', padding: lastR ? '2px 6px' : 0, borderRadius: 6 }}>{fmtD(lastR)}</span>
-                               {lastR && <span style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2 }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
+                               {lastR && <span onClick={() => handleEditClick(item)} style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
                              </div>
                            )
                          })()}
@@ -1426,6 +1426,14 @@ export default function InventoryPanel({ showToast }) {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Max Level</label>
                 <input type="number" value={newItem.max} onChange={e => setNewItem({ ...newItem, max: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Date Added</label>
+                <input type="date" value={newItem.date_added ? newItem.date_added.split('T')[0] : ''} onChange={e => setNewItem({ ...newItem, date_added: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Last Restocked</label>
+                <input type="date" value={newItem.last_restocked ? newItem.last_restocked.split('T')[0] : ''} onChange={e => setNewItem({ ...newItem, last_restocked: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>GST (%)</label>
