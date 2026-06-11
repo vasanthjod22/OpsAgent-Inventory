@@ -508,6 +508,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
   }
 
   const editBQ = (bq) => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' })
     setForm({
       id: bq.id,
       customerName: bq.customer_name || '', customerPhone: bq.customer_phone || '',

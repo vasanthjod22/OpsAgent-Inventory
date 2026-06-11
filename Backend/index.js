@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const supabase = require('./data/supabaseClient');
+const { auth } = require('./middleware/auth');
 
 // ─── Routes ────────────────────────────────────────────────
 const authRoutes      = require('./routes/auth');
@@ -44,6 +46,23 @@ app.use('/api/customers',  customerRoutes);
 app.use('/api/reports',    reportsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/purchase-orders', purchaseOrdersRoutes);
+
+app.get('/api/activity', auth, async (req, res) => {
+  try {
+    const limit = req.query.limit || 20
+    const { data, error } = await supabase
+      .from('activity_log')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // ─── Health Check ───────────────────────────────────────────
 app.get('/', (req, res) => res.redirect('/api/health'));

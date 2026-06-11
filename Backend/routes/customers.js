@@ -1,6 +1,7 @@
 const express = require('express');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
+const { ActivityService } = require('../services/activity.service');
 
 const router = express.Router();
 
@@ -57,6 +58,7 @@ router.post('/', auth, async (req, res) => {
     .single();
 
   if (error) return res.status(500).json({ error: error.message });
+  await ActivityService.log(req.user.id, ActivityService.templates.customerAdded(name));
   res.status(201).json({ ...data, addedManually: true });
 });
 

@@ -3,6 +3,7 @@ const { randomUUID: uuidv4 } = require('crypto');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
 const { NotificationService } = require('../services/notification.service');
+const { ActivityService } = require('../services/activity.service');
 
 const router = express.Router();
 
@@ -179,8 +180,9 @@ router.patch('/:id/status', auth, async (req, res) => {
   if (req.body.status === 'Processed' || req.body.status === 'Approved') {
     try {
       await NotificationService.create(req.user.id, NotificationService.templates.grnReceived(updated.id, updated.supplier, updated.item_count));
+      await ActivityService.log(req.user.id, ActivityService.templates.grnApproved(updated.id, updated.supplier));
     } catch (err) {
-      console.error('Failed to create notification:', err);
+      console.error('Failed to create notification or activity:', err);
     }
 
     if (updated.po_number) {

@@ -3,6 +3,7 @@ const { randomUUID: uuidv4 } = require('crypto');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
 const { NotificationService } = require('../services/notification.service');
+const { ActivityService } = require('../services/activity.service');
 
 const router = express.Router();
 
@@ -96,6 +97,7 @@ router.post('/', auth, async (req, res) => {
 
   try {
     await NotificationService.create(req.user.id, NotificationService.templates.poCreated(inserted.po_number, inserted.supplier_name));
+    await ActivityService.log(req.user.id, ActivityService.templates.poCreated(inserted.po_number, inserted.supplier_name));
   } catch (err) { console.error(err); }
 
   res.status(201).json(formatPO(inserted));

@@ -217,7 +217,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar activeNav={activeNav} />
 
-        <main className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-main)' }}>
+        <main id="main-scroll-area" className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-main)' }}>
           <div key={activeNav} className="max-w-7xl mx-auto p-6 h-full animate-fadein">
               <ActivePanel
               financeSummary={financeSummary}

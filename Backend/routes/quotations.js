@@ -1,6 +1,7 @@
 const express = require('express');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
+const { ActivityService } = require('../services/activity.service');
 
 const router = express.Router();
 
@@ -115,6 +116,7 @@ router.post('/breakdown', async (req, res) => {
       .single();
 
     if (error) throw error;
+    await ActivityService.log(req.user.id, ActivityService.templates.quotationCreated(qt_number, customer_name));
 
     res.status(201).json({ 
       success: true, 

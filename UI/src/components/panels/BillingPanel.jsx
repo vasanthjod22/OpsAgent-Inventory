@@ -1583,6 +1583,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
     const bill = buildBillData()
 
     setShowProcessing(true)
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' })
 
     try {
       // Check for inventory items to deduct
@@ -1851,6 +1852,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
       {/* Bill History */}
       <BillHistory bills={bills} setBills={setBills} inventory={inventory} setInventory={setInventory} company={company} showToast={showToast} 
         onEditBill={(b) => {
+          document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' })
           setEditBillId(b.id)
           setCustomerName(b.customerName || '')
           setCustomerPhone(b.customerPhone || '')

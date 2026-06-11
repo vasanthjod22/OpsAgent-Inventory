@@ -88,8 +88,8 @@ router.get('/category-inventory', auth, async (req, res) => {
       .from('bills')
       .select('items, created_at, date')
       .eq('user_id', req.user.id)
-      .gte('created_at', periodStart)
-      .lte('created_at', periodEnd);
+      .gte('date', periodStart)
+      .lte('date', periodEnd);
 
     // Build 6-month history for sparklines
     const sixMonthsAgo = new Date();
@@ -98,7 +98,7 @@ router.get('/category-inventory', auth, async (req, res) => {
       .from('bills')
       .select('items, created_at, date')
       .eq('user_id', req.user.id)
-      .gte('created_at', sixMonthsAgo.toISOString());
+      .gte('date', sixMonthsAgo.toISOString());
 
     // Group inventory by category
     const categoryMap = {};

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { DollarSign, Receipt, AlertTriangle, Package, ArrowRight, Zap, RefreshCw, Archive, FileText, Clock, TrendingUp, Users } from 'lucide-react'
 import SummaryCard from '../SummaryCard'
 import FormattedAIResponse from '../ui/FormattedAIResponse'
@@ -335,27 +336,35 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
           catMap[cat] += (Number(item.qty) || 0) * (Number(item.rate) || 0)
         })
         const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
-        const total = sorted.reduce((s, [, v]) => s + v, 0)
         const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626']
+        
+        const chartData = sorted.map(([name, value]) => ({ name, value }))
+
         return (
           <div className="glass-card hover-up" style={{ borderRadius: '12px', padding: '20px 24px', marginTop: '0', cursor: 'pointer' }} onClick={() => { localStorage.setItem('opsagent_reports_tab', 'category'); onNavigate('reports') }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', margin: 0 }}>🗂️ Inventory by Category</h3>
               <span style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4 }}>View full report <ArrowRight size={11} /></span>
             </div>
-            <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
-              {sorted.map(([cat, val], i) => (
-                <div key={cat} title={`${cat}: ₹${Math.round(val).toLocaleString('en-IN')}`} style={{ width: `${total > 0 ? (val / total * 100) : 0}%`, background: COLORS[i % COLORS.length], transition: 'width 0.6s ease' }} />
-              ))}
+            
+            <div style={{ height: 160, width: '100%', marginBottom: 8 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
+                  <Tooltip 
+                    cursor={{ fill: '#F1F5F9' }}
+                    formatter={(value) => ['₹' + Math.round(value).toLocaleString('en-IN'), 'Value']}
+                    contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {sorted.map(([cat, val], i) => (
-                <span key={cat} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#64748B' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length] }} />
-                  {cat} <strong style={{ color: '#0F172A' }}>₹{Math.round(val).toLocaleString('en-IN')}</strong>
-                </span>
-              ))}
-            </div>
+            
           </div>
         )
       })()}
