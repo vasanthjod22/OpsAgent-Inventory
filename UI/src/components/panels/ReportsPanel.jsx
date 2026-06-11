@@ -51,6 +51,179 @@ const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Ic
   )
 }
 
+/* ─── INVENTORY TAB ───────────────────────────────────────── */
+const InventoryTab = ({ start, end, categories, exportPDF }) => {
+  const [data, setData] = useState([])
+  const [summary, setSummary] = useState({})
+  const [category, setCategory] = useState('all')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [expandedRow, setExpandedRow] = useState(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const params = new URLSearchParams({
+        category,
+        from: start.toISOString(),
+        to: end.toISOString()
+      })
+      const result = await backendFetch(`/reports/category-inventory?${params}`)
+
+      if (result.success) {
+        setData(result.data || [])
+        setSummary(result.summary || {})
+      } else {
+        setError(result.error || 'Failed to load')
+      }
+    } catch (err) {
+      setError('Could not connect to server. Check if backend is running.')
+      console.error('Category report error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [category, start, end])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const getStatus = (cat) => {
+    if (cat.outOfStockCount > 0) return { label: `${cat.outOfStockCount} Out of Stock`, color: '#DC2626', bg: '#FEF2F2' }
+    if (cat.lowStockCount > 0) return { label: `${cat.lowStockCount} Low Stock`, color: '#EA580C', bg: '#FFF7ED' }
+    if (cat.overstockCount > 0) return { label: `${cat.overstockCount} Overstock`, color: '#D97706', bg: '#FFFBEB' }
+    return { label: 'All OK', color: '#16A34A', bg: '#F0FDF4' }
+  }
+
+  const maxValue = Math.max(...data.map(d => d.totalValue), 1)
+  const colors = ['#2563EB','#7C3AED','#EA580C','#16A34A','#0891B2','#DB2777','#CA8A04','#9333EA','#0D9488']
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
+      <AIInsightSection reportType="inventory" />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <Btn onClick={() => exportPDF('inventory')} variant="primary" icon={Download}>Export Inventory PDF</Btn>
+      </div>
+
+      {/* ── FILTER BAR ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</span>
+          <select value={category} onChange={e => setCategory(e.target.value)} style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', background: 'white', minWidth: 150, cursor: 'pointer' }}>
+            <option value="all">All Categories</option>
+            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
+        <button onClick={fetchData} disabled={loading} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>🔄 Refresh</button>
+      </div>
+
+      {/* ── LOADING/ERROR STATES ── */}
+      {loading && <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 16 }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', animation: 'spin 0.8s linear infinite' }}/></div>}
+      {error && !loading && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <div><p style={{ margin: 0, fontWeight: 600, color: '#DC2626', fontSize: 14 }}>Failed to load category data</p><p style={{ margin: '4px 0 0', color: '#EF4444', fontSize: 12 }}>{error}</p></div>
+          <button onClick={fetchData} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 6, border: 'none', background: '#DC2626', color: 'white', fontSize: 12, cursor: 'pointer' }}>Retry</button>
+        </div>
+      )}
+
+      {/* ── SUMMARY CARDS ── */}
+      {!loading && !error && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            {[
+              { label: 'Total Categories', value: summary.totalCategories || 0, icon: '🗂️', color: '#2563EB', bg: '#EFF6FF' },
+              { label: 'Total Stock Value', value: fmt(summary.totalValue), icon: '💰', color: '#16A34A', bg: '#F0FDF4' },
+              { label: 'Most Valuable', value: summary.mostValuableCategory?.name || '—', sub: summary.mostValuableCategory ? fmt(summary.mostValuableCategory.value) : '', icon: '⭐', color: '#7C3AED', bg: '#F5F3FF' },
+              { label: 'Need Attention', value: `${summary.lowStockCategories || 0} categories`, icon: '⚠️', color: '#DC2626', bg: '#FEF2F2' }
+            ].map((card, i) => (
+              <div key={i} style={{ background: card.bg, border: `1px solid ${card.color}22`, borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{card.icon}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: card.color, marginBottom: 4 }}>{card.value}</div>
+                {card.sub && <div style={{ fontSize: 11, color: card.color, opacity: 0.8, marginBottom: 4 }}>{card.sub}</div>}
+                <div style={{ fontSize: 12, color: '#64748B' }}>{card.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── EMPTY STATE ── */}
+          {data.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '60px 0', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+              <h3 style={{ color: '#0F172A', margin: '0 0 8px' }}>No inventory data found</h3>
+            </div>
+          )}
+
+          {/* ── CATEGORY TABLE ── */}
+          {data.length > 0 && (
+            <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 16px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', gap: 8 }}>
+                {['Category','Items','Total Qty','Stock Value',`Sold (Period)`,'Revenue','Status'].map(h => <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>)}
+              </div>
+              {data.map((cat, idx) => {
+                const status = getStatus(cat)
+                const color = colors[idx % colors.length]
+                const isExpanded = expandedRow === cat.category
+                const barWidth = (cat.totalValue / maxValue) * 100
+                return (
+                  <div key={cat.category}>
+                    <div onClick={() => setExpandedRow(isExpanded ? null : cat.category)} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr', padding: '14px 16px', borderBottom: '1px solid #F1F5F9', gap: 8, cursor: 'pointer', background: isExpanded ? '#F8FAFC' : 'white', transition: 'background 0.15s ease' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }}/>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{cat.category}</div>
+                          <div style={{ width: 80, height: 3, background: '#F1F5F9', borderRadius: 999, marginTop: 4 }}><div style={{ width: `${barWidth}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.5s ease' }}/></div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.totalItems}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.totalQty}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>{fmt(cat.totalValue)}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.soldQty}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>{fmt(cat.revenue)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: status.bg, color: status.color, whiteSpace: 'nowrap' }}>{status.label}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Sub-items */}
+                    {isExpanded && (
+                      <div style={{ background: '#F8FAFC', padding: '12px 16px 12px 48px', borderBottom: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 8, paddingBottom: 8, borderBottom: '1px solid #E2E8F0', marginBottom: 8 }}>
+                          {['Item Name','Qty','Rate','Value','Min','Status'].map(h => <div key={h} style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{h}</div>)}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {cat.items.map(item => {
+                            const qty = item.qty || 0; const min = item.min || 0; const max = item.max || 0; const rate = item.rate || 0;
+                            let iStatus = 'OK'; let iCol = '#16A34A'
+                            if (qty === 0) { iStatus = 'Out of Stock'; iCol = '#DC2626' }
+                            else if (qty <= min) { iStatus = 'Low Stock'; iCol = '#EA580C' }
+                            else if (max > 0 && qty > max) { iStatus = 'Overstock'; iCol = '#D97706' }
+                            return (
+                              <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 8, alignItems: 'center' }}>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{item.name}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: iCol }}>{qty} {item.unit}</div>
+                                <div style={{ fontSize: 13, color: '#64748B' }}>{fmt(rate)}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>{fmt(qty * rate)}</div>
+                                <div style={{ fontSize: 13, color: '#64748B' }}>{min} {item.unit}</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: iCol }}>{iStatus}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ─── Main ReportsPanel ───────────────────────────────────────── */
 export default function ReportsPanel({ bills = [], quotations = [], inventory = [], grnHistory = [], customers = [], showToast, refreshData }) {
   const [activeTab, setActiveTab] = useState(() => {
@@ -476,7 +649,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
   }
 
   /* ─── INVENTORY TAB ───────────────────────────────────────── */
-  const InventoryTab = () => {
+  const InventoryTab = ({ start, end, categories, exportPDF }) => {
     const [data, setData] = useState([])
     const [summary, setSummary] = useState({})
     const [category, setCategory] = useState('all')
@@ -790,7 +963,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
         
         <div style={{ minHeight: 400 }}>
           {activeTab === 'sales' && <SalesTab />}
-          {activeTab === 'inventory' && <InventoryTab />}
+          {activeTab === 'inventory' && <InventoryTab start={start} end={end} categories={categories} exportPDF={exportPDF} />}
           {activeTab === 'gst' && <GstTab />}
           {activeTab === 'customers' && <CustomersTab />}
         </div>

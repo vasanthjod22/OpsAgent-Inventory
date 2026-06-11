@@ -169,7 +169,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
   // Persisted chat history
   const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, [])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const data = await backendFetch('/init')
       setInventory(data.inventory || [])
@@ -186,7 +186,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
       console.error('Failed to load initial data:', err)
       showToast('Failed to load data from server', 'error')
     }
-  }
+  }, [showToast])
 
   // Fetch all data on mount
   useEffect(() => {
