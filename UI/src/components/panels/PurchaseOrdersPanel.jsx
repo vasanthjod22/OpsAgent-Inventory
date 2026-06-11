@@ -7,7 +7,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import SummaryCard from '../SummaryCard';
 import { callAI } from '../../utils/api';
-
+import { backendFetch } from '../../utils/backend';
 const STATUS_COLORS = {
   'Draft': '#64748B',
   'Sent': '#2563EB',
@@ -28,12 +28,8 @@ const STATUS_BGS = {
 
 const INITIAL_ITEM = { description: '', hsn: '', qty: 1, unit: 'Nos', rate: 0, amount: 0 };
 
-export default function PurchaseOrdersPanel({ token }) {
+export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [], refreshData }) {
   const [activeTab, setActiveTab] = useState('history');
-  const [pos, setPos] = useState([]);
-  const [inventory, setInventory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [companySettings, setCompanySettings] = useState(null);
 
@@ -53,35 +49,12 @@ export default function PurchaseOrdersPanel({ token }) {
   const [showSupplierSuggest, setShowSupplierSuggest] = useState(false);
 
   useEffect(() => {
-    fetchData();
     fetchCompanySettings();
-  }, [token]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [poRes, invRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL}/purchase-orders`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${import.meta.env.VITE_API_URL}/inventory`, { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-      const poData = await poRes.json();
-      const invData = await invRes.json();
-      
-      setPos(Array.isArray(poData) ? poData : []);
-      setInventory(Array.isArray(invData) ? invData : []);
-    } catch (err) {
-      console.error(err);
-      setPos([]);
-      setInventory([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []);
 
   const fetchCompanySettings = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/company`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
+      const data = await backendFetch('/company');
       setCompanySettings(data);
     } catch (err) {
       console.error(err);
@@ -89,7 +62,7 @@ export default function PurchaseOrdersPanel({ token }) {
   };
 
   const generatePONumber = () => {
-    const next = pos.length + 1;
+    const next = purchaseOrders.length + 1;
     const padded = String(next).padStart(4, '0');
     const year = new Date().getFullYear();
     return `PO-${year}-${padded}`;
@@ -138,39 +111,26 @@ export default function PurchaseOrdersPanel({ token }) {
     };
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/purchase-orders`, {
+      await backendFetch('/purchase-orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify(payload)
       });
       
-      if (res.ok) {
-        await fetchData();
-        setActiveTab('history');
-      } else {
-        const err = await res.json();
-        alert('Failed to save PO: ' + err.error);
-      }
+      await refreshData();
+      setActiveTab('history');
     } catch (err) {
       console.error(err);
-      alert('Error saving PO');
+      alert('Error saving PO: ' + err.message);
     }
   };
 
   const handleChangeStatus = async (id, newStatus) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/purchase-orders/${id}/status`, {
+      await backendFetch(`/purchase-orders/${id}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
         body: JSON.stringify({ status: newStatus })
       });
-      fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
     }
@@ -179,11 +139,10 @@ export default function PurchaseOrdersPanel({ token }) {
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this PO?')) return;
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/purchase-orders/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+      await backendFetch(`/purchase-orders/${id}`, {
+        method: 'DELETE'
       });
-      fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
     }
@@ -325,28 +284,28 @@ export default function PurchaseOrdersPanel({ token }) {
 
   // Autocomplete helpers
   const uniqueSuppliers = useMemo(() => {
-    const suppliers = pos.map(p => ({
+    const suppliers = purchaseOrders.map(p => ({
       name: p.supplierName, phone: p.supplierPhone, email: p.supplierEmail, address: p.supplierAddress
     }));
     return Array.from(new Map(suppliers.map(s => [s.name, s])).values()).filter(s => s.name);
-  }, [pos]);
+  }, [purchaseOrders]);
 
   const filteredSuppliers = uniqueSuppliers.filter(s => s.name.toLowerCase().includes(supplierName.toLowerCase()));
 
   // Stats
   const today = new Date().toISOString().split('T')[0];
-  const totalPOs = pos.length;
-  const pendingPOs = pos.filter(p => ['Draft', 'Sent'].includes(p.status)).length;
-  const overduePOs = pos.filter(p => p.expectedDate && p.expectedDate < today && !['Fully Received', 'Cancelled'].includes(p.status)).length;
+  const totalPOs = purchaseOrders.length;
+  const pendingPOs = purchaseOrders.filter(p => ['Draft', 'Sent'].includes(p.status)).length;
+  const overduePOs = purchaseOrders.filter(p => p.expectedDate && p.expectedDate < today && !['Fully Received', 'Cancelled'].includes(p.status)).length;
   
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  const thisMonthValue = pos.filter(p => {
+  const thisMonthValue = purchaseOrders.filter(p => {
     const d = new Date(p.createdAt);
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear && p.status !== 'Cancelled';
   }).reduce((sum, p) => sum + Number(p.grandTotal), 0);
 
-  const filteredPos = pos.filter(p => {
+  const filteredPos = purchaseOrders.filter(p => {
     const matchesSearch = p.supplierName?.toLowerCase().includes(searchTerm.toLowerCase()) || p.poNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
