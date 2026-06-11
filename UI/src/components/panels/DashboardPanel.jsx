@@ -301,6 +301,7 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
             { label: 'Stock Report', icon: Package, tab: 'inventory' },
             { label: 'GST Report', icon: Receipt, tab: 'gst' },
             { label: 'Customer Report', icon: Users, tab: 'customers' },
+            { label: '🗂️ Category Report', icon: null, tab: 'category' },
           ].map(({ label, icon: Icon, tab }, i) => (
             <button
               key={i}
@@ -311,17 +312,53 @@ export default function DashboardPanel({ inventory = [], financeSummary = null, 
               className="btn-press"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0',
-                borderRadius: '8px', color: '#334155', fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+                padding: '12px', background: tab === 'category' ? '#EDE9FE' : '#F8FAFC',
+                border: tab === 'category' ? '1px solid #C4B5FD' : '1px solid #E2E8F0',
+                borderRadius: '8px', color: tab === 'category' ? '#7C3AED' : '#334155',
+                fontWeight: 600, fontSize: '13px', cursor: 'pointer'
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
-              onMouseLeave={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseEnter={e => e.currentTarget.style.background = tab === 'category' ? '#DDD6FE' : '#EFF6FF'}
+              onMouseLeave={e => e.currentTarget.style.background = tab === 'category' ? '#EDE9FE' : '#F8FAFC'}
             >
-              <Icon size={16} color="#2563EB" /> {label}
+              {Icon ? <Icon size={16} color={tab === 'category' ? '#7C3AED' : '#2563EB'} /> : null} {label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Category Health Widget */}
+      {inventory.length > 0 && (() => {
+        const catMap = {}
+        inventory.forEach(item => {
+          const cat = item.category || 'Uncategorized'
+          if (!catMap[cat]) catMap[cat] = 0
+          catMap[cat] += (Number(item.qty) || 0) * (Number(item.rate) || 0)
+        })
+        const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
+        const total = sorted.reduce((s, [, v]) => s + v, 0)
+        const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626']
+        return (
+          <div className="glass-card hover-up" style={{ borderRadius: '12px', padding: '20px 24px', marginTop: '0', cursor: 'pointer' }} onClick={() => { localStorage.setItem('opsagent_reports_tab', 'category'); onNavigate('reports') }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', margin: 0 }}>🗂️ Inventory by Category</h3>
+              <span style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4 }}>View full report <ArrowRight size={11} /></span>
+            </div>
+            <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
+              {sorted.map(([cat, val], i) => (
+                <div key={cat} title={`${cat}: ₹${Math.round(val).toLocaleString('en-IN')}`} style={{ width: `${total > 0 ? (val / total * 100) : 0}%`, background: COLORS[i % COLORS.length], transition: 'width 0.6s ease' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {sorted.map(([cat, val], i) => (
+                <span key={cat} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#64748B' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length] }} />
+                  {cat} <strong style={{ color: '#0F172A' }}>₹{Math.round(val).toLocaleString('en-IN')}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       <div style={{
         background: 'white',

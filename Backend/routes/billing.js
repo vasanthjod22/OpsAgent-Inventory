@@ -25,6 +25,7 @@ const formatBill = (b) => ({
   includeTerms: b.include_terms,
   terms: b.terms,
   inventoryUpdated: b.inventory_updated,
+  transportDetails: b.transport_details || null,
   createdAt: b.created_at
 });
 
@@ -119,6 +120,22 @@ router.patch('/:id/status', auth, async (req, res) => {
   const { data: updated, error } = await supabase.from('bills').update(updates).eq('user_id', req.user.id).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
+  res.json(formatBill(updated));
+});
+
+// PATCH /api/bills/:id/transport — update transport details
+router.patch('/:id/transport', auth, async (req, res) => {
+  const { transportDetails } = req.body;
+  
+  const { data: updated, error } = await supabase
+    .from('bills')
+    .update({ transport_details: transportDetails })
+    .eq('user_id', req.user.id)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+    
+  if (error) return res.status(500).json({ error: error.message });
   res.json(formatBill(updated));
 });
 

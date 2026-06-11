@@ -10,15 +10,40 @@ const router = express.Router();
 router.get('/categories', auth, async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('inventory')
-      .select('category')
+      .from('categories')
+      .select('name')
       .eq('user_id', req.user.id)
-      .not('category', 'is', null)
 
-    if (error) throw error
+    if (error) {
+      // Fallback to inventory distinct if table doesn't exist yet
+      const { data: invData, error: invErr } = await supabase.from('inventory').select('category').eq('user_id', req.user.id).not('category', 'is', null)
+      if (invErr) throw invErr
+      const cats = [...new Set(invData.map(item => item.category).filter(Boolean))].sort()
+      return res.json({ categories: cats })
+    }
 
-    const categories = [...new Set(data.map(item => item.category).filter(Boolean))].sort()
+    const categories = data.map(c => c.name).sort()
     res.json({ categories })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/inventory/categories
+router.post('/categories', auth, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([{ user_id: req.user.id, name: name.trim() }])
+      .select()
+      .single();
+
+    if (error && error.code !== '23505') throw error; // Ignore unique constraint violation
+
+    res.status(201).json(data || { name: name.trim() });
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -85,12 +110,17 @@ router.get('/', auth, async (req, res) => {
       'qty_asc': 'qty',
       'qty_desc': 'qty',
       'category': 'category',
-      'created': 'created_at'
+      'created': 'created_at',
+      'date_added_desc': 'date_added',
+      'date_added_asc': 'date_added',
+      'last_restocked_desc': 'last_restocked',
+      'not_restocked': 'last_restocked'
     }[sortBy] || 'name'
 
-    const isDesc = sortBy.endsWith('_desc') || sortOrder === 'desc';
+    const isDesc = sortBy === 'qty_desc' || sortBy === 'date_added_desc' || sortBy === 'last_restocked_desc' || sortOrder === 'desc';
     const ascending = !isDesc;
-    query = query.order(sortColumn, { ascending })
+    const nullsFirst = sortBy === 'not_restocked';
+    query = query.order(sortColumn, { ascending, nullsFirst })
 
     let { data, error } = await query
     if (error) throw error
@@ -152,10 +182,22 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'hsn, name, category, qty and unit are required' });
   }
 
-  const item = { user_id: req.user.id, hsn, name, category, qty: Number(qty), unit, min: Number(min) || 0, max: Number(max) || 0, rate: Number(req.body.rate) || 0, gst: Number(req.body.gst) || 0 };
+  const today = new Date().toISOString().split('T')[0];
+  const item = {
+    user_id: req.user.id, hsn, name, category,
+    qty: Number(qty), unit,
+    min: Number(min) || 0, max: Number(max) || 0,
+    rate: Number(req.body.rate) || 0,
+    gst: Number(req.body.gst) || 0,
+    date_added: req.body.date_added || today,
+    restock_source: req.body.restock_source || 'manual'
+  };
   const { data: inserted, error } = await supabase.from('inventory').insert([item]).select().single();
 
   if (error) return res.status(500).json({ error: error.message });
+  
+  await supabase.from('categories').insert([{ user_id: req.user.id, name: category }]);
+  
   res.status(201).json(inserted);
 });
 
@@ -181,6 +223,10 @@ router.put('/:id', auth, async (req, res) => {
           : NotificationService.templates.lowStock(updated.name, updated.qty, updated.min, updated.unit)
       );
     } catch (err) { console.error('Failed to create notification:', err); }
+  }
+
+  if (req.body.category) {
+    await supabase.from('categories').insert([{ user_id: req.user.id, name: req.body.category }]);
   }
 
   res.json(updated);
@@ -249,6 +295,9 @@ router.post('/import', auth, async (req, res) => {
   if (toInsert.length > 0) {
     const { error } = await supabase.from('inventory').insert(toInsert);
     if (error) return res.status(500).json({ error: error.message });
+
+    const newCats = [...new Set(toInsert.map(i => i.category))].map(c => ({ user_id: req.user.id, name: c }));
+    await supabase.from('categories').insert(newCats);
   }
 
   res.json({ added: added.length, skipped: skipped.length, skippedSkus: skipped });

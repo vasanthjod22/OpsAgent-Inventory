@@ -21,7 +21,10 @@ router.get('/', auth, async (req, res) => {
     gstin: company.gstin,
     bankName: company.bank_name,
     accountNumber: company.account_number,
-    ifsc: company.ifsc
+    ifsc: company.ifsc,
+    state: company.state || '',
+    email: company.email || '',
+    logo_base64: company.logo_base64 || ''
   };
   
   res.json(formatted);
@@ -36,7 +39,10 @@ router.put('/', auth, async (req, res) => {
     gstin: req.body.gstin || '',
     bank_name: req.body.bankName || '',
     account_number: req.body.accountNumber || '',
-    ifsc: req.body.ifsc || ''
+    ifsc: req.body.ifsc || '',
+    state: req.body.state || '',
+    email: req.body.email || '',
+    logo_base64: req.body.logo_base64 || ''
   };
 
   const { data: existing } = await supabase.from('company').select('user_id').eq('user_id', req.user.id).limit(1).maybeSingle();
@@ -60,7 +66,10 @@ router.put('/', auth, async (req, res) => {
     gstin: result.gstin,
     bankName: result.bank_name,
     accountNumber: result.account_number,
-    ifsc: result.ifsc
+    ifsc: result.ifsc,
+    state: result.state || '',
+    email: result.email || '',
+    logo_base64: result.logo_base64 || ''
   });
 });
 

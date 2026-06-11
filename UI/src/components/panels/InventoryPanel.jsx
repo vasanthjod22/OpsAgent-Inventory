@@ -170,7 +170,7 @@ const parseRows = (rawRows) => {
     hsn: getIndex(headerMap.hsn), name: getIndex(headerMap.name), category: getIndex(headerMap.category),
     qty: getIndex(headerMap.qty), unit: getIndex(headerMap.unit), min: getIndex(headerMap.min), max: getIndex(headerMap.max),
   }
-  if (col.hsn === -1 || col.name === -1) throw new Error('Could not find SKU or Name column.')
+  if (col.hsn === -1 || col.name === -1) throw new Error('Could not find HSN or Name column.')
   return rawRows.slice(1).map((vals) => {
     const g = (i, fallback = '') => i !== -1 ? String(vals[i] ?? fallback).trim() : fallback
     const n = (i, fallback = 0) => i !== -1 ? Number(vals[i] ?? fallback) : fallback
@@ -467,7 +467,7 @@ const InventoryAutocomplete = ({
   )
 }
 
-const CategoryAutocomplete = ({ value, onChange, categories }) => {
+const CategoryAutocomplete = ({ value, onChange, categories, onAddCategory, width = 180 }) => {
   const [inputValue, setInputValue] = useState(value === 'all' ? '' : value)
   const [showDropdown, setShowDropdown] = useState(false)
   const wrapperRef = useRef(null)
@@ -477,6 +477,7 @@ const CategoryAutocomplete = ({ value, onChange, categories }) => {
   }, [value])
 
   const filtered = categories.filter(c => c.toLowerCase().includes(inputValue.toLowerCase()))
+  const isExactMatch = categories.some(c => c.toLowerCase() === inputValue.trim().toLowerCase())
 
   useEffect(() => {
     const handleOutside = (e) => {
@@ -491,8 +492,14 @@ const CategoryAutocomplete = ({ value, onChange, categories }) => {
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [inputValue, value, onChange])
 
+  const handleAdd = async (newCat) => {
+    if (onAddCategory) await onAddCategory(newCat)
+    onChange(newCat)
+    setShowDropdown(false)
+  }
+
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: 180 }}>
+    <div ref={wrapperRef} style={{ position: 'relative', width }}>
       <input
         type="text"
         value={inputValue}
@@ -504,8 +511,13 @@ const CategoryAutocomplete = ({ value, onChange, categories }) => {
         onFocus={() => setShowDropdown(true)}
         onKeyDown={e => {
           if (e.key === 'Enter') {
-            onChange(inputValue.trim() || 'all')
-            setShowDropdown(false)
+            const val = inputValue.trim()
+            if (val && !isExactMatch) {
+              handleAdd(val)
+            } else {
+              onChange(val || 'all')
+              setShowDropdown(false)
+            }
           }
         }}
         style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
@@ -521,25 +533,30 @@ const CategoryAutocomplete = ({ value, onChange, categories }) => {
           >
             All Categories
           </div>
-          {filtered.map(c => (
+          {filtered.map(cat => (
             <div
-              key={c}
-              onClick={() => { onChange(c); setInputValue(c); setShowDropdown(false) }}
+              key={cat}
+              onClick={() => { onChange(cat); setInputValue(cat); setShowDropdown(false) }}
               style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A' }}
               onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              {c}
+              {cat}
             </div>
           ))}
-          {inputValue && !categories.includes(inputValue) && (
+          {inputValue.trim() !== '' && !isExactMatch && (
             <div
-              onClick={() => { onChange(inputValue.trim()); setShowDropdown(false) }}
-              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#2563EB', fontWeight: 500, background: '#EFF6FF' }}
+              onClick={() => handleAdd(inputValue.trim())}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#2563EB', fontWeight: 600, borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 6 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              Search "{inputValue}"
+              <Plus size={14} /> Add "{inputValue.trim()}"
             </div>
           )}
+          <div style={{ padding: '6px 12px', fontSize: 11, color: '#94A3B8', background: '#F8FAFC', borderTop: '1px solid #F1F5F9', display: 'flex', gap: 12 }}>
+            <span>↑↓ Navigate</span><span>Enter to select/add</span><span>Esc to close</span>
+          </div>
         </div>
       )}
     </div>
@@ -593,7 +610,7 @@ export default function InventoryPanel({ showToast }) {
       lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
       outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
       overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
-      totalValue: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0) * (1 + (Number(i.gst) || 0)/100)), 0)
+      totalValue: Math.round(allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0)), 0))
     })
   }, [allItems])
 
@@ -764,6 +781,25 @@ export default function InventoryPanel({ showToast }) {
     })
   }
 
+  const handleDeleteGrn = (grn) => {
+    setConfirmModal({
+      title: 'Delete GRN',
+      message: `Are you sure you want to delete the GRN from ${grn.supplier} and reverse its inventory updates?`,
+      confirmLabel: 'Yes, Delete It',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await backendFetch(`/grn/${grn.id}`, { method: 'DELETE' })
+          showToast?.('GRN deleted & stock reversed', 'success')
+          fetchGrnHistory()
+          fetchInventory()
+          fetchAllForAutocomplete()
+        } catch (e) { showToast?.(e.message, 'error') }
+        setConfirmModal(null)
+      }
+    })
+  }
+
   const handleAdd = async () => {
     if (!newItem.hsn || !newItem.name) return showToast?.('HSN and Name are required', 'error')
     try {
@@ -919,22 +955,53 @@ export default function InventoryPanel({ showToast }) {
                   </div>
                 </div>
 
-                <div style={{ borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                  <table className="data-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                    <thead><tr style={{ background: '#0F172A', color: 'white' }}>{ITEM_FIELDS.map(f => <th key={f} style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>{fieldLabel(f)}</th>)}<th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Unit</th></tr></thead>
+                <div style={{ borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', overflowX: 'auto' }}>
+                  <table className="data-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '900px' }}>
+                    <thead>
+                      <tr style={{ background: '#0F172A', color: 'white' }}>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>HSN</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Description</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Qty</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Unit Price</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Unit</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Category</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Min</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Max</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      {grnData.items.map((it, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                          {ITEM_FIELDS.map(f => (
-                            <td key={f} style={{ padding: 8 }}>
-                              <input type="text" value={it[f] || ''} onChange={e => { const copy = [...grnData.items]; copy[i][f] = e.target.value; setGrnData(p => ({ ...p, items: copy })) }} style={{ width: '100%', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} />
-                            </td>
-                          ))}
-                          <td style={{ padding: 8 }}><input type="text" value={it.unit || ''} onChange={e => { const copy = [...grnData.items]; copy[i].unit = e.target.value; setGrnData(p => ({ ...p, items: copy })) }} style={{ width: '60px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
-                        </tr>
-                      ))}
+                      {grnData.items.map((it, i) => {
+                        const handleChange = (f, val) => {
+                          const copy = [...grnData.items]
+                          copy[i][f] = val
+                          setGrnData(p => ({ ...p, items: copy }))
+                        }
+                        return (
+                          <tr key={i} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                            <td style={{ padding: 8 }}><input type="text" value={it.hsn || ''} onChange={e => handleChange('hsn', e.target.value)} style={{ width: '80px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="text" value={it.description || ''} onChange={e => handleChange('description', e.target.value)} style={{ width: '100%', minWidth: '150px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.quantity || ''} onChange={e => handleChange('quantity', e.target.value)} style={{ width: '60px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.unit_price || ''} onChange={e => handleChange('unit_price', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="text" list="grn-unit-list" value={it.unit || ''} onChange={e => handleChange('unit', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="text" list="grn-cat-list" value={it.category || ''} onChange={e => handleChange('category', e.target.value)} style={{ width: '100px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.min || ''} onChange={e => handleChange('min', e.target.value)} style={{ width: '50px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.max || ''} onChange={e => handleChange('max', e.target.value)} style={{ width: '50px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
+                  <datalist id="grn-unit-list">
+                    <option value="Nos">Nos</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Ltrs">Ltrs</option>
+                    <option value="Set">Set</option>
+                    <option value="Metre">Metre</option>
+                    <option value="Sqft">Sqft</option>
+                  </datalist>
+                  <datalist id="grn-cat-list">
+                    {categories.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
                   <button onClick={() => { setGrnData(null); setGrnFile(null) }} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Discard</button>
@@ -946,29 +1013,38 @@ export default function InventoryPanel({ showToast }) {
               </div>
             )}
 
-            {/* GRN History Mini Table */}
-            {grnHistory.length > 0 && !grnData && (
-              <div style={{ marginTop: 32 }}>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>Recent GRNs</h4>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
-                    <thead><tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}><th style={{ padding: '10px 16px', fontWeight: 600 }}>Date</th><th style={{ padding: '10px 16px', fontWeight: 600 }}>Supplier</th><th style={{ padding: '10px 16px', fontWeight: 600 }}>Items</th></tr></thead>
-                    <tbody>
-                      {grnHistory.map(g => (
-                        <tr key={g.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                          <td style={{ padding: '10px 16px', color: '#0F172A' }}>{new Date(g.date || g.created_at).toLocaleDateString()}</td>
-                          <td style={{ padding: '10px 16px', fontWeight: 600 }}>{g.supplier}</td>
-                          <td style={{ padding: '10px 16px' }}>{g.items?.length || 0} items</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
+
+      {/* GRN History Mini Table (Always visible if there's history) */}
+      {grnHistory.length > 0 && !grnData && (
+        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 24 }}>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: '0 0 16px 0' }}>Recent Goods Receipts (GRN)</h4>
+          <div style={{ border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead><tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Date</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Supplier</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Items Received</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
+              </tr></thead>
+              <tbody>
+                {grnHistory.map(g => (
+                  <tr key={g.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '12px 16px', color: '#0F172A', fontWeight: 500 }}>{new Date(g.date || g.created_at).toLocaleDateString()}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1E293B' }}>{g.supplier}</td>
+                    <td style={{ padding: '12px 16px', color: '#64748B' }}><span style={{ background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>{g.items?.length || 0} items</span></td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <ActionButton icon={<Trash2 size={16} />} color="#EF4444" hoverColor="#DC2626" tooltip="Delete GRN" onClick={() => handleDeleteGrn(g)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* SECTION 2: STAT CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -1031,7 +1107,7 @@ export default function InventoryPanel({ showToast }) {
               value={search}
               onChange={val => setSearch(val)}
               inventory={allItems}
-              placeholder="Search items by name, SKU..."
+              placeholder="Search items by name, HSN..."
             />
 
             {(search !== '' || category !== 'all' || status !== 'all' || sortBy !== 'name') && (
@@ -1053,6 +1129,15 @@ export default function InventoryPanel({ showToast }) {
               value={category}
               onChange={val => { setCategory(val); setPagination(p => ({...p, currentPage: 1})); }}
               categories={categories}
+              onAddCategory={async (newCat) => {
+                try {
+                  await backendFetch('/inventory/categories', { method: 'POST', body: JSON.stringify({ name: newCat }) })
+                  fetchCategories()
+                  // Don't show toast for success, let it be seamless, or maybe just a subtle success
+                } catch (e) {
+                  console.error(e)
+                }
+              }}
             />
 
             <FilterSelect
@@ -1075,7 +1160,11 @@ export default function InventoryPanel({ showToast }) {
                 { value: 'name_desc', label: 'Name Z-A' },
                 { value: 'qty_asc', label: 'Qty: Low → High' },
                 { value: 'qty_desc', label: 'Qty: High → Low' },
-                { value: 'created', label: 'Recently Added' },
+                { value: 'date_added_desc', label: '📅 Date Added (Newest)' },
+                { value: 'date_added_asc', label: '📅 Date Added (Oldest)' },
+                { value: 'last_restocked_desc', label: '🔄 Last Restocked (Recent)' },
+                { value: 'not_restocked', label: '⚠️ Not Restocked (Oldest First)' },
+                { value: 'created', label: 'Created At' },
                 { value: 'category', label: 'Category' }
               ]}
             />
@@ -1108,7 +1197,7 @@ export default function InventoryPanel({ showToast }) {
                   <SearchX size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Item not found</div>
                   <div style={{ fontSize: 14, color: '#64748B', marginTop: 8, maxWidth: 300, margin: '8px auto' }}>
-                    No items match '{search}'. Try checking the spelling or search by SKU or category.
+                    No items match '{search}'. Try checking the spelling or search by HSN or category.
                   </div>
                   <button onClick={() => setSearch('')} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Search</button>
                 </>
@@ -1159,7 +1248,7 @@ export default function InventoryPanel({ showToast }) {
             <table className="data-table" style={{ width: '100%', minWidth: 900, marginTop: 16, textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0' }}>
-                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>SKU</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Rate</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>GST</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
+                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>HSN</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Rate</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>GST</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>📅 Date Added</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>🔄 Last Restocked</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1203,6 +1292,50 @@ export default function InventoryPanel({ showToast }) {
                           {Number(item.gst) > 0 ? <CheckSquare size={20} color="#16A34A" /> : <Square size={20} color="#94A3B8" />}
                         </button>
                       </td>
+                      <td style={{ textAlign: 'center', padding: '12px 8px' }}>
+                         {(() => {
+                           const dateAdded = item.date_added
+                           const src = item.restock_source || 'manual'
+                           const isGrn = src && src.startsWith('GRN')
+                           const fmtD = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
+                           // Age badge
+                           let ageBg = '#EFF6FF', ageColor = '#2563EB', ageLabel = 'New'
+                           if (dateAdded) {
+                             const days = Math.floor((Date.now() - new Date(dateAdded)) / 86400000)
+                             if (days > 180) { ageBg = '#FEF2F2'; ageColor = '#DC2626'; ageLabel = 'Old Stock' }
+                             else if (days > 90) { ageBg = '#FFFBEB'; ageColor = '#D97706'; ageLabel = 'Aging' }
+                             else if (days > 30) { ageBg = '#F0FDF4'; ageColor = '#059669'; ageLabel = 'Fresh' }
+                           }
+                           return (
+                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                               <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{fmtD(dateAdded)}</span>
+                               {dateAdded && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: ageBg, color: ageColor }}>{ageLabel}</span>}
+                               {dateAdded && <span style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2 }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
+                             </div>
+                           )
+                         })()}
+                       </td>
+                       <td style={{ textAlign: 'center', padding: '12px 8px' }}>
+                         {(() => {
+                           const lastR = item.last_restocked
+                           const src = item.restock_source || 'manual'
+                           const isGrn = src && src.startsWith('GRN')
+                           const fmtD = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
+                           let rColor = '#94A3B8', rBg = '#F1F5F9'
+                           if (lastR) {
+                             const days = Math.floor((Date.now() - new Date(lastR)) / 86400000)
+                             if (days <= 30) { rColor = '#059669'; rBg = '#F0FDF4' }
+                             else if (days <= 60) { rColor = '#D97706'; rBg = '#FFFBEB' }
+                             else { rColor = '#DC2626'; rBg = '#FEF2F2' }
+                           }
+                           return (
+                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                               <span style={{ fontSize: 12, fontWeight: 600, color: lastR ? rColor : '#94A3B8', background: lastR ? rBg : 'transparent', padding: lastR ? '2px 6px' : 0, borderRadius: 6 }}>{fmtD(lastR)}</span>
+                               {lastR && <span style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2 }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
+                             </div>
+                           )
+                         })()}
+                       </td>
                       <td style={{ textAlign: 'center', padding: '12px 8px' }}>{getStatusBadge(item)}</td>
                       <td style={{ textAlign: 'right', padding: '12px 8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
@@ -1244,7 +1377,7 @@ export default function InventoryPanel({ showToast }) {
             </div>
             <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>SKU</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>HSN</label>
                 <input type="text" value={newItem.hsn} onChange={e => setNewItem({ ...newItem, hsn: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
@@ -1253,8 +1386,18 @@ export default function InventoryPanel({ showToast }) {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
-                <input type="text" list="cat-list" value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
-                <datalist id="cat-list">{categories.map(c => <option key={c} value={c} />)}</datalist>
+                <CategoryAutocomplete
+                  value={newItem.category}
+                  onChange={val => setNewItem({ ...newItem, category: val })}
+                  categories={categories}
+                  width="100%"
+                  onAddCategory={async (newCat) => {
+                    try {
+                      await backendFetch('/inventory/categories', { method: 'POST', body: JSON.stringify({ name: newCat }) })
+                      fetchCategories()
+                    } catch (e) { console.error(e) }
+                  }}
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Current Qty</label>

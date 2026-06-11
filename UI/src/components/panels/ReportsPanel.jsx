@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   BarChart2, Calendar, Download, TrendingUp, AlertCircle,
   Package, Receipt, Users, FileText, CheckCircle, FileCheck,
-  RefreshCw, Copy, Archive
+  RefreshCw, Copy, Archive, Grid, ChevronDown, ChevronRight
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import FormattedAIResponse from '../ui/FormattedAIResponse'
@@ -52,7 +52,7 @@ const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Ic
 }
 
 /* ─── Main ReportsPanel ───────────────────────────────────────── */
-export default function ReportsPanel({ bills = [], quotations = [], inventory = [], grnHistory = [], customers = [], showToast }) {
+export default function ReportsPanel({ bills = [], quotations = [], inventory = [], grnHistory = [], customers = [], showToast, refreshData }) {
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('opsagent_reports_tab')
     if (saved) {
@@ -66,6 +66,14 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
   const [dateTo, setDateTo] = useState('')
   const [reportHistory, setReportHistory] = useState([])
   const [companySettings, setCompanySettings] = useState({})
+  const [categories, setCategories] = useState([])
+
+  // Load categories for category filter
+  useEffect(() => {
+    backendFetch('/inventory/categories')
+      .then(d => setCategories(d.categories || []))
+      .catch(() => {})
+  }, [])
 
   // Load company and history
   useEffect(() => {
@@ -77,7 +85,9 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
     backendFetch('/reports')
       .then(res => setReportHistory(res || []))
       .catch(console.error)
-  }, [])
+
+    if (refreshData) refreshData()
+  }, [refreshData])
 
   // Calculate Date Range
   const { start, end } = useMemo(() => {
@@ -159,7 +169,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
       })
       yPos = doc.lastAutoTable.finalY + 15
     } else if (type === 'inventory') {
-      const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.rate||0) * (1 + (i.gst||0)/100)), 0)
+      const totalValue = Math.round(inventory.reduce((s, i) => s + ((Number(i.qty)||0) * (Number(i.rate)||0)), 0))
       doc.setFontSize(14)
       doc.setFont("helvetica", "bold")
       doc.text("Inventory Summary", 14, yPos)
@@ -277,7 +287,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
         }
       case 'inventory': 
         return {
-          totalValue: inventory.reduce((s, i) => s + (i.qty * (i.rate||0) * (1 + (i.gst||0)/100)), 0),
+          totalValue: Math.round(inventory.reduce((s, i) => s + ((Number(i.qty)||0) * (Number(i.rate)||0)), 0)),
           lowStockCount: inventory.filter(i => i.qty < i.min).length,
           totalItems: inventory.length,
           topItemsByValue: [...inventory].sort((a,b) => (b.qty * (b.rate||0)) - (a.qty * (a.rate||0))).slice(0, 10),
@@ -467,44 +477,167 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
 
   /* ─── INVENTORY TAB ───────────────────────────────────────── */
   const InventoryTab = () => {
-    const totalValue = inventory.reduce((s, i) => s + (i.qty * (i.rate||0) * (1 + (i.gst||0)/100)), 0)
-    const lowStock = inventory.filter(i => i.qty < i.min).length
-    const received = fGrn.reduce((s, g) => s + (g.item_count || 0), 0)
+    const [data, setData] = useState([])
+    const [summary, setSummary] = useState({})
+    const [category, setCategory] = useState('all')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const [expandedRow, setExpandedRow] = useState(null)
+
+    const fetchData = useCallback(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams({
+          category,
+          from: start.toISOString(),
+          to: end.toISOString()
+        })
+        const result = await backendFetch(`/reports/category-inventory?${params}`)
+
+        if (result.success) {
+          setData(result.data || [])
+          setSummary(result.summary || {})
+        } else {
+          setError(result.error || 'Failed to load')
+        }
+      } catch (err) {
+        setError('Could not connect to server. Check if backend is running.')
+        console.error('Category report error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }, [category, start, end])
+
+    useEffect(() => {
+      fetchData()
+    }, [fetchData])
+
+    const getStatus = (cat) => {
+      if (cat.outOfStockCount > 0) return { label: `${cat.outOfStockCount} Out of Stock`, color: '#DC2626', bg: '#FEF2F2' }
+      if (cat.lowStockCount > 0) return { label: `${cat.lowStockCount} Low Stock`, color: '#EA580C', bg: '#FFF7ED' }
+      if (cat.overstockCount > 0) return { label: `${cat.overstockCount} Overstock`, color: '#D97706', bg: '#FFFBEB' }
+      return { label: 'All OK', color: '#16A34A', bg: '#F0FDF4' }
+    }
+
+    const maxValue = Math.max(...data.map(d => d.totalValue), 1)
+    const colors = ['#2563EB','#7C3AED','#EA580C','#16A34A','#0891B2','#DB2777','#CA8A04','#9333EA','#0D9488']
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: 24 }}>
         <AIInsightSection reportType="inventory" />
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
           <Btn onClick={() => exportPDF('inventory')} variant="primary" icon={Download}>Export Inventory PDF</Btn>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-          <StatCard icon={Package} label="Total Stock Value" value={fmt(totalValue)} color="#2563EB" bg="#EFF6FF" />
-          <StatCard icon={AlertCircle} label="Low Stock Items" value={lowStock} color="#DC2626" bg="#FEF2F2" subtext="Needs reordering" />
-          <StatCard icon={Archive} label="Items Received" value={received} color="#059669" bg="#F0FDF4" />
+
+        {/* ── FILTER BAR ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</span>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', background: 'white', minWidth: 150, cursor: 'pointer' }}>
+              <option value="all">All Categories</option>
+              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+          </div>
+          <button onClick={fetchData} disabled={loading} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>🔄 Refresh</button>
         </div>
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Stock Movement</h3>
-          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ textAlign: 'left', padding: '10px' }}>HSN</th>
-                <th style={{ textAlign: 'left', padding: '10px' }}>Item</th>
-                <th style={{ textAlign: 'right', padding: '10px' }}>Qty</th>
-                <th style={{ textAlign: 'center', padding: '10px' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inventory.slice(0, 10).map((i, idx) => (
-                <tr key={idx} style={{ background: i.qty < i.min ? '#FEF2F2' : 'white', borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '10px', fontWeight: 600 }}>{i.hsn}</td>
-                  <td style={{ padding: '10px' }}>{i.name}</td>
-                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{i.qty}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{i.qty < i.min ? 'Low ⚠️' : 'OK ✅'}</td>
-                </tr>
+
+        {/* ── LOADING/ERROR STATES ── */}
+        {loading && <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 16 }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', animation: 'spin 0.8s linear infinite' }}/></div>}
+        {error && !loading && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <div><p style={{ margin: 0, fontWeight: 600, color: '#DC2626', fontSize: 14 }}>Failed to load category data</p><p style={{ margin: '4px 0 0', color: '#EF4444', fontSize: 12 }}>{error}</p></div>
+            <button onClick={fetchData} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 6, border: 'none', background: '#DC2626', color: 'white', fontSize: 12, cursor: 'pointer' }}>Retry</button>
+          </div>
+        )}
+
+        {/* ── SUMMARY CARDS ── */}
+        {!loading && !error && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'Total Categories', value: summary.totalCategories || 0, icon: '🗂️', color: '#2563EB', bg: '#EFF6FF' },
+                { label: 'Total Stock Value', value: fmt(summary.totalValue), icon: '💰', color: '#16A34A', bg: '#F0FDF4' },
+                { label: 'Most Valuable', value: summary.mostValuableCategory?.name || '—', sub: summary.mostValuableCategory ? fmt(summary.mostValuableCategory.value) : '', icon: '⭐', color: '#7C3AED', bg: '#F5F3FF' },
+                { label: 'Need Attention', value: `${summary.lowStockCategories || 0} categories`, icon: '⚠️', color: '#DC2626', bg: '#FEF2F2' }
+              ].map((card, i) => (
+                <div key={i} style={{ background: card.bg, border: `1px solid ${card.color}22`, borderRadius: 12, padding: '16px 18px' }}>
+                  <div style={{ fontSize: 22, marginBottom: 8 }}>{card.icon}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: card.color, marginBottom: 4 }}>{card.value}</div>
+                  {card.sub && <div style={{ fontSize: 11, color: card.color, opacity: 0.8, marginBottom: 4 }}>{card.sub}</div>}
+                  <div style={{ fontSize: 12, color: '#64748B' }}>{card.label}</div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* ── EMPTY STATE ── */}
+            {data.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px 0', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+                <h3 style={{ color: '#0F172A', margin: '0 0 8px' }}>No inventory data found</h3>
+              </div>
+            )}
+
+            {/* ── CATEGORY TABLE ── */}
+            {data.length > 0 && (
+              <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 16px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', gap: 8 }}>
+                  {['Category','Items','Total Qty','Stock Value',`Sold (Period)`,'Revenue','Status'].map(h => <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>)}
+                </div>
+                {data.map((cat, idx) => {
+                  const status = getStatus(cat)
+                  const color = colors[idx % colors.length]
+                  const isExpanded = expandedRow === cat.category
+                  const barWidth = (cat.totalValue / maxValue) * 100
+                  return (
+                    <div key={cat.category}>
+                      <div onClick={() => setExpandedRow(isExpanded ? null : cat.category)} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr', padding: '14px 16px', borderBottom: '1px solid #F1F5F9', gap: 8, cursor: 'pointer', background: isExpanded ? '#F8FAFC' : 'white', transition: 'background 0.15s ease' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }}/>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{cat.category}</div>
+                            <div style={{ width: 80, height: 3, background: '#F1F5F9', borderRadius: 999, marginTop: 4 }}><div style={{ width: `${barWidth}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.5s ease' }}/></div>
+                          </div>
+                          <span style={{ marginLeft: 'auto', fontSize: 14, color: '#94A3B8', transition: 'transform 0.2s ease', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ background: `${color}18`, color: color, padding: '2px 8px', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>{cat.totalItems}</span></div>
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: '#374151' }}>{cat.totalQty.toLocaleString('en-IN')}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#16A34A' }}>{fmt(cat.totalValue)}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: cat.soldQty > 0 ? '#2563EB' : '#94A3B8' }}>{cat.soldQty > 0 ? cat.soldQty.toLocaleString('en-IN') : '—'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: cat.soldValue > 0 ? '#7C3AED' : '#94A3B8' }}>{cat.soldValue > 0 ? fmt(cat.soldValue) : '—'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ background: status.bg, color: status.color, padding: '3px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600 }}>{status.label}</span></div>
+                      </div>
+                      {isExpanded && (
+                        <div style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', padding: '0 16px 16px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 80px 80px 80px 80px 100px 100px', padding: '10px 12px', background: '#F1F5F9', borderRadius: 8, marginBottom: 8, gap: 8 }}>
+                            {['SKU','Name','Qty','Min','Max','Rate','Value','Status'].map(h => <div key={h} style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{h}</div>)}
+                          </div>
+                          {cat.items.map(item => {
+                            const qty = item.qty||0; const min = item.min||0; const max = item.max||0; const rate = item.rate||0;
+                            const itemStatus = qty === 0 ? { label: 'Out', color: '#4F46E5', bg: '#EEF2FF' } : qty < min ? { label: 'Low', color: '#EA580C', bg: '#FFF7ED' } : max > 0 && qty > max ? { label: 'Over', color: '#D97706', bg: '#FFFBEB' } : { label: 'OK', color: '#16A34A', bg: '#F0FDF4' }
+                            return (
+                              <div key={item.hsn || item.sku || item.name} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 80px 80px 80px 80px 100px 100px', padding: '10px 12px', background: 'white', borderRadius: 8, marginBottom: 4, gap: 8, border: '1px solid #E2E8F0' }}>
+                                <div style={{ fontSize: 11, color: '#64748B', fontFamily: 'monospace' }}>{item.hsn || item.sku || '—'}</div>
+                                <div style={{ fontSize: 13, color: '#0F172A', fontWeight: 500 }}>{item.name}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{qty}</div>
+                                <div style={{ fontSize: 12, color: '#64748B' }}>{min}</div>
+                                <div style={{ fontSize: 12, color: '#64748B' }}>{max}</div>
+                                <div style={{ fontSize: 12, color: '#64748B' }}>₹{rate}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#16A34A' }}>{fmt(qty * rate)}</div>
+                                <div><span style={{ background: itemStatus.bg, color: itemStatus.color, padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600 }}>{itemStatus.label}</span></div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
     )
   }
@@ -609,6 +742,8 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
       </div>
     )
   }
+
+
 
   const tabs = [
     { id: 'sales', label: 'Sales', icon: TrendingUp },

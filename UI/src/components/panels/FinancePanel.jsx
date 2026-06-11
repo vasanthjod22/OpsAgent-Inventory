@@ -27,8 +27,10 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   
-  // Tax Summary
+  // Tax Summary — period + custom date range
   const [taxPeriod, setTaxPeriod] = useState('This Year')
+  const [taxStart, setTaxStart] = useState('')
+  const [taxEnd, setTaxEnd] = useState('')
 
   const fmtINR = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
@@ -67,7 +69,6 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       const y = dt.getFullYear();
       const m = dt.getMonth() + 1;
       
-      // In Year mode, we group strictly by month. In custom mode, group by Year-Month.
       let key, name, sortIndex;
       if (mode === 'Year') {
         key = m.toString().padStart(2, '0')
@@ -136,7 +137,6 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       return getDashboardData('Year', selectedYear - 1, null, null)
     } else {
       if (!customStart && !customEnd) return getDashboardData('Custom', null, null, null);
-      // Shift custom range exactly 1 year back
       const s = customStart ? new Date(new Date(customStart).setFullYear(new Date(customStart).getFullYear() - 1)).toISOString().split('T')[0] : ''
       const e = customEnd ? new Date(new Date(customEnd).setFullYear(new Date(customEnd).getFullYear() - 1)).toISOString().split('T')[0] : ''
       return getDashboardData('Custom', null, s, e)
@@ -174,7 +174,6 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       })
     })
 
-    // Filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       ops = ops.filter(o => 
@@ -195,7 +194,6 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       ops = ops.filter(o => new Date(o.date).getTime() <= end)
     }
 
-    // Sort
     ops.sort((a, b) => {
       let valA = a[sortField]
       let valB = b[sortField]
@@ -220,6 +218,12 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
     const periodBills = bills.filter(d => {
       if (!d.date && !d.createdAt) return false
       const dt = new Date(d.date || d.createdAt)
+      if (taxPeriod === 'Custom Range') {
+        const s = taxStart ? new Date(taxStart).getTime() : 0
+        const e = taxEnd ? new Date(taxEnd).setHours(23,59,59,999) : now.getTime()
+        const t = dt.getTime()
+        return t >= s && t <= e
+      }
       if (taxPeriod === 'This Month') return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear()
       if (taxPeriod === 'This Year') return dt.getFullYear() === now.getFullYear()
       if (taxPeriod === 'All Time') return true
@@ -257,7 +261,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       })
     })
     return { totalTaxable, totalCGST, totalSGST, rates, hsnMap, count: periodBills.length }
-  }, [bills, taxPeriod])
+  }, [bills, taxPeriod, taxStart, taxEnd])
 
   const TABS = [
     { id: 'Overview', icon: BarChart3 },
@@ -281,6 +285,8 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
     return null;
   };
 
+  const inputStyle = { padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '13px' }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '40px' }}>
       
@@ -295,7 +301,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
               padding: '10px 16px', borderRadius: '8px',
               fontSize: '14px', fontWeight: 600, cursor: 'pointer',
               background: activeTab === tab.id ? '#2563EB' : 'white',
-              color: activeTab === tab.id ? 'white' : '#64748B',
+              color: activeTab === tab.id ? 'white' : '#1E293B',
               border: activeTab === tab.id ? '1px solid #2563EB' : '1px solid transparent',
               transition: 'all 0.2s'
             }}
@@ -311,7 +317,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A' }}>Financial Overview</h2>
              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-               <Calendar size={18} color="#64748B"/>
+               <Calendar size={18} color="#334155"/>
                <select 
                  value={overviewMode === 'Year' ? selectedYear : 'Custom'} 
                  onChange={e => {
@@ -338,9 +344,9 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
 
                {overviewMode === 'Custom' && (
                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} />
-                    <span style={{ color: '#94A3B8' }}>to</span>
-                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={inputStyle} />
+                    <span style={{ color: '#334155', fontWeight: 600 }}>to</span>
+                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={inputStyle} />
                  </div>
                )}
              </div>
@@ -384,8 +390,8 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={currentOverview.monthlyData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={(val) => `₹${val/1000}k`} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#334155' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#334155' }} tickFormatter={(val) => `₹${val/1000}k`} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
                   <Bar dataKey="Revenue" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={24} />
@@ -415,7 +421,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: '14px' }}>
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: '14px' }}>
                   No expenses recorded this year
                 </div>
               )}
@@ -428,7 +434,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ position: 'relative', width: '300px' }}>
-              <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '10px' }} />
+              <Search size={16} color="#334155" style={{ position: 'absolute', left: '12px', top: '10px' }} />
               <input
                 type="text"
                 placeholder="Search transactions, POs, bills..."
@@ -448,7 +454,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
                 style={{ height: '36px', padding: '0 12px' }}
                 title="Start Date"
               />
-              <span style={{ color: '#94A3B8' }}>-</span>
+              <span style={{ color: '#334155', fontWeight: 600 }}>—</span>
               <input
                 type="date"
                 value={endDate}
@@ -468,8 +474,8 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
                 onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
                 style={{ padding: '6px 12px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <ArrowUpDown size={14} color="#64748B" />
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>{sortOrder.toUpperCase()}</span>
+                <ArrowUpDown size={14} color="#334155" />
+                <span style={{ fontSize: '13px', fontWeight: 500, color: '#1E293B' }}>{sortOrder.toUpperCase()}</span>
               </button>
             </div>
           </div>
@@ -478,25 +484,25 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600 }}>Date</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600 }}>Source</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600 }}>Description</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600 }}>Status</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, textAlign: 'right' }}>Amount</th>
+                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Date</th>
+                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Source</th>
+                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Description</th>
+                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700, textAlign: 'right' }}>Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {operationsList.map((op, i) => (
                   <tr key={`${op.id}-${i}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '12px 16px' }}>{new Date(op.date).toLocaleDateString()}</td>
+                    <td style={{ padding: '12px 16px', color: '#334155' }}>{new Date(op.date).toLocaleDateString()}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, background: '#F1F5F9', color: '#475569' }}>
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, background: '#F1F5F9', color: '#1E293B' }}>
                         {op.source}
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 500, color: '#0F172A' }}>{op.description}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '13px', color: '#64748B' }}>{op.status}</span>
+                      <span style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>{op.status}</span>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: op.type === 'Revenue' ? '#16A34A' : '#DC2626' }}>
                       {op.type === 'Revenue' ? '+' : '-'} ₹{fmtINR(op.amount)}
@@ -505,7 +511,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
                 ))}
                 {operationsList.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#94A3B8' }}>No records found.</td>
+                    <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#475569' }}>No records found.</td>
                   </tr>
                 )}
               </tbody>
@@ -516,12 +522,73 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
 
       {activeTab === 'Tax Summary' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <select value={taxPeriod} onChange={e => setTaxPeriod(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-              {['This Month', 'This Year', 'All Time'].map(o => <option key={o}>{o}</option>)}
-            </select>
+
+          {/* ── Tax Period Controls ── */}
+          <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={16} color="#334155" />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>Period:</span>
+            </div>
+            
+            {/* Quick period buttons */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {['This Month', 'This Year', 'All Time', 'Custom Range'].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setTaxPeriod(p)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '7px',
+                    border: `1.5px solid ${taxPeriod === p ? '#2563EB' : '#E2E8F0'}`,
+                    background: taxPeriod === p ? '#EFF6FF' : 'white',
+                    color: taxPeriod === p ? '#2563EB' : '#1E293B',
+                    fontWeight: taxPeriod === p ? 700 : 500,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom date range pickers — show only when Custom Range selected */}
+            {taxPeriod === 'Custom Range' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
+                <input
+                  type="date"
+                  value={taxStart}
+                  onChange={e => setTaxStart(e.target.value)}
+                  style={inputStyle}
+                  title="From"
+                />
+                <span style={{ color: '#334155', fontWeight: 600, fontSize: '13px' }}>to</span>
+                <input
+                  type="date"
+                  value={taxEnd}
+                  onChange={e => setTaxEnd(e.target.value)}
+                  style={inputStyle}
+                  title="To"
+                />
+                {(taxStart || taxEnd) && (
+                  <button
+                    onClick={() => { setTaxStart(''); setTaxEnd('') }}
+                    style={{ padding: '6px 10px', borderRadius: '7px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Bill count badge */}
+            <div style={{ marginLeft: 'auto', background: '#F1F5F9', borderRadius: '8px', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#1E293B' }}>
+              {taxSummary.count} bill{taxSummary.count !== 1 ? 's' : ''} in period
+            </div>
           </div>
 
+          {/* ── Summary Cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             <SummaryCard icon={DollarSign} title="Taxable Amount" value={`₹${fmtINR(taxSummary.totalTaxable)}`} trend="neutral" trendValue={taxPeriod} colors={{ bg: '#EFF6FF', text: '#2563EB' }} />
             <SummaryCard icon={Receipt} title="CGST Collected" value={`₹${fmtINR(taxSummary.totalCGST)}`} trend="neutral" trendValue={taxPeriod} colors={{ bg: '#F3E8FF', text: '#9333EA' }} />
@@ -529,37 +596,42 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
             <SummaryCard icon={Receipt} title="Total GST Collected" value={`₹${fmtINR(taxSummary.totalCGST + taxSummary.totalSGST)}`} trend="neutral" trendValue={taxPeriod} colors={{ bg: '#F0FDF4', text: '#16A34A' }} />
           </div>
 
+          {/* ── Rate Breakdown Table ── */}
           <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '20px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Tax Rate Breakdown</h3>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px', color: '#0F172A' }}>Tax Rate Breakdown</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #E2E8F0', textAlign: 'left', color: '#64748B' }}>
-                  <th style={{ padding: '8px' }}>GST Rate</th>
-                  <th style={{ padding: '8px' }}>No. of Bills</th>
-                  <th style={{ padding: '8px' }}>Taxable Amt</th>
-                  <th style={{ padding: '8px' }}>CGST</th>
-                  <th style={{ padding: '8px' }}>SGST</th>
-                  <th style={{ padding: '8px' }}>Total Tax</th>
+                <tr style={{ borderBottom: '2px solid #E2E8F0', textAlign: 'left' }}>
+                  {['GST Rate', 'No. of Bills', 'Taxable Amt', 'CGST', 'SGST', 'Total Tax'].map(h => (
+                    <th key={h} style={{ padding: '10px 8px', color: '#1E293B', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(taxSummary.rates).map(([r, v]) => (
                   <tr key={r} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '12px 8px', fontWeight: 600 }}>{r}%</td>
-                    <td style={{ padding: '12px 8px' }}>{v.count.size}</td>
-                    <td style={{ padding: '12px 8px' }}>₹{fmtINR(v.taxable)}</td>
-                    <td style={{ padding: '12px 8px' }}>₹{fmtINR(v.cgst)}</td>
-                    <td style={{ padding: '12px 8px' }}>₹{fmtINR(v.sgst)}</td>
-                    <td style={{ padding: '12px 8px', fontWeight: 700 }}>₹{fmtINR(v.cgst + v.sgst)}</td>
+                    <td style={{ padding: '12px 8px', fontWeight: 700, color: '#0F172A' }}>
+                      <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 8px', borderRadius: '6px', fontSize: '12px' }}>{r}%</span>
+                    </td>
+                    <td style={{ padding: '12px 8px', color: '#334155', fontWeight: 500 }}>{v.count.size}</td>
+                    <td style={{ padding: '12px 8px', color: '#334155', fontWeight: 500 }}>₹{fmtINR(v.taxable)}</td>
+                    <td style={{ padding: '12px 8px', color: '#7C3AED', fontWeight: 600 }}>₹{fmtINR(v.cgst)}</td>
+                    <td style={{ padding: '12px 8px', color: '#4F46E5', fontWeight: 600 }}>₹{fmtINR(v.sgst)}</td>
+                    <td style={{ padding: '12px 8px', fontWeight: 800, color: '#16A34A' }}>₹{fmtINR(v.cgst + v.sgst)}</td>
                   </tr>
                 ))}
-                <tr style={{ background: '#F8FAFC', fontWeight: 700 }}>
-                  <td style={{ padding: '12px 8px' }}>TOTAL</td>
-                  <td style={{ padding: '12px 8px' }}>{taxSummary.count}</td>
-                  <td style={{ padding: '12px 8px' }}>₹{fmtINR(taxSummary.totalTaxable)}</td>
-                  <td style={{ padding: '12px 8px' }}>₹{fmtINR(taxSummary.totalCGST)}</td>
-                  <td style={{ padding: '12px 8px' }}>₹{fmtINR(taxSummary.totalSGST)}</td>
-                  <td style={{ padding: '12px 8px' }}>₹{fmtINR(taxSummary.totalCGST + taxSummary.totalSGST)}</td>
+                {Object.keys(taxSummary.rates).length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#475569' }}>No tax data for this period.</td>
+                  </tr>
+                )}
+                <tr style={{ background: '#F8FAFC', borderTop: '2px solid #CBD5E1' }}>
+                  <td style={{ padding: '12px 8px', fontWeight: 800, color: '#0F172A' }}>TOTAL</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 700, color: '#1E293B' }}>{taxSummary.count}</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 700, color: '#1E293B' }}>₹{fmtINR(taxSummary.totalTaxable)}</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 700, color: '#7C3AED' }}>₹{fmtINR(taxSummary.totalCGST)}</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 700, color: '#4F46E5' }}>₹{fmtINR(taxSummary.totalSGST)}</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 800, color: '#16A34A', fontSize: '15px' }}>₹{fmtINR(taxSummary.totalCGST + taxSummary.totalSGST)}</td>
                 </tr>
               </tbody>
             </table>

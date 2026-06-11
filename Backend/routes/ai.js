@@ -88,95 +88,154 @@ router.post('/vision', auth, async (req, res) => {
     return res.status(400).json({ error: 'base64Image and mimeType are required' });
   }
 
-  try {
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [
-          {
-            role: 'user',
-            content: [
+  const VISION_MODELS = [
+    'llama-3.2-90b-vision-preview',
+    'llama-3.2-11b-vision-preview',
+    'meta-llama/llama-4-scout-17b-16e-instruct'
+  ];
+
+  let lastError = null;
+  const maxRetries = 3;
+
+  for (const model of VISION_MODELS) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
               {
-                type: 'image_url',
-                image_url: { url: `data:${mimeType};base64,${base64Image}` },
-              },
-              {
-                type: 'text',
-                text: `Extract all data from this Goods Receipt Note (GRN) or delivery document. Return ONLY valid JSON:
+                role: 'user',
+                content: [
+                  {
+                    type: 'image_url',
+                    image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                  },
+                  {
+                    type: 'text',
+                    text: `Extract all data from this Goods Receipt Note (GRN) or delivery document. Return ONLY valid JSON:
 {
   "supplier_name": "string or null",
   "po_number": "string or null",
   "date": "string or null",
   "items": [{ "hsn": "string or null", "description": "string", "quantity": number, "unit_price": number or null }]
 }`,
+                  },
+                ],
               },
             ],
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 2048,
-        response_format: { type: 'json_object' }
-      }),
-    });
+            temperature: 0.1,
+            max_tokens: 2048,
+            response_format: { type: 'json_object' }
+          }),
+        });
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return res.status(502).json({ error: err.error?.message || 'Vision API failed' });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          lastError = new Error(err.error?.message || 'Vision API failed');
+          if (response.status === 503 || response.status === 429) {
+             // Exponential backoff
+             if (attempt < maxRetries) {
+               const delay = Math.pow(2, attempt) * 1000;
+               console.log(`Groq over capacity. Retrying ${model} in ${delay}ms... (Attempt ${attempt})`);
+               await new Promise(res => setTimeout(res, delay));
+               continue;
+             }
+          }
+          break; // break retry loop for other errors, try next model if any
+        }
+
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (!text) {
+          lastError = new Error('Empty vision response');
+          break;
+        }
+
+        let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const firstBrace = clean.indexOf('{');
+        const lastBrace = clean.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          clean = clean.substring(firstBrace, lastBrace + 1);
+        }
+        
+        // Fix trailing commas
+        clean = clean.replace(/,\s*([}\]])/g, '$1');
+
+        try {
+          const parsed = JSON.parse(clean);
+          return res.json(parsed);
+        } catch (parseErr) {
+          console.error("JSON parse error with model", model, ":", parseErr, "Raw Text:", clean);
+          lastError = new Error(`Could not parse AI response perfectly from ${model}.`);
+          break; // The response was bad, try another model
+        }
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise(res => setTimeout(res, delay));
+          continue;
+        }
+        break;
+      }
     }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) return res.status(502).json({ error: 'Empty vision response' });
-
-    let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const firstBrace = clean.indexOf('{');
-    const lastBrace = clean.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      clean = clean.substring(firstBrace, lastBrace + 1);
-    }
-    
-    // Fix trailing commas
-    clean = clean.replace(/,\s*([}\]])/g, '$1');
-
-    try {
-      const parsed = JSON.parse(clean);
-      res.json(parsed);
-    } catch (parseErr) {
-      console.error("JSON parse error:", parseErr, "Raw Text:", clean);
-      res.status(502).json({ error: `Could not parse AI response perfectly. Please try a clearer photo. Detail: ${parseErr.message}` });
-    }
-  } catch (err) {
-    res.status(502).json({ error: err.message || 'Vision extraction failed' });
   }
+
+  // If we exhaust all models and retries
+  res.status(502).json({ error: lastError?.message || 'Vision API failed after multiple retries.' });
 });
 
 const callGroq = async (systemPrompt, userMessage, apiKey) => {
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: userMessage  }
-      ],
-      temperature: 0.4,
-      max_tokens: 1024
-    })
-  })
-  const data = await response.json()
-  if (!response.ok) {
-    throw new Error(data.error?.message || 'Groq API error')
+  let lastError = null;
+  const maxRetries = 3;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(GROQ_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user',   content: userMessage  }
+          ],
+          temperature: 0.4,
+          max_tokens: 2048
+        })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        lastError = new Error(data.error?.message || 'Groq API error')
+        if (response.status === 503 || response.status === 429) {
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            await new Promise(res => setTimeout(res, delay));
+            continue;
+          }
+        }
+        throw lastError;
+      }
+      return data.choices?.[0]?.message?.content
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(res => setTimeout(res, delay));
+        continue;
+      }
+      throw lastError;
+    }
   }
-  return data.choices?.[0]?.message?.content
 }
 
 // ─────────────────────────────────────────────
@@ -343,33 +402,113 @@ If asked for a list, use bullet points.`
       { role: 'user', content: question }
     ]
 
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
-        temperature: 0.3,
-        max_tokens: 512
-      })
-    })
+    let answer = 'No answer received.';
+    let lastError = null;
+    const maxRetries = 3;
 
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'Groq API error')
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...messages
+            ],
+            temperature: 0.3,
+            max_tokens: 1024
+          })
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          lastError = new Error(data.error?.message || 'Groq API error')
+          if (response.status === 503 || response.status === 429) {
+            if (attempt < maxRetries) {
+              const delay = Math.pow(2, attempt) * 1000;
+              await new Promise(res => setTimeout(res, delay));
+              continue;
+            }
+          }
+          throw lastError;
+        }
+        answer = data.choices?.[0]?.message?.content || answer;
+        break; // success
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise(res => setTimeout(res, delay));
+          continue;
+        }
+        throw lastError;
+      }
     }
-    const answer = data.choices?.[0]?.message?.content || 'No answer received.'
 
     res.json({ success: true, answer })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
+// ─────────────────────────────────────────────
+// ENDPOINT 4: Category-wise Inventory Insight
+// POST /api/ai/category-insight
+// ─────────────────────────────────────────────
+router.post('/category-insight', auth, async (req, res) => {
+  try {
+    const { categoryData, period, apiKey: reqApiKey } = req.body;
+    const apiKey = reqApiKey || req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
+
+    if (!apiKey) return res.status(503).json({ error: 'AI service not configured.' });
+
+    const periodLabels = { week: 'This Week', month: 'This Month', quarter: 'This Quarter', year: 'This Year' };
+
+    const systemPrompt = `
+You are an expert inventory analyst for a small Indian business. Analyze the category-wise inventory data and provide specific, actionable insights.
+
+Focus on:
+- Which categories are performing best vs worst
+- Stock health per category (low stock, overstock, dead stock)
+- Categories needing immediate attention
+- Reorder recommendations with priority
+- Sales trends per category (based on sold quantities)
+- Cash locked in overstock situations
+- Fast-moving vs slow-moving categories
+
+Use Indian Rupee format (₹). Be specific with numbers and category names.
+Format with clear bullet points. Keep it practical and immediately actionable.`;
+
+    const dataStr = (categoryData || []).map(c => `
+Category: ${c.category}
+- Items: ${c.totalItems}, Total Stock Value: ₹${Math.round(c.totalValue).toLocaleString('en-IN')}
+- Total Qty: ${c.totalQty}, Sold (period): ${c.soldQty} units, Sold Value: ₹${Math.round(c.soldValue).toLocaleString('en-IN')}
+- Low Stock: ${c.lowStockCount}, Out of Stock: ${c.outOfStockCount}, Overstock: ${c.overstockCount}`
+    ).join('\n');
+
+    const userMessage = `Analyze this category-wise inventory report for ${periodLabels[period] || 'This Month'}:
+
+${dataStr}
+
+Provide insights on:
+1. Overall inventory health by category
+2. Best and worst performing categories  
+3. Categories with stock issues requiring attention
+4. Specific reorder recommendations (which categories, priority order)
+5. Revenue opportunities (fast moving categories)
+6. Cash locked in overstock (categories to reduce ordering)
+
+End with 3 specific numbered action items the business owner should do TODAY.`;
+
+    const insight = await callGroq(systemPrompt, userMessage, apiKey);
+    res.json({ success: true, insight });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

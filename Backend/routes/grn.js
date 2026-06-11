@@ -51,26 +51,63 @@ router.post('/', auth, async (req, res) => {
 
   let inventoryUpdated = false;
   let status = 'Pending';
+  const today = new Date().toISOString().split('T')[0];
 
   // Update inventory stock if requested
   if (updateInventory) {
     for (const item of items) {
-      if (item.hsn) {
-        const { data: inv } = await supabase.from('inventory').select('id, qty').eq('user_id', req.user.id).eq('hsn', item.hsn).eq('name', item.description || item.hsn).maybeSingle();
-        if (inv) {
-          const newQty = inv.qty + (Number(item.quantity) || 0);
-          await supabase.from('inventory').update({ qty: newQty }).eq('user_id', req.user.id).eq('id', inv.id);
+      if (item.hsn || item.description) {
+        let invMatch = null;
+
+        // 1. Try case-insensitive match on name
+        if (item.description) {
+          const { data: nameMatches } = await supabase
+            .from('inventory')
+            .select('id, qty')
+            .eq('user_id', req.user.id)
+            .ilike('name', item.description);
+          
+          if (nameMatches && nameMatches.length > 0) {
+            invMatch = nameMatches[0]; // take first match
+          }
+        }
+
+        // 2. Fallback: Try exact match on HSN ONLY if no name is provided
+        else if (item.hsn) {
+          const { data: hsnMatches } = await supabase
+            .from('inventory')
+            .select('id, qty')
+            .eq('user_id', req.user.id)
+            .eq('hsn', item.hsn);
+
+          if (hsnMatches && hsnMatches.length > 0) {
+            invMatch = hsnMatches[0];
+          }
+        }
+
+        if (invMatch) {
+          // Update existing item - Only update qty and rate, do NOT affect other properties
+          const newQty = (Number(invMatch.qty) || 0) + (Number(item.quantity) || 0);
+          const updates = { qty: newQty, last_restocked: today, restock_source: grnId };
+          
+          if (item.unit_price) updates.rate = Number(item.unit_price);
+
+          await supabase.from('inventory').update(updates).eq('user_id', req.user.id).eq('id', invMatch.id);
         } else {
           // Auto-create new inventory item from GRN
           await supabase.from('inventory').insert([{
             user_id: req.user.id,
-            hsn: item.hsn,
-            name: item.description || item.hsn,
-            category: 'General',
+            hsn: item.hsn || '',
+            name: item.description || item.hsn || 'Unknown Item',
+            category: item.category || 'General',
             qty: Number(item.quantity) || 0,
             unit: item.unit || 'Nos',
-            min: 0,
-            max: 0,
+            rate: Number(item.unit_price) || 0,
+            min: Number(item.min) || 0,
+            max: Number(item.max) || 0,
+            date_added: today,
+            last_restocked: today,
+            restock_source: grnId
           }]);
         }
       }
@@ -173,10 +210,38 @@ router.patch('/:id/status', auth, async (req, res) => {
 
 // DELETE /api/grn/:id
 router.delete('/:id', auth, async (req, res) => {
+  // First, fetch the GRN to see its items
+  const { data: grn, error: fetchErr } = await supabase.from('grn').select('*').eq('user_id', req.user.id).eq('id', req.params.id).single();
+  if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+  if (!grn) return res.status(404).json({ error: 'GRN not found' });
+
+  // If inventory was updated by this GRN, we need to reverse it
+  if (grn.inventory_updated && grn.items && Array.isArray(grn.items)) {
+    for (const item of grn.items) {
+      if (item.hsn || item.description) {
+        let invMatch = null;
+        
+        if (item.description) {
+          const { data: nameMatches } = await supabase.from('inventory').select('id, qty').eq('user_id', req.user.id).ilike('name', item.description);
+          if (nameMatches && nameMatches.length > 0) invMatch = nameMatches[0];
+        } else if (item.hsn) {
+          const { data: hsnMatches } = await supabase.from('inventory').select('id, qty').eq('user_id', req.user.id).eq('hsn', item.hsn);
+          if (hsnMatches && hsnMatches.length > 0) invMatch = hsnMatches[0];
+        }
+
+        if (invMatch) {
+          const newQty = Math.max(0, (Number(invMatch.qty) || 0) - (Number(item.quantity) || 0));
+          await supabase.from('inventory').update({ qty: newQty }).eq('user_id', req.user.id).eq('id', invMatch.id);
+        }
+      }
+    }
+  }
+
+  // Delete the GRN record
   const { data, error } = await supabase.from('grn').delete().eq('user_id', req.user.id).eq('id', req.params.id).select();
   if (error) return res.status(500).json({ error: error.message });
-  if (!data || data.length === 0) return res.status(404).json({ error: 'Not found' });
-  res.json({ message: 'Deleted' });
+  
+  res.json({ message: 'Deleted and inventory reversed' });
 });
 
 module.exports = router;

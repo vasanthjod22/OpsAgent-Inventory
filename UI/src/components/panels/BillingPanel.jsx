@@ -458,6 +458,328 @@ const generateBillPDF = (bill, company) => {
   doc.save(generateBillFilename(bill.customerName, bill.billNumber, bill.date))
 }
 
+// ─── TRANSPORT PDF (Tax Invoice — Duplicate for Transporter) ───────────────
+const generateTransportPDF = (bill, company, transport) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pw = doc.internal.pageSize.getWidth()
+  const ph = doc.internal.pageSize.getHeight()
+  const m = 8
+  const lw = pw - m * 2
+  let y = m
+
+  const amtWords = (amt) => {
+    if (isNaN(amt) || amt === null || amt === undefined) return '';
+    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']
+    const tensW = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']
+    const nW = (n) => {
+      if (n === 0) return ''
+      if (n < 20) return ones[n]
+      if (n < 100) return tensW[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '')
+      if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' '+nW(n%100) : '')
+      if (n < 100000) return nW(Math.floor(n/1000)) + ' Thousand' + (n%1000 ? ' '+nW(n%1000) : '')
+      if (n < 10000000) return nW(Math.floor(n/100000)) + ' Lakh' + (n%100000 ? ' '+nW(n%100000) : '')
+      return nW(Math.floor(n/10000000)) + ' Crore' + (n%10000000 ? ' '+nW(n%10000000) : '')
+    }
+    const rupees = Math.floor(amt)
+    const paise = Math.round((amt - rupees) * 100)
+    let s = 'INR ' + (nW(rupees) || 'Zero')
+    if (paise > 0) s += ' and ' + nW(paise) + ' Paise'
+    return s + ' Only'
+  }
+
+  const td = transport || {}
+  const coName  = company?.name  || ''
+  const coAddr  = company?.address || ''
+  const coPhone = company?.phone || ''
+  const coEmail = company?.email || ''
+  const coGstin = company?.gstin || ''
+  const coState = company?.state || 'Tamil Nadu'
+
+  // Header Table
+  doc.setDrawColor(80, 80, 80); doc.setLineWidth(0.4); doc.rect(m, y, lw, 38)
+  const logoColW = 42; doc.line(m + lw - logoColW, y, m + lw - logoColW, y + 38)
+  const rowH = [9, 7, 7, 7, 8]; let ry = y
+  rowH.forEach((h, i) => { ry += h; if (i < rowH.length - 1) doc.line(m, ry, m + lw - logoColW, ry) })
+
+  doc.setFillColor(60, 80, 120); doc.rect(m, y, lw - logoColW, rowH[0], 'F')
+  doc.setTextColor(255, 255, 255); doc.setFontSize(8.5); doc.setFont('helvetica', 'bold')
+  doc.text('Company/Seller Name:', m + 3, y + 5.5)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.text(coName, m + 45, y + 5.5)
+
+  if (company?.logo_base64) {
+    try {
+      const ld = company.logo_base64
+      const ext = ld.includes('image/png') ? 'PNG' : ld.includes('image/jpeg') ? 'JPEG' : 'PNG'
+      doc.addImage(ld, ext, m + lw - logoColW + 3, y + 3, logoColW - 6, 32)
+    } catch(e) {}
+  } else {
+    doc.setTextColor(150, 150, 150); doc.setFontSize(14); doc.setFont('helvetica', 'bold')
+    doc.text('LOGO', m + lw - logoColW + logoColW/2, y + 20, { align: 'center' })
+  }
+
+  let ry2 = y + rowH[0]
+  doc.setFillColor(220, 230, 248); doc.rect(m, ry2, lw - logoColW, rowH[1], 'F')
+  doc.setTextColor(30, 30, 30); doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.text('Address :', m + 3, ry2 + 4.5)
+  doc.setFont('helvetica', 'normal'); doc.text(coAddr.split('\n')[0] || '', m + 22, ry2 + 4.5)
+
+  ry2 += rowH[1]
+  doc.setFillColor(255, 255, 255); doc.rect(m, ry2, lw - logoColW, rowH[2], 'F')
+  doc.setFont('helvetica', 'bold'); doc.text('Phone No.:', m + 3, ry2 + 4.5)
+  doc.setFont('helvetica', 'normal'); doc.text(coPhone, m + 24, ry2 + 4.5)
+  doc.text('Email ID:', m + 60, ry2 + 4.5, { align: 'left' }); doc.text(coEmail, m + 78, ry2 + 4.5)
+
+  ry2 += rowH[2]
+  doc.setFillColor(220, 230, 248); doc.rect(m, ry2, lw - logoColW, rowH[3], 'F')
+  doc.setFont('helvetica', 'bold'); doc.text('GSTIN:', m + 3, ry2 + 4.5)
+  doc.setFont('helvetica', 'normal'); doc.text(coGstin, m + 17, ry2 + 4.5)
+
+  ry2 += rowH[3]
+  doc.setFillColor(255, 255, 255); doc.rect(m, ry2, lw - logoColW, rowH[4], 'F')
+  doc.setFont('helvetica', 'bold'); doc.text('State:', m + 3, ry2 + 5)
+  doc.setFont('helvetica', 'normal'); doc.text(coState, m + 14, ry2 + 5)
+
+  y += 40
+  doc.setFillColor(30, 30, 80); doc.rect(m, y, lw, 9, 'F')
+  doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+  doc.text('Tax Invoice', pw / 2, y + 6.5, { align: 'center' }); y += 11
+
+  const half = lw / 2
+  doc.setFillColor(60, 80, 120); doc.rect(m, y, half, 7, 'F'); doc.rect(m + half, y, half, 7, 'F')
+  doc.setDrawColor(80, 80, 80); doc.rect(m, y, lw, 7)
+  doc.setTextColor(255, 255, 255); doc.setFontSize(9); doc.setFont('helvetica', 'bold')
+  doc.text('Bill To:', m + 3, y + 5); doc.text('Shipping To:', m + half + 3, y + 5); y += 7
+
+  const billBoxH = 22
+  doc.setFillColor(255, 255, 255); doc.setDrawColor(80, 80, 80); doc.rect(m, y, half, billBoxH)
+  doc.setTextColor(30, 30, 30); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5)
+  doc.text('Name:', m + 3, y + 6); doc.setFont('helvetica', 'normal'); doc.text(bill.customerName || '', m + 18, y + 6)
+  doc.setFont('helvetica', 'bold'); doc.text('Address:', m + 3, y + 12)
+  doc.setFont('helvetica', 'normal'); const addrLines = doc.splitTextToSize(bill.customerAddress || '', half - 25)
+  doc.text(addrLines, m + 22, y + 12)
+
+  const shippBoxH = 8
+  doc.rect(m + half, y, half, shippBoxH)
+  doc.setFont('helvetica', 'bold'); doc.text('Name:', m + half + 3, y + 5.5)
+  doc.setFont('helvetica', 'normal'); doc.text(bill.customerName || '', m + half + 18, y + 5.5)
+
+  const transY = y + shippBoxH
+  doc.setFillColor(60, 80, 120); doc.rect(m + half, transY, half, 7, 'F')
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5)
+  doc.text('Transportation Details :', m + half + 3, transY + 5)
+
+  const tfields = [
+    ['Driver Name:', td.driverName || ''], ['Contact No.:', td.contactNo || ''],
+    ['Driver Mobile No.:', td.driverMobile || ''], ['GSTIN No.:', td.transportGstin || ''],
+    ['Vehicle Number:', td.vehicleNumber || ''], ['State:', td.transportState || ''],
+  ]
+  const trowH = 5.5
+  doc.setFillColor(255, 255, 255); doc.rect(m + half, transY + 7, half, tfields.length * trowH + 1)
+  doc.setTextColor(30, 30, 30); doc.setFont('helvetica', 'normal'); doc.setFontSize(8)
+  tfields.forEach(([label, val], i) => {
+    const ty = transY + 7 + (i + 1) * trowH - 1
+    doc.setFont('helvetica', 'bold'); doc.text(label, m + half + 2, ty)
+    doc.setFont('helvetica', 'normal'); doc.text(val, m + half + 35, ty)
+  })
+
+  const invY = transY + 7 + tfields.length * trowH + 2
+  doc.setFillColor(220, 230, 248); doc.rect(m + half, invY, half, 8, 'FD')
+  doc.setTextColor(30, 30, 30); doc.setFont('helvetica', 'bold'); doc.setFontSize(8)
+  doc.text('Invoice No.:', m + half + 2, invY + 5); doc.setFont('helvetica', 'normal'); doc.text(bill.billNumber || '', m + half + 25, invY + 5)
+  doc.setFont('helvetica', 'bold'); doc.text('Date:', m + half + 2 + half/2 - 3, invY + 5)
+  doc.setFont('helvetica', 'normal'); doc.text(fmtDate(bill.date || bill.createdAt), m + half + 2 + half/2 + 8, invY + 5)
+
+  y = Math.max(y + billBoxH, invY + 10) + 2
+
+  const cw = { no:8, name:42, hsn:18, qty:12, unit:14, price:20, disc:14, gst:14, amt:lw-142 }
+  const thdH = 8
+  doc.setFillColor(60, 80, 120); doc.rect(m, y, lw, thdH, 'F')
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7.5); doc.setFont('helvetica', 'bold')
+  let cx = m
+  const thCols = [['#', cw.no], ['Item name', cw.name], ['HSN', cw.hsn], ['QTY', cw.qty], ['Unit', cw.unit], ['Price/Unit', cw.price], ['Disc', cw.disc], ['GST', cw.gst], ['Amount', cw.amt]]
+  thCols.forEach(([h, w]) => { doc.text(h, cx + w/2, y + 5.5, { align: 'center' }); cx += w })
+  y += thdH
+
+  let totalQty = 0, totalDisc = 0, totalBaseAmt = 0, totalSgstAmt = 0, totalCgstAmt = 0
+  const items = bill.items || []
+  items.forEach((item, idx) => {
+    const rowH2 = 7
+    const qty = Number(item.quantity) || 0
+    const rate = Number(item.rate) || 0
+    const baseAmt = qty * rate
+    const cgstRate = Number(item.cgstPercent) || 0
+    const sgstRate = Number(item.sgstPercent) || 0
+    
+    const disc = 0
+    const afterDisc = baseAmt - disc
+    const cgstAmt = afterDisc * cgstRate / 100
+    const sgstAmt = afterDisc * sgstRate / 100
+    const finalAmt = afterDisc + cgstAmt + sgstAmt
+
+    totalQty += qty; totalDisc += disc; totalBaseAmt += baseAmt; totalSgstAmt += sgstAmt; totalCgstAmt += cgstAmt
+
+    doc.setFillColor(idx % 2 === 0 ? 245 : 255, idx % 2 === 0 ? 247 : 255, idx % 2 === 0 ? 252 : 255)
+    doc.rect(m, y, lw, rowH2, 'F'); doc.setDrawColor(200, 208, 220); doc.rect(m, y, lw, rowH2)
+    doc.setTextColor(20, 20, 20); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5)
+
+    let cx2 = m
+    const row = [
+      [String(idx + 1), cw.no],
+      [String(item.description || '').substring(0, 22), cw.name],
+      [String(item.hsnCode || ''), cw.hsn],
+      [String(qty), cw.qty],
+      [String(item.unit || ''), cw.unit],
+      [fmtINR(rate), cw.price],
+      [fmtINR(disc), cw.disc],
+      [`${sgstRate + cgstRate}%`, cw.gst],
+      [fmtINR(finalAmt), cw.amt],
+    ]
+    row.forEach(([val, w]) => { doc.text(val, cx2 + w/2, y + 4.5, { align: 'center' }); cx2 += w })
+    y += rowH2
+  })
+
+  totalDisc = Number(bill.discount) || 0
+  const subtotalAfterDisc = totalBaseAmt - totalDisc
+  const packFee = Number(td.packagingFee || 0)
+  const delFee  = Number(td.deliveryFee || 0)
+  const manualIgst = Number(bill.items?.[0]?._globalIgst || 0)
+  
+  const grandTotal = subtotalAfterDisc + totalSgstAmt + totalCgstAmt + manualIgst + packFee + delFee
+
+  doc.setFillColor(200, 215, 240); doc.rect(m, y, lw, 8, 'FD')
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(20, 20, 20)
+  let cx3 = m
+  const totRow = [
+    ['Total', cw.no], ['', cw.name], ['', cw.hsn], [String(totalQty), cw.qty], ['', cw.unit], ['', cw.price],
+    [fmtINR(totalDisc), cw.disc], [fmtINR(totalSgstAmt + totalCgstAmt + manualIgst), cw.gst], [fmtINR(grandTotal - packFee - delFee), cw.amt],
+  ]
+  totRow.forEach(([val, w]) => { doc.text(val, cx3 + w/2, y + 5, { align: 'center' }); cx3 += w })
+  y += 10
+
+  const summW = 68; const summX = m + lw - summW; const leftSectW = lw - summW - 2
+  const summRows = [
+    ['Sub Total:', fmtINR(subtotalAfterDisc)],
+    ['Packaging Fee', fmtINR(packFee)],
+    ['Delivery Fee', fmtINR(delFee)],
+    ['Discount:', fmtINR(totalDisc)],
+    [`SGST`, fmtINR(totalSgstAmt)],
+    [`CGST`, fmtINR(totalCgstAmt)],
+    manualIgst > 0 ? ['IGST', fmtINR(manualIgst)] : null,
+    ['Total', fmtINR(grandTotal)],
+    ['Received', fmtINR(0)],
+    ['Balance', fmtINR(grandTotal)],
+  ].filter(Boolean)
+  
+  const sRowH = 6.5; const summTotalH = summRows.length * sRowH
+
+  doc.setDrawColor(80, 80, 80); doc.rect(summX, y, summW, summTotalH)
+  summRows.forEach(([label, val], i) => {
+    const isTotal = label === 'Total'
+    const sy = y + i * sRowH
+    if (isTotal) { doc.setFillColor(60, 80, 120); doc.rect(summX, sy, summW, sRowH, 'F') }
+    else if (i % 2 === 1) { doc.setFillColor(220, 230, 248); doc.rect(summX, sy, summW, sRowH, 'F') }
+    doc.setDrawColor(180, 190, 210); doc.line(summX, sy, summX + summW, sy)
+    doc.setFont('helvetica', isTotal ? 'bold' : 'normal'); doc.setFontSize(8)
+    doc.setTextColor(isTotal ? 255 : 30, isTotal ? 255 : 30, isTotal ? 255 : 30)
+    doc.text(label, summX + 3, sy + 4.5); doc.text(val, summX + summW - 3, sy + 4.5, { align: 'right' })
+  })
+
+  doc.setDrawColor(80, 80, 80); doc.rect(m, y, leftSectW, summTotalH)
+  doc.setFillColor(220, 230, 248); doc.rect(m, y, leftSectW, sRowH, 'F')
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 30, 30)
+  doc.text('Amount in words:', m + 3, y + 4.5)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5)
+  const wordLines = doc.splitTextToSize(amtWords(grandTotal), leftSectW - 6)
+  doc.text(wordLines, m + 3, y + sRowH + 5)
+
+  y += summTotalH + 4
+
+  const termsH = 20
+  doc.setDrawColor(80, 80, 80); doc.rect(m, y, lw - summW - 2, termsH); doc.rect(summX, y, summW, termsH)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 30, 30)
+  doc.text('Terms & Conditions:', m + 3, y + 5)
+  if (bill.includeTerms && bill.terms) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7)
+    doc.text(doc.splitTextToSize(bill.terms, leftSectW - 6), m + 3, y + 11)
+  }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(30, 30, 30)
+  doc.text('Company seal and Sign', summX + summW / 2, y + termsH - 4, { align: 'center' })
+
+  doc.setFillColor(234, 88, 12); doc.rect(0, ph - 7, pw, 7, 'F')
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont('helvetica', 'bold')
+  doc.text('DUPLICATE FOR TRANSPORTER', m, ph - 2)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`${coName}  |  ${bill.billNumber}  |  Tax Invoice`, pw / 2, ph - 2, { align: 'center' })
+
+  const clean = (bill.customerName || 'Customer').trim().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 25)
+  doc.save(`TRANSPORT_BILL_${clean}_${bill.billNumber}.pdf`)
+}
+
+/* ─── Transport Bill Modal ──────────────────────────── */
+const TransportBillModal = ({ bill, company, onClose, onSave }) => {
+  const [transport, setTransport] = React.useState({
+    driverName: '', contactNo: '', driverMobile: '', transportGstin: '',
+    vehicleNumber: '', transportState: '', packagingFee: '', deliveryFee: '',
+    ...(bill.transportDetails || {})
+  })
+  const setT = (k, v) => setTransport(prev => ({ ...prev, [k]: v }))
+
+  const handleSave = () => {
+    onSave(bill.id, transport)
+    generateTransportPDF(bill, company, transport)
+    onClose()
+  }
+
+  const inp = { width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 7, fontSize: 13, outline: 'none', boxSizing: 'border-box', background: 'white' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 24 }}>
+      <div style={{ background: 'white', borderRadius: 18, width: 500, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 56px rgba(0,0,0,0.25)' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF7ED' }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#9A3412', display: 'flex', alignItems: 'center', gap: 8 }}>🚛 Transport Bill</div>
+            <div style={{ fontSize: 12, color: '#C2410C', marginTop: 3 }}>For Bill: {bill.billNumber}</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #FDBA74', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9A3412' }}><X size={18} /></button>
+        </div>
+
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Transportation Details</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {[
+              ['driverName',      'Driver Name',       'e.g. Ramu'],
+              ['contactNo',       'Contact No.',       '+91 98765...'],
+              ['driverMobile',    'Driver Mobile No.', '+91 91234...'],
+              ['transportGstin',  'GSTIN No.',         '33AABCK...'],
+              ['vehicleNumber',   'Vehicle Number',    'TN01AB1234'],
+              ['transportState',  'State',             'Tamil Nadu'],
+              ['packagingFee',    'Packaging Fee (₹)', '0'],
+              ['deliveryFee',     'Delivery Fee (₹)',  '0'],
+            ].map(([key, label, ph]) => (
+              <div key={key}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>{label}</label>
+                <input
+                  type={key.includes('Fee') ? 'number' : 'text'}
+                  style={inp}
+                  value={transport[key]}
+                  onChange={e => setT(key, e.target.value)}
+                  placeholder={ph}
+                  min={key.includes('Fee') ? '0' : undefined}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 12, background: '#FAFBFC' }}>
+          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} style={{ height: 42, padding: '0 26px', borderRadius: 9, border: 'none', background: '#EA580C', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            Save & Download PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /* ─── Stock Update Confirm Modal ──────────────────────────── */
 
@@ -527,13 +849,6 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
   )
 }
 
-/* ─── Removed Inline DescriptionInput ─────────────────────────────── */
-
-const getRateLabel = (unit) => {
-  const simple = ['Set', 'Box', 'Bag']
-  return simple.includes(unit) ? 'Rate / Unit' : `Rate / ${unit}`
-}
-
 /* ─── Line Items Table ───────────────────────────────────── */
 function LineItemsTable({ items, setItems, inventory }) {
   const newRowRef = useRef(null)
@@ -591,116 +906,262 @@ function LineItemsTable({ items, setItems, inventory }) {
     }))
   }
 
-  const inp = { padding: '7px 8px', border: '1px solid #E2E8F0', borderRadius: '7px', fontSize: '13px', outline: 'none', fontFamily: "'Inter', sans-serif", background: 'white', width: '100%', boxSizing: 'border-box' }
+  const cellInp = {
+    padding: '5px 6px',
+    border: '1px solid #D1D5DB',
+    borderRadius: '5px',
+    fontSize: '12px',
+    outline: 'none',
+    fontFamily: "'Inter', sans-serif",
+    background: 'white',
+    width: '100%',
+    boxSizing: 'border-box',
+    color: '#0F172A',
+    transition: 'border-color 0.15s',
+  }
+
+  const COLS = [
+    ['SNO',             '40px',  'center'],
+    ['Product Name',    '190px', 'left'],
+    ['Desp',            '80px',  'left'],
+    ['HSN',             '68px',  'left'],
+    ['Feet',            '55px',  'center'],
+    ['Qty',             '60px',  'center'],
+    ['Unit',            '65px',  'center'],
+    ['Rate',            '76px',  'right'],
+    ['CGST %',          '58px',  'center'],
+    ['SGST %',          '58px',  'center'],
+    ['Amount',          '86px',  'right'],
+    ['Amt (Tax Incl.)', '100px', 'right'],
+    ['',                '34px',  'center'],
+  ]
 
   return (
     <div>
-      <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '880px' }}>
-          <thead>
-            <tr style={{ background: '#0F172A' }}>
-              {[['#', '30px'], ['Product', '200px'], ['Desp', '80px'], ['HSN', '70px'], ['Feet', '60px'], ['Qty', '70px'], ['Unit', '70px'], ['Rate', '80px'], ['CGST %', '60px'], ['SGST %', '60px'], ['Amount', '90px'], ['Amount(Tax Incl)', '110px'], ['', '36px']].map(([h, w]) => (
-                <th key={h} style={{ padding: '9px 8px', textAlign: 'left', color: 'white', fontSize: '11px', fontWeight: 600, width: w, whiteSpace: 'nowrap' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(items || []).map((item, idx) => {
-              const invItem = item.inventoryId ? inventory.find(i => i.id === item.inventoryId) : null
-              const overStock = invItem && Number(item.quantity) > invItem.qty
-              return (
-                <div key={item.id} style={{ display: 'contents' }}>
-                  <tr style={{ borderBottom: '1px solid #F1F5F9', background: idx % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                    <td style={{ padding: '6px 6px', color: '#94A3B8', fontSize: '12px', fontWeight: 600, textAlign: 'center', width: '30px', verticalAlign: 'top' }}>
-                      <div style={{ paddingTop: '8px' }}>{item.sno}</div>
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <AutocompleteInput
-                        inputRef={idx === items.length - 1 ? newRowRef : undefined}
-                        value={item.description}
-                        onChange={v => updateItem(item.id, 'description', v)}
-                        inventory={inventory}
-                        placeholder="Search item or type freely..."
-                        onSelect={inv => {
-                          updateItem(item.id, 'description', inv.name)
-                          if (inv.rate !== undefined && inv.rate !== null && inv.rate !== '') {
-                            updateItem(item.id, 'rate', inv.rate)
-                          }
-                          selectInventoryItem(item.id, inv)
-                          setTimeout(() => {
-                            document.getElementById(`qty-${item.id}`)?.focus()
-                          }, 50)
-                        }}
-                      />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.desp} onChange={e => updateItem(item.id, 'desp', e.target.value)} placeholder="e.g. 2.00 Mt" />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.hsnCode} onChange={e => updateItem(item.id, 'hsnCode', e.target.value)} placeholder="0001" />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} value={item.feet} onChange={e => updateItem(item.id, 'feet', e.target.value)} placeholder="" />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <div>
-                        <input id={`qty-${item.id}`} style={{ ...inp, border: overStock ? '1px solid #EF4444' : inp.border }} type="number" min="0" step="any" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} placeholder="0" />
-                        {overStock && <div style={{ color: '#EF4444', fontSize: '10px', marginTop: '2px', fontWeight: 600 }}>Stock: {parseFloat(Number(invItem.qty).toFixed(6))}</div>}
-                      </div>
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <select style={{ ...inp, cursor: 'pointer', background: '#F8FAFC' }} value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)}>
-                        {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} placeholder="0.00" />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" max="100" step="0.01" value={item.cgstPercent} onChange={e => updateItem(item.id, 'cgstPercent', e.target.value)} placeholder="0" />
-                    </td>
-                    <td style={{ padding: '6px 6px', verticalAlign: 'top' }}>
-                      <input style={inp} type="number" min="0" max="100" step="0.01" value={item.sgstPercent} onChange={e => updateItem(item.id, 'sgstPercent', e.target.value)} placeholder="0" />
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', verticalAlign: 'top' }}>
-                      <div style={{ paddingTop: '8px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '13px' }}>
-                        {item.amount ? `₹${fmtINR(item.amount)}` : '-'}
-                      </div>
-                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>Qty × Rate</div>
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', verticalAlign: 'top' }}>
-                      <div style={{ paddingTop: '8px', fontWeight: 700, color: '#16A34A', whiteSpace: 'nowrap', fontSize: '13px' }}>
-                        {item.taxInclAmount ? `₹${fmtINR(item.taxInclAmount)}` : '-'}
-                      </div>
-                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '4px' }}>
-                        {(parseFloat(item.cgstPercent)||0) + (parseFloat(item.sgstPercent)||0) > 0 ? `+ ${parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST` : ''}
-                      </div>
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'top' }}>
-                      <button onClick={() => deleteItem(item.id)} title="Delete row"
-                        style={{ marginTop: '5px', background: 'none', border: 'none', cursor: items.length <= 1 ? 'not-allowed' : 'pointer', color: items.length <= 1 ? '#E2E8F0' : '#FECACA', padding: '4px' }}
-                        onMouseEnter={e => { if (items.length > 1) e.currentTarget.style.color = '#DC2626' }}
-                        onMouseLeave={e => { if (items.length > 1) e.currentTarget.style.color = '#FECACA' }}>
-                        <Trash2 size={15} />
-                      </button>
-                    </td>
-                  </tr>
-                  {overStock && (
-                    <tr style={{ background: '#FFFBEB' }}>
-                      <td colSpan={8} style={{ padding: '3px 12px 5px', fontSize: '11px', color: '#92400E' }}>
-                        ⚠️ Only {parseFloat(Number(invItem.qty).toFixed(6))} {invItem.unit} in stock
+      <div style={{ border: '1.5px solid #CBD5E1', borderRadius: '10px', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ background: '#1E293B' }}>
+                {COLS.map(([h, w, align]) => (
+                  <th key={h} style={{
+                    padding: '9px 6px',
+                    textAlign: align,
+                    color: '#F1F5F9',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    width: w,
+                    whiteSpace: 'nowrap',
+                    letterSpacing: '0.03em',
+                    borderRight: '1px solid rgba(255,255,255,0.1)',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {(items || []).map((item, idx) => {
+                const invItem = item.inventoryId ? inventory.find(i => i.id === item.inventoryId) : null
+                const overStock = invItem && Number(item.quantity) > invItem.qty
+                const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'
+
+                return (
+                  <React.Fragment key={item.id}>
+                    <tr style={{ borderBottom: '1px solid #E2E8F0', background: rowBg }}>
+                      <td style={{ padding: '7px 4px', textAlign: 'center', color: '#64748B', fontWeight: 700, fontSize: '12px', borderRight: '1px solid #E2E8F0', verticalAlign: 'middle' }}>
+                        {item.sno}
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <AutocompleteInput
+                          inputRef={idx === items.length - 1 ? newRowRef : undefined}
+                          value={item.description}
+                          onChange={v => updateItem(item.id, 'description', v)}
+                          inventory={inventory}
+                          placeholder="Search or type product..."
+                          onSelect={inv => {
+                            updateItem(item.id, 'description', inv.name)
+                            if (inv.rate !== undefined && inv.rate !== null && inv.rate !== '') {
+                              updateItem(item.id, 'rate', inv.rate)
+                            }
+                            selectInventoryItem(item.id, inv)
+                            setTimeout(() => {
+                              document.getElementById(`qty-${item.id}`)?.focus()
+                            }, 50)
+                          }}
+                        />
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          style={cellInp}
+                          value={item.desp}
+                          onChange={e => updateItem(item.id, 'desp', e.target.value)}
+                          placeholder="—"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          style={{ ...cellInp, background: invItem ? '#F0FDF4' : 'white', fontWeight: invItem ? 600 : 400 }}
+                          value={item.hsnCode}
+                          onChange={e => updateItem(item.id, 'hsnCode', e.target.value)}
+                          placeholder="0000"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          style={{ ...cellInp, textAlign: 'center' }}
+                          value={item.feet}
+                          onChange={e => updateItem(item.id, 'feet', e.target.value)}
+                          placeholder="—"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          id={`qty-${item.id}`}
+                          style={{ ...cellInp, textAlign: 'center', border: overStock ? '1.5px solid #EF4444' : '1px solid #D1D5DB' }}
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={item.quantity}
+                          onChange={e => updateItem(item.id, 'quantity', e.target.value)}
+                          placeholder="0"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = overStock ? '#EF4444' : '#D1D5DB'}
+                        />
+                        {overStock && <div style={{ color: '#EF4444', fontSize: '9px', marginTop: '2px', fontWeight: 700, textAlign: 'center' }}>Stock: {parseFloat(Number(invItem.qty).toFixed(4))}</div>}
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <select
+                          style={{ ...cellInp, textAlign: 'center', cursor: 'pointer', background: invItem ? '#F0FDF4' : '#F8FAFC', fontWeight: invItem ? 600 : 400 }}
+                          value={item.unit}
+                          onChange={e => updateItem(item.id, 'unit', e.target.value)}
+                        >
+                          {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          style={{ ...cellInp, textAlign: 'right', background: invItem && item.rate ? '#F0FDF4' : 'white' }}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.rate}
+                          onChange={e => updateItem(item.id, 'rate', e.target.value)}
+                          placeholder="0.00"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          style={{ ...cellInp, textAlign: 'center' }}
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={item.cgstPercent}
+                          onChange={e => updateItem(item.id, 'cgstPercent', e.target.value)}
+                          placeholder="0"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                      </td>
+
+                      <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
+                        <input
+                          style={{ ...cellInp, textAlign: 'center' }}
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={item.sgstPercent}
+                          onChange={e => updateItem(item.id, 'sgstPercent', e.target.value)}
+                          placeholder="0"
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                      </td>
+
+                      <td style={{ padding: '7px 8px', textAlign: 'right', borderRight: '1px solid #E2E8F0', verticalAlign: 'middle' }}>
+                        <div style={{ fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '12px' }}>
+                          {item.amount ? `₹${fmtINR(item.amount)}` : <span style={{ color: '#CBD5E1' }}>—</span>}
+                        </div>
+                        {item.amount > 0 && <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>Qty × Rate</div>}
+                      </td>
+
+                      <td style={{ padding: '7px 8px', textAlign: 'right', borderRight: '1px solid #E2E8F0', verticalAlign: 'middle' }}>
+                        <div style={{ fontWeight: 700, color: item.taxInclAmount > 0 ? '#16A34A' : '#CBD5E1', whiteSpace: 'nowrap', fontSize: '12px' }}>
+                          {item.taxInclAmount ? `₹${fmtINR(item.taxInclAmount)}` : '—'}
+                        </div>
+                        {item.taxInclAmount > 0 && (
+                          <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>
+                            {(parseFloat(item.cgstPercent)||0) + (parseFloat(item.sgstPercent)||0) > 0
+                              ? `+${parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST`
+                              : 'No GST'}
+                          </div>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '5px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                        <button
+                          onClick={() => deleteItem(item.id)}
+                          title="Delete row"
+                          style={{
+                            background: items.length <= 1 ? 'transparent' : '#FEF2F2',
+                            border: items.length <= 1 ? 'none' : '1px solid #FECACA',
+                            borderRadius: '6px',
+                            cursor: items.length <= 1 ? 'not-allowed' : 'pointer',
+                            color: items.length <= 1 ? '#E2E8F0' : '#DC2626',
+                            padding: '4px 5px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={e => { if (items.length > 1) { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = 'white' } }}
+                          onMouseLeave={e => { if (items.length > 1) { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' } }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </td>
                     </tr>
-                  )}
-                </div>
-              )
-            })}
-          </tbody>
-        </table>
+
+                    {overStock && (
+                      <tr style={{ background: '#FFFBEB' }}>
+                        <td colSpan={13} style={{ padding: '3px 12px 4px', fontSize: '11px', color: '#92400E', fontWeight: 600 }}>
+                          Only {parseFloat(Number(invItem.qty).toFixed(4))} {invItem.unit} in stock
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                )
+              })}
+
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={13} style={{ padding: '28px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                    No items added yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <button onClick={addItem}
-        style={{ marginTop: '10px', height: '36px', padding: '0 16px', borderRadius: '8px', background: 'white', color: '#2563EB', border: '1.5px solid #93C5FD', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+      <button onClick={addItem} style={{ marginTop: '12px', height: '38px', padding: '0 20px', borderRadius: '8px', background: 'white', color: '#2563EB', border: '1.5px dashed #93C5FD', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Plus size={15} /> Add Item
       </button>
     </div>
@@ -708,7 +1169,7 @@ function LineItemsTable({ items, setItems, inventory }) {
 }
 
 /* ─── Bill History Table ─────────────────────────────────── */
-function BillHistory({ bills, setBills, inventory, setInventory, company, showToast }) {
+function BillHistory({ bills, setBills, inventory, setInventory, company, showToast, onEditBill, onGenerateTransport }) {
   const [search, setSearch] = useState('')
   const [editStatusId, setEditStatusId] = useState(null)
 
@@ -839,7 +1300,83 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
                       style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
                       <Trash2 size={14} />
                     </button>
+                    <button onClick={() => onGenerateTransport?.(b)} title="Generate Transport Bill"
+                      style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#C2410C'; e.currentTarget.style.borderColor = '#FDBA74' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = '#EA580C'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                      🚛
+                    </button>
                   </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Transport Bill History Table ─────────────────────────────────── */
+function TransportBillHistory({ bills, company, showToast }) {
+  const [search, setSearch] = useState('')
+  const transportBills = (bills || []).filter(b => b.transportDetails != null)
+
+  const filtered = transportBills.filter(b =>
+    !search || b.customerName?.toLowerCase().includes(search.toLowerCase()) || b.billNumber?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const redownload = (b) => {
+    generateTransportPDF(b, company, b.transportDetails)
+    showToast?.('Transport Bill PDF downloaded', 'success')
+  }
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: '#FAFBFC' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '18px' }}>🚛</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Transport Bills History</div>
+            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '1px' }}>{transportBills.length} transport bills</div>
+          </div>
+        </div>
+        <div style={{ position: 'relative', width: '250px' }}>
+          <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transport bills..." style={{ width: '100%', paddingLeft: '30px', paddingRight: '10px', height: '34px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+              {['Bill No', 'Customer', 'Driver Name', 'Vehicle', 'Action'].map((h, i) => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: i === 4 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8' }}>
+                {transportBills.length === 0 ? 'No transport bills yet. Generate one from the Bill History.' : 'No transport bills match your search.'}
+              </td></tr>
+            )}
+            {filtered.map((b, i) => (
+              <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9', background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                <td style={{ padding: '12px 16px', fontWeight: 700, color: '#EA580C' }}>{b.billNumber}</td>
+                <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0F172A' }}>{b.customerName}</td>
+                <td style={{ padding: '12px 16px', color: '#475569' }}>{b.transportDetails?.driverName || '—'}</td>
+                <td style={{ padding: '12px 16px', color: '#475569' }}>{b.transportDetails?.vehicleNumber || '—'}</td>
+                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                  <button onClick={() => redownload(b)} title="Download PDF"
+                    style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#C2410C'; e.currentTarget.style.borderColor = '#FDBA74' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#EA580C'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                    <Download size={14} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -852,6 +1389,8 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
 
 /* ─── Main BillingPanel ──────────────────────────────────── */
 function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate }) {
+  const [activeTab, setActiveTab] = useState('Create Bill')
+  const [transportModalBill, setTransportModalBill] = useState(null)
   const [company, setCompany] = useState({})
   const [bills, setBills] = useState([])
   const [editBillId, setEditBillId] = useState(null)
@@ -1115,6 +1654,28 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
+        {['Create Bill', 'Transport Bills History'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: activeTab === tab ? '#EFF6FF' : 'transparent',
+              color: activeTab === tab ? '#2563EB' : '#64748B',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       {linkedFQNumber && (
         <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1131,6 +1692,8 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
       )}
 
       {/* Bill Form Card */}
+      {activeTab === 'Create Bill' && (
+      <>
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         {/* Form Header */}
         <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px', background: '#FAFBFC' }}>
@@ -1303,7 +1866,14 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           window.scrollTo({ top: 0, behavior: 'smooth' })
           showToast?.('Editing bill...', 'info')
         }}
+        onGenerateTransport={(b) => setTransportModalBill(b)}
         />
+      </>
+      )}
+
+      {activeTab === 'Transport Bills History' && (
+        <TransportBillHistory bills={bills} company={company} showToast={showToast} />
+      )}
 
         <BillProcessingModal
           isOpen={showProcessing}
@@ -1316,6 +1886,25 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
         />
   
         {/* Modals */}
+        {transportModalBill && (
+          <TransportBillModal
+            bill={transportModalBill}
+            company={company}
+            onClose={() => setTransportModalBill(null)}
+            onSave={async (id, td) => {
+              try {
+                const res = await backendFetch(`/bills/${id}/transport`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ transportDetails: td })
+                })
+                setBills(prev => prev.map(b => b.id === id ? res : b))
+                showToast?.('Transport details saved', 'success')
+              } catch(e) {
+                showToast?.(e.message, 'error')
+              }
+            }}
+          />
+        )}
       </div>
   )
 }

@@ -12,7 +12,8 @@ const today = () => new Date().toISOString().split('T')[0]
 const fmtINR = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtDate = (iso) => {
   if (!iso) return ''
-  const [y, m, d] = iso.split('-')
+  const dateStr = iso.includes('T') ? iso.split('T')[0] : iso;
+  const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`
 }
 
@@ -42,8 +43,30 @@ const DEFAULT_TERMS = `1. This quotation is valid for the specified period only.
 4. Balance payment before delivery.
 5. GST extra as applicable.`
 
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+
+const numToWords = (num) => {
+  const a = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']
+  const b = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']
+  const inWords = (n) => {
+    if (n === 0) return ''
+    if (n < 20) return a[n] + ' '
+    if (n < 100) return b[Math.floor(n/10)] + (n%10 ? ' ' + a[n%10] : '') + ' '
+    if (n < 1000) return a[Math.floor(n/100)] + ' Hundred ' + inWords(n%100)
+    if (n < 100000) return inWords(Math.floor(n/1000)) + 'Thousand ' + inWords(n%1000)
+    if (n < 10000000) return inWords(Math.floor(n/100000)) + 'Lakh ' + inWords(n%100000)
+    return inWords(Math.floor(n/10000000)) + 'Crore ' + inWords(n%10000000)
+  }
+  const intPart = Math.floor(Math.abs(num))
+  const decPart = Math.round((Math.abs(num) - intPart) * 100)
+  let words = inWords(intPart).trim()
+  if (decPart > 0) words += ' and ' + inWords(decPart).trim() + ' Paise'
+  return 'Rupees ' + words + ' Only'
+}
+
 // ─── PDF GENERATION ────────────────────────────────────────────────────────
-const generatePDF = (qt, company, isFinalized = false) => {
+
+const generatePDF = (qt, company, isFinalized = false, copyType = 'original') => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -253,7 +276,71 @@ const generatePDF = (qt, company, isFinalized = false) => {
   doc.save(generateFilename(isFinalized ? 'FQ' : 'QT', qt.customer_name, isFinalized ? qt.finalized_at : qt.created_at))
 }
 
+
+
+// ─── COPY SELECTOR MODAL ──────────────────────────────────────────────────
+
+const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
+  const [copy, setCopy] = React.useState('original')
+
+  const handleDownload = () => {
+    if (copy === 'original')   generatePDF(qt, company, isFinalized, 'original')
+    if (copy === 'triplicate') generatePDF(qt, company, isFinalized, 'triplicate')
+    onClose()
+  }
+
+  const opts = [
+    { id: 'original',   icon: '📄', label: 'Original',   sub: 'For Customer / Recipient',          color: '#16A34A' },
+    { id: 'triplicate', icon: '📁', label: 'Triplicate', sub: 'For Owner / Supplier (your records)', color: '#7C3AED' },
+  ]
+
+  const inp = { width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 7, fontSize: 12.5, outline: 'none', boxSizing: 'border-box', background: 'white' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 24 }}>
+      <div style={{ background: 'white', borderRadius: 18, width: 500, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 56px rgba(0,0,0,0.25)' }}>
+
+        {/* Header */}
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#0F172A' }}>🖨️ Select Print Copy</div>
+            <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>Choose which copy to download</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}><X size={18} /></button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ padding: '16px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {opts.map(opt => (
+            <div key={opt.id} onClick={() => setCopy(opt.id)} style={{ border: `2px solid ${copy === opt.id ? opt.color : '#E2E8F0'}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', background: copy === opt.id ? opt.color + '0F' : 'white', transition: 'all 0.15s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ fontSize: 26 }}>{opt.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{opt.label}</div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>{opt.sub}</div>
+                </div>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2.5px solid ${copy === opt.id ? opt.color : '#CBD5E1'}`, background: copy === opt.id ? opt.color : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {copy === opt.id && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'white' }} />}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleDownload} style={{ height: 42, padding: '0 26px', borderRadius: 9, border: 'none', background: '#2563EB', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Download size={16} /> Download PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── COMPONENTS ────────────────────────────────────────────────────────────
+
 
 const ValidityDatePicker = ({ value, onChange }) => {
   const isExpired = value && new Date(value) < new Date(new Date().toDateString())
@@ -340,7 +427,8 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
 
   // Modals
   const [reviewModal, setReviewModal] = useState(null) // holds the BQ being converted
-  const [billModal, setBillModal] = useState(null) // holds the FQ being billed
+  const [billModal, setBillModal] = useState(null)     // holds the FQ being billed
+  const [copyModal, setCopyModal] = useState(null)     // { qt, isFinalized } for copy selector
 
   // Create Form State
   const initialForm = {
@@ -403,16 +491,16 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
     try {
       let savedData;
       if (form.id) {
-        const data = await backendFetch(`/quotations/breakdown/${form.id}`, { method: 'PUT', body: JSON.stringify(payload) })
-        savedData = data
+        const resData = await backendFetch(`/quotations/breakdown/${form.id}`, { method: 'PUT', body: JSON.stringify(payload) })
+        savedData = resData.data || resData
       } else {
-        const data = await backendFetch('/quotations/breakdown', { method: 'POST', body: JSON.stringify(payload) })
-        savedData = data
+        const resData = await backendFetch('/quotations/breakdown', { method: 'POST', body: JSON.stringify(payload) })
+        savedData = resData.data || resData
       }
       toast("Quotation saved!")
       setForm(initialForm)
       await loadData()
-      if (downloadPdf) generatePDF(savedData, company, false)
+      if (downloadPdf) setCopyModal({ qt: savedData, isFinalized: false })
       if (!form.id) setActiveTab('history')
     } catch(e) {
       alert("Error saving quotation: " + e.message)
@@ -711,7 +799,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                       <td style={{ padding: '16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                           <button onClick={() => editBQ(q)} style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: '#EFF6FF', color: '#2563EB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit"><Edit2 size={16} /></button>
-                          <button onClick={() => generatePDF(q, company, false)} style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: '#EFF6FF', color: '#2563EB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Download PDF"><Download size={16} /></button>
+                          <button onClick={() => setCopyModal({ qt: q, isFinalized: false })} style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: '#EFF6FF', color: '#2563EB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Download PDF"><Download size={16} /></button>
                           
                           <select value="" onChange={e => {
                             const val = e.target.value
@@ -857,7 +945,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                     </td>
                     <td style={{ padding: '16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button onClick={() => generatePDF(q, company, true)} style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: '#EFF6FF', color: '#2563EB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Download PDF"><Download size={16} /></button>
+                        <button onClick={() => setCopyModal({ qt: q, isFinalized: true })} style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: '#EFF6FF', color: '#2563EB', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Download PDF"><Download size={16} /></button>
                         {q.status === 'Active' && (
                           <button onClick={() => setBillModal({...q, date: today(), dueDate: '', paymentTerms: 'Immediate', isPartial: false, partialPercent: ''})} style={{ height: 32, padding: '0 12px', borderRadius: 6, border: 'none', background: '#16A34A', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
                             <Receipt size={14} /> Convert to Bill
@@ -918,6 +1006,16 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
       {activeTab === 'create' && renderCreate()}
       {activeTab === 'history' && renderBQHistory()}
       {activeTab === 'finalized' && renderFQList()}
+
+      {/* COPY SELECTOR MODAL */}
+      {copyModal && (
+        <CopySelectorModal
+          qt={copyModal.qt}
+          company={company}
+          isFinalized={copyModal.isFinalized}
+          onClose={() => setCopyModal(null)}
+        />
+      )}
 
       {/* REVIEW MODAL (BQ -> FQ) */}
       {reviewModal && (

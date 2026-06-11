@@ -1,15 +1,47 @@
-import { useState, useEffect } from 'react'
-import { Save, Database, Trash2, FileCode2, Building2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Save, Database, Trash2, FileCode2, Building2, Image, X } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 
 export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
   const [company, setCompany] = useState({})
+  const [logoPreview, setLogoPreview] = useState(null)
+  const logoInputRef = useRef(null)
 
   useEffect(() => {
-    backendFetch('/company').then(setCompany).catch(console.error)
+    backendFetch('/company').then(res => {
+      const data = res.company || res
+      setCompany(data)
+      if (data.logo_base64) setLogoPreview(data.logo_base64)
+    }).catch(console.error)
   }, [])
 
   const setComp = (key, val) => setCompany(prev => ({ ...prev, [key]: val }))
+  
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      showToast?.('Please upload a valid image file (PNG, JPG, etc.)', 'error')
+      return
+    }
+    if (file.size > 500 * 1024) {
+      showToast?.('Logo must be under 500KB', 'error')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const base64 = ev.target.result // full data URL e.g. data:image/png;base64,...
+      setLogoPreview(base64)
+      setComp('logo_base64', base64)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveLogo = () => {
+    setLogoPreview(null)
+    setComp('logo_base64', null)
+    if (logoInputRef.current) logoInputRef.current.value = ''
+  }
   
   const handleSaveCompany = async () => {
     if (company.gstin && !/^[A-Z0-9]{15}$/.test(company.gstin)) {
@@ -53,10 +85,48 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
           </div>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Company Profile</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Pre-fills every quotation automatically. Saved permanently.</p>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Pre-fills every quotation & bill automatically. Saved permanently.</p>
           </div>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+          {/* Logo Upload */}
+          <div style={{ borderRadius: '10px', border: '1px solid #E2E8F0', padding: '16px', background: '#F8FAFC' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Image size={13} /> Company Logo <span style={{ fontWeight: 400, color: '#94A3B8', textTransform: 'none' }}>(Optional — appears on bills & PDFs)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {logoPreview ? (
+                <div style={{ position: 'relative', width: 80, height: 60, borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <img src={logoPreview} alt="Company Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </div>
+              ) : (
+                <div style={{ width: 80, height: 60, borderRadius: 8, border: '2px dashed #CBD5E1', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
+                  <Image size={18} color="#94A3B8" />
+                  <span style={{ fontSize: 9, color: '#94A3B8' }}>No Logo</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button
+                  onClick={() => logoInputRef.current?.click()}
+                  style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #7C3AED', background: 'white', color: '#7C3AED', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Image size={14} /> {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                </button>
+                {logoPreview && (
+                  <button
+                    onClick={handleRemoveLogo}
+                    style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #FECACA', background: 'white', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <X size={14} /> Remove Logo
+                  </button>
+                )}
+              </div>
+              <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 11, color: '#94A3B8' }}>Recommended: PNG or JPG, max 500KB. Will appear in the top-right of Tax Invoice PDFs.</p>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Company Name</label>
@@ -71,6 +141,10 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
               <input style={inp} value={company.phone || ''} onChange={e => setComp('phone', e.target.value)} placeholder="+91 98765 43210" />
             </div>
             <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Email</label>
+              <input style={inp} value={company.email || ''} onChange={e => setComp('email', e.target.value)} placeholder="info@yourcompany.com" />
+            </div>
+            <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>GSTIN</label>
               <input
                 style={inp}
@@ -80,6 +154,10 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
                 maxLength={15}
               />
               <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Your GST Identification Number (15 characters) · Ex: 33AABCK2341C1ZP</div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>State</label>
+              <input style={inp} value={company.state || ''} onChange={e => setComp('state', e.target.value)} placeholder="Tamil Nadu" />
             </div>
           </div>
 
