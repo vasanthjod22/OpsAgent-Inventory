@@ -22,15 +22,17 @@ export const CHART_DEFAULTS = {
 // Tooltip style
 export const tooltipStyle = {
   contentStyle: {
-    background: '#0F172A',
-    border: '1px solid #1E293B',
+    background: 'white',
+    border: '1px solid #E2E8F0',
     borderRadius: 8,
-    color: 'white',
-    fontSize: 12
+    color: '#0F172A',
+    fontSize: 12,
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
   },
   labelStyle: {
-    color: '#94A3B8',
-    marginBottom: 4
+    color: '#64748B',
+    marginBottom: 4,
+    fontWeight: 500
   }
 }
 

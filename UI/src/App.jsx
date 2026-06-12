@@ -10,7 +10,6 @@ import SettingsPanel from './components/panels/SettingsPanel'
 import QuotationPanel from './components/panels/QuotationPanel'
 import BillingPanel from './components/panels/BillingPanel'
 import PurchaseOrdersPanel from './components/panels/PurchaseOrdersPanel'
-import DemandsPanel from './components/panels/DemandsPanel'
 import CustomersPanel from './components/panels/CustomersPanel'
 import ReportsPanel from './components/panels/ReportsPanel'
 import AuthPage from './components/AuthPage'
@@ -26,7 +25,6 @@ const panels = {
   purchase_orders: PurchaseOrdersPanel,
   quotation: QuotationPanel,
   billing:   BillingPanel,
-  demands:   DemandsPanel,
   chat: ChatPanel,
   settings: SettingsPanel,
   reports: ReportsPanel,
@@ -132,18 +130,18 @@ export default function App() {
 function MainDashboard({ currentUser, onLogout, showToast }) {
   // Sync active nav with URL hash to support the browser Back button
   const [activeNav, setActiveNavState] = useState(() => {
-    const hash = window.location.hash.replace('#', '')
+    const hash = window.location.hash.replace('#', '').split('?')[0]
     return panels[hash] ? hash : 'dashboard'
   })
 
   const setActiveNav = useCallback((nav) => {
     window.location.hash = nav
-    setActiveNavState(nav)
+    setActiveNavState(nav.split('?')[0])
   }, [])
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '')
+      const hash = window.location.hash.replace('#', '').split('?')[0]
       if (panels[hash]) {
         setActiveNavState(hash)
       } else if (!hash) {
@@ -218,7 +216,7 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
         <TopBar activeNav={activeNav} />
 
         <main id="main-scroll-area" className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-main)' }}>
-          <div key={activeNav} className="max-w-7xl mx-auto p-6 h-full animate-fadein">
+          <div key={activeNav} className={`${activeNav === 'settings' ? 'w-full h-full' : 'max-w-7xl mx-auto p-6'} animate-fadein`}>
               <ActivePanel
               financeSummary={financeSummary}
               setFinanceSummary={setFinanceSummary}

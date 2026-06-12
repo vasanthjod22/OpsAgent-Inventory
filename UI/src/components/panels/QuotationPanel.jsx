@@ -304,9 +304,9 @@ const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#0F172A' }}>🖨️ Select Print Copy</div>
-            <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>Choose which copy to download</div>
+            <div style={{ fontSize: 12, color: '#1E293B', marginTop: 3 }}>Choose which copy to download</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}><X size={18} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}><X size={18} /></button>
         </div>
 
         {/* Scrollable body */}
@@ -317,7 +317,7 @@ const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
                 <span style={{ fontSize: 26 }}>{opt.icon}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{opt.label}</div>
-                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>{opt.sub}</div>
+                  <div style={{ fontSize: 12, color: '#1E293B', marginTop: 1 }}>{opt.sub}</div>
                 </div>
                 <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2.5px solid ${copy === opt.id ? opt.color : '#CBD5E1'}`, background: copy === opt.id ? opt.color : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {copy === opt.id && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'white' }} />}
@@ -329,7 +329,7 @@ const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
 
         {/* Footer */}
         <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleDownload} style={{ height: 42, padding: '0 26px', borderRadius: 9, border: 'none', background: '#2563EB', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Download size={16} /> Download PDF
           </button>
@@ -350,7 +350,7 @@ const ValidityDatePicker = ({ value, onChange }) => {
     <div>
       <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 6 }}>
         Valid Until
-        <span style={{ color: '#94A3B8', fontWeight: 400, marginLeft: 4, fontSize: 11 }}>(Optional)</span>
+        <span style={{ color: '#334155', fontWeight: 400, marginLeft: 4, fontSize: 11 }}>(Optional)</span>
       </label>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input
@@ -367,7 +367,7 @@ const ValidityDatePicker = ({ value, onChange }) => {
         {value && (
           <button
             onClick={() => onChange(null)}
-            style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#94A3B8', cursor: 'pointer', fontSize: 16 }}
+            style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#334155', cursor: 'pointer', fontSize: 16 }}
             title="Clear date"
           >×</button>
         )}
@@ -377,7 +377,7 @@ const ValidityDatePicker = ({ value, onChange }) => {
           {isExpired ? '⚠️ This date has passed' : daysLeft === 0 ? '⚠️ Expires today' : daysLeft <= 3 ? `⏰ Expires in ${daysLeft} days` : `✓ Valid for ${daysLeft} days`}
         </p>
       )}
-      {!value && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94A3B8' }}>Leave empty for open validity</p>}
+      {!value && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#334155' }}>Leave empty for open validity</p>}
     </div>
   )
 }
@@ -393,7 +393,7 @@ const TermsToggle = ({ include, onToggle, terms, onTermsChange }) => (
       </div>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Include Terms & Conditions</div>
-        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{include ? 'Terms will appear in PDF' : 'Click to add terms to quotation'}</div>
+        <div style={{ fontSize: 11, color: '#334155', marginTop: 2 }}>{include ? 'Terms will appear in PDF' : 'Click to add terms to quotation'}</div>
       </div>
     </div>
     {include && (
@@ -404,7 +404,7 @@ const TermsToggle = ({ include, onToggle, terms, onTermsChange }) => (
           rows={5}
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', lineHeight: 1.6, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
         />
-        <p style={{ margin: '6px 0 0', fontSize: 11, color: '#94A3B8' }}>These terms will be printed at the bottom of your quotation PDF</p>
+        <p style={{ margin: '6px 0 0', fontSize: 11, color: '#334155' }}>These terms will be printed at the bottom of your quotation PDF</p>
       </div>
     )}
   </div>
@@ -582,19 +582,19 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
         <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 16 }}>CUSTOMER DETAILS</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Customer Name *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Name *</label>
             <input value={form.customerName} onChange={e=>setForm({...form, customerName:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="E.g. Rajan Builders" />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Customer Phone</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Phone</label>
             <input value={form.customerPhone} onChange={e=>setForm({...form, customerPhone:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="+91..." />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Customer Email</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Email</label>
             <input value={form.customerEmail} onChange={e=>setForm({...form, customerEmail:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="customer@email.com" />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Customer Address</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Address</label>
             <input value={form.customerAddress} onChange={e=>setForm({...form, customerAddress:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="Billing address" />
           </div>
         </div>
@@ -605,12 +605,12 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
         <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 16 }}>QUOTATION DETAILS</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>QT Number</label>
-            <input value={form.id ? 'Will remain same' : 'Auto Generated'} disabled style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, background: '#F8FAFC', color: '#3B82F6', fontWeight: 600 }} />
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>QT Number</label>
+            <input value={form.id ? 'Will remain same' : 'Auto Generated'} disabled style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, background: '#F8FAFC', color: '#38BDF8', fontWeight: 600 }} />
           </div>
           <ValidityDatePicker value={form.validityDate} onChange={v => setForm({...form, validityDate: v})} />
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Reference / Project</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Reference / Project</label>
             <input value={form.projectName} onChange={e=>setForm({...form, projectName:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="Project or site name" />
           </div>
         </div>
@@ -622,13 +622,13 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
         
         <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 80px 80px 100px 120px 120px 40px', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }}>
           {['#', 'Description', 'HSN', 'Qty', 'Unit', 'Rate', 'Amount', ''].map(h => (
-            <div key={h} style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{h}</div>
+            <div key={h} style={{ fontSize: 11, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase' }}>{h}</div>
           ))}
         </div>
 
         {form.items.map((item, i) => (
           <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 80px 80px 100px 120px 120px 40px', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, color: '#94A3B8', fontWeight: 600 }}>{i+1}</div>
+            <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>{i+1}</div>
             <AutocompleteInput
               value={item.description}
               onChange={v => { const n = [...form.items]; n[i].description = v; setForm({...form, items: n}) }}
@@ -666,11 +666,11 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
         <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ width: 300 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, color: '#64748B' }}>Subtotal</span>
+              <span style={{ fontSize: 14, color: '#1E293B' }}>Subtotal</span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>₹{fmtINR(subtotal)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: 14, color: '#64748B' }}>Discount</span>
+              <span style={{ fontSize: 14, color: '#1E293B' }}>Discount</span>
               <input type="number" value={form.discount} onChange={e=>setForm({...form, discount: e.target.value})} style={{ width: 100, padding: '6px 10px', border: '1px solid #E2E8F0', borderRadius: 6, textAlign: 'right', fontSize: 13 }} placeholder="0" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 16, borderTop: '2px solid #E2E8F0' }}>
@@ -715,11 +715,11 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>Breakdown Quotations</h2>
-            <div style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#475569' }}>{filtered.length}</div>
+            <div style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#0F172A' }}>{filtered.length}</div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ position: 'relative', width: 260 }}>
-              <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: 12, top: 12 }} />
+              <Search size={16} color="#334155" style={{ position: 'absolute', left: 12, top: 12 }} />
               <input value={searchBQ} onChange={e=>setSearchBQ(e.target.value)} placeholder="Search customer or QT..." style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <select value={filterBQ} onChange={e=>setFilterBQ(e.target.value)} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
@@ -735,15 +735,15 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 4 }}>Total Breakdowns</div>
+            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Total Breakdowns</div>
             <div style={{ fontSize: 24, color: '#2563EB', fontWeight: 800 }}>{bqs.length}</div>
           </div>
           <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 4 }}>Pending (Draft + Sent)</div>
+            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Pending (Draft + Sent)</div>
             <div style={{ fontSize: 24, color: '#D97706', fontWeight: 800 }}>{bqs.filter(q => q.status==='Draft' || q.status==='Sent').length}</div>
           </div>
           <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 4 }}>Accepted</div>
+            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Accepted</div>
             <div style={{ fontSize: 24, color: '#16A34A', fontWeight: 800 }}>{bqs.filter(q => q.status==='Accepted').length}</div>
           </div>
         </div>
@@ -752,23 +752,23 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>QT No</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Customer</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Created</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Valid Until</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Amount</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>QT No</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Customer</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Created</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Valid Until</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Amount</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(q => {
                 const isExp = q.validity_date && new Date(q.validity_date) < new Date(new Date().toDateString())
                 const days = q.validity_date ? Math.ceil((new Date(q.validity_date) - new Date(new Date().toDateString())) / 86400000) : null
-                const expColor = isExp ? '#DC2626' : (days !== null && days <= 3) ? '#D97706' : '#64748B'
+                const expColor = isExp ? '#DC2626' : (days !== null && days <= 3) ? '#D97706' : '#1E293B'
 
                 const sColors = {
-                  'Draft': { bg: '#F1F5F9', color: '#64748B' },
+                  'Draft': { bg: '#F1F5F9', color: '#1E293B' },
                   'Sent': { bg: '#DBEAFE', color: '#1D4ED8' },
                   'Accepted': { bg: '#DCFCE7', color: '#15803D' },
                   'Rejected': { bg: '#FEE2E2', color: '#B91C1C' },
@@ -781,14 +781,14 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                     <tr onClick={() => setExpandedRows({...expandedRows, [q.id]: !expandedRows[q.id]})} style={{ borderBottom: '1px solid #E2E8F0', cursor: 'pointer', background: expandedRows[q.id] ? '#FAFBFC' : 'white' }}>
                       <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{q.qt_number}</td>
                       <td style={{ padding: '16px', fontSize: 13, color: '#334155', fontWeight: 500 }}>{q.customer_name}</td>
-                      <td style={{ padding: '16px', fontSize: 13, color: '#64748B' }}>{fmtDate(q.created_at)}</td>
+                      <td style={{ padding: '16px', fontSize: 13, color: '#1E293B' }}>{fmtDate(q.created_at)}</td>
                       <td style={{ padding: '16px', fontSize: 13 }}>
                         {q.validity_date ? (
                           <div style={{ color: expColor, fontWeight: isExp ? 600 : 400 }}>
                             {fmtDate(q.validity_date)} {isExp ? '(Expired)' : days <= 3 ? '(Expiring)' : ''}
                           </div>
                         ) : (
-                          <div style={{ padding: '2px 8px', background: '#F1F5F9', color: '#64748B', borderRadius: 4, display: 'inline-block', fontSize: 11, fontWeight: 600 }}>Open</div>
+                          <div style={{ padding: '2px 8px', background: '#F1F5F9', color: '#1E293B', borderRadius: 4, display: 'inline-block', fontSize: 11, fontWeight: 600 }}>Open</div>
                         )}
                       </td>
                       <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(q.grand_total)}</td>
@@ -809,7 +809,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                             if(val === 'sent') updateBQStatus(q.id, 'Sent')
                             if(val === 'convert') setReviewModal(q)
                             if(val === 'delete') deleteBQ(q.id)
-                          }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', cursor: 'pointer', outline: 'none' }}>
+                          }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', cursor: 'pointer', outline: 'none' }}>
                             <option value="" disabled>⋮</option>
                             <option value="sent">Mark as Sent</option>
                             <option value="accept">Mark as Accepted</option>
@@ -824,7 +824,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                       <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                         <td colSpan={7} style={{ padding: '16px 32px' }}>
                           <div style={{ maxWidth: 600 }}>
-                            <h4 style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 12, textTransform: 'uppercase' }}>Line Items</h4>
+                            <h4 style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 12, textTransform: 'uppercase' }}>Line Items</h4>
                             {q.items.map((item, i) => (
                               <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 60px 80px 100px', gap: 8, padding: '6px 0', borderBottom: '1px solid #E2E8F0', fontSize: 13, color: '#334155' }}>
                                 <div>{i+1}</div>
@@ -836,10 +836,10 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                             ))}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 12, fontSize: 13 }}>
                               <div style={{ width: 240 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', marginBottom: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E293B', marginBottom: 4 }}>
                                   <span>Subtotal</span><span>₹{fmtINR(q.subtotal)}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', marginBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E293B', marginBottom: 8 }}>
                                   <span>Discount</span><span>-₹{fmtINR(q.discount)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#0F172A', borderTop: '1px solid #CBD5E1', paddingTop: 4 }}>
@@ -855,7 +855,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#94A3B8' }}>No breakdown quotations found</td></tr>
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#334155' }}>No breakdown quotations found</td></tr>
               )}
             </tbody>
           </table>
@@ -877,11 +877,11 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>Finalized Quotations</h2>
-            <div style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#475569' }}>{filtered.length}</div>
+            <div style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#0F172A' }}>{filtered.length}</div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ position: 'relative', width: 260 }}>
-              <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: 12, top: 12 }} />
+              <Search size={16} color="#334155" style={{ position: 'absolute', left: 12, top: 12 }} />
               <input value={searchFQ} onChange={e=>setSearchFQ(e.target.value)} placeholder="Search customer or FQ..." style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <select value={filterFQ} onChange={e=>setFilterFQ(e.target.value)} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
@@ -895,15 +895,15 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 4 }}>Total Finalized</div>
+            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Total Finalized</div>
             <div style={{ fontSize: 24, color: '#2563EB', fontWeight: 800 }}>{fqs.length}</div>
           </div>
           <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 4 }}>Pending Bill</div>
+            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Pending Bill</div>
             <div style={{ fontSize: 24, color: '#D97706', fontWeight: 800 }}>{fqs.filter(q => q.status==='Active').length}</div>
           </div>
           <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 4 }}>Converted to Bill</div>
+            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Converted to Bill</div>
             <div style={{ fontSize: 24, color: '#16A34A', fontWeight: 800 }}>{fqs.filter(q => q.status==='Converted to Bill').length}</div>
           </div>
         </div>
@@ -912,13 +912,13 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>FQ No</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Original QT</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Customer</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Finalized On</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Amount</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>FQ No</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Original QT</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Customer</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Finalized On</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Amount</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -933,11 +933,11 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                 return (
                   <tr key={q.id} style={{ borderBottom: '1px solid #E2E8F0', background: 'white' }}>
                     <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Lock size={12} color="#94A3B8" /> {q.fq_number}
+                      <Lock size={12} color="#334155" /> {q.fq_number}
                     </td>
-                    <td style={{ padding: '16px', fontSize: 13, color: '#64748B' }}>{q.original_qt_number}</td>
+                    <td style={{ padding: '16px', fontSize: 13, color: '#1E293B' }}>{q.original_qt_number}</td>
                     <td style={{ padding: '16px', fontSize: 13, color: '#334155', fontWeight: 500 }}>{q.customer_name}</td>
-                    <td style={{ padding: '16px', fontSize: 13, color: '#64748B' }}>{fmtDate(q.finalized_at)}</td>
+                    <td style={{ padding: '16px', fontSize: 13, color: '#1E293B' }}>{fmtDate(q.finalized_at)}</td>
                     <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(q.grand_total)}</td>
                     <td style={{ padding: '16px' }}>
                       <span style={{ padding: '4px 10px', background: sc.bg, color: sc.color, borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
@@ -960,7 +960,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                           if(v==='delete') {
                             if(window.confirm('Delete FQ?')) { await backendFetch(`/quotations/finalized/${q.id}`, {method:'DELETE'}); loadData() }
                           }
-                        }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', cursor: 'pointer', outline: 'none' }}>
+                        }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', cursor: 'pointer', outline: 'none' }}>
                           <option value="" disabled selected>⋮</option>
                           <option value="cancel">Cancel</option>
                           <option value="delete">Delete</option>
@@ -971,7 +971,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#94A3B8' }}>No finalized quotations found</td></tr>
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#334155' }}>No finalized quotations found</td></tr>
               )}
             </tbody>
           </table>
@@ -986,20 +986,20 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
       
       {/* Toast */}
       {showToast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#10B981', color: 'white', padding: '12px 24px', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 1000, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#2563EB', color: 'white', padding: '12px 24px', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 1000, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
           <CheckCircle size={20} /> {showToast}
         </div>
       )}
 
       {/* TABS */}
       <div style={{ maxWidth: 1100, margin: '0 auto 32px', display: 'flex', gap: 8, borderBottom: '2px solid #E2E8F0', paddingBottom: 8 }}>
-        <button onClick={()=>setActiveTab('create')} style={{ padding: '8px 16px', background: 'transparent', border: 'none', borderBottom: activeTab==='create' ? '2px solid #2563EB' : '2px solid transparent', color: activeTab==='create' ? '#2563EB' : '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: -10, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={()=>setActiveTab('create')} style={{ padding: '8px 16px', background: 'transparent', border: 'none', borderBottom: activeTab==='create' ? '2px solid #2563EB' : '2px solid transparent', color: activeTab==='create' ? '#2563EB' : '#1E293B', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: -10, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Plus size={16} /> Create Quotation
         </button>
-        <button onClick={()=>setActiveTab('history')} style={{ padding: '8px 16px', background: 'transparent', border: 'none', borderBottom: activeTab==='history' ? '2px solid #2563EB' : '2px solid transparent', color: activeTab==='history' ? '#2563EB' : '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: -10, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={()=>setActiveTab('history')} style={{ padding: '8px 16px', background: 'transparent', border: 'none', borderBottom: activeTab==='history' ? '2px solid #2563EB' : '2px solid transparent', color: activeTab==='history' ? '#2563EB' : '#1E293B', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: -10, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Clock size={16} /> Breakdown History
         </button>
-        <button onClick={()=>setActiveTab('finalized')} style={{ padding: '8px 16px', background: 'transparent', border: 'none', borderBottom: activeTab==='finalized' ? '2px solid #2563EB' : '2px solid transparent', color: activeTab==='finalized' ? '#2563EB' : '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: -10, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={()=>setActiveTab('finalized')} style={{ padding: '8px 16px', background: 'transparent', border: 'none', borderBottom: activeTab==='finalized' ? '2px solid #2563EB' : '2px solid transparent', color: activeTab==='finalized' ? '#2563EB' : '#1E293B', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: -10, display: 'flex', alignItems: 'center', gap: 6 }}>
           <FileCheck size={16} /> Finalized Quotations
         </button>
       </div>
@@ -1024,18 +1024,18 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
           <div style={{ background: 'white', width: 600, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, color: '#0F172A' }}>Convert to Finalized Quotation</h3>
-              <button onClick={() => setReviewModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#64748B" /></button>
+              <button onClick={() => setReviewModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#1E293B" /></button>
             </div>
             <div style={{ padding: 24, maxHeight: '60vh', overflowY: 'auto' }}>
               <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-                <div style={{ fontSize: 13, color: '#64748B' }}>Customer: <strong style={{ color: '#0F172A' }}>{reviewModal.customer_name}</strong></div>
-                <div style={{ fontSize: 13, color: '#64748B' }}>Original QT: <strong style={{ color: '#0F172A' }}>{reviewModal.qt_number}</strong></div>
+                <div style={{ fontSize: 13, color: '#1E293B' }}>Customer: <strong style={{ color: '#0F172A' }}>{reviewModal.customer_name}</strong></div>
+                <div style={{ fontSize: 13, color: '#1E293B' }}>Original QT: <strong style={{ color: '#0F172A' }}>{reviewModal.qt_number}</strong></div>
               </div>
-              <h4 style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 12 }}>Line Items (Editable)</h4>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', marginBottom: 12 }}>Line Items (Editable)</h4>
               <div style={{ display: 'grid', gap: 8 }}>
                 {reviewModal.items.map((item, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 60px 80px 90px', gap: 8, alignItems: 'center' }}>
-                    <div style={{ fontSize: 13, color: '#94A3B8' }}>{i+1}</div>
+                    <div style={{ fontSize: 13, color: '#334155' }}>{i+1}</div>
                     <input value={item.description} onChange={e=>{ const m={...reviewModal}; m.items[i].description=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13 }} />
                     <input type="number" value={item.qty} onChange={e=>{ const m={...reviewModal}; m.items[i].qty=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13 }} />
                     <input type="number" value={item.rate} onChange={e=>{ const m={...reviewModal}; m.items[i].rate=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13 }} />
@@ -1046,7 +1046,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
                 <div style={{ width: 250 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span style={{ fontSize: 13, color: '#64748B' }}>Discount:</span>
+                    <span style={{ fontSize: 13, color: '#1E293B' }}>Discount:</span>
                     <input type="number" value={reviewModal.discount} onChange={e=>setReviewModal({...reviewModal, discount: e.target.value})} style={{ width: 80, padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0', textAlign: 'right' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1059,7 +1059,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
               </div>
             </div>
             <div style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button onClick={() => setReviewModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'white', border: '1px solid #E2E8F0', color: '#64748B', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setReviewModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'white', border: '1px solid #E2E8F0', color: '#1E293B', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={finalizeQuotation} style={{ padding: '8px 16px', borderRadius: 8, background: '#2563EB', border: 'none', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Confirm & Finalize →</button>
             </div>
           </div>
@@ -1072,7 +1072,7 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
           <div style={{ background: 'white', width: 400, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}><Receipt size={20} color="#16A34A" /> Create Bill</h3>
-              <button onClick={() => setBillModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#64748B" /></button>
+              <button onClick={() => setBillModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#1E293B" /></button>
             </div>
             <div style={{ padding: 24 }}>
               <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: 12, borderRadius: 8, marginBottom: 20 }}>
@@ -1082,11 +1082,11 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
               
               <div style={{ display: 'grid', gap: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Bill Date</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Bill Date</label>
                   <input type="date" value={billModal.date} onChange={e=>setBillModal({...billModal, date: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Payment Terms</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Payment Terms</label>
                   <select value={billModal.paymentTerms} onChange={e=>setBillModal({...billModal, paymentTerms: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none', background: 'white', boxSizing: 'border-box' }}>
                     <option value="Immediate">Immediate</option>
                     <option value="7 Days">7 Days</option>
@@ -1096,13 +1096,13 @@ export default function QuotationPanel({ inventory = [], onNavigate }) {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 6 }}>Payment Due Date</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Payment Due Date</label>
                   <input type="date" value={billModal.dueDate} onChange={e=>setBillModal({...billModal, dueDate: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </div>
             </div>
             <div style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button onClick={() => setBillModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'white', border: '1px solid #E2E8F0', color: '#64748B', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setBillModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'white', border: '1px solid #E2E8F0', color: '#1E293B', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={convertToBill} style={{ padding: '8px 16px', borderRadius: 8, background: '#16A34A', border: 'none', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Create Bill →</button>
             </div>
           </div>

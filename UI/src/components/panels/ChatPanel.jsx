@@ -1,374 +1,812 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Sparkles, Mic, MicOff } from 'lucide-react'
-import { callAI } from '../../utils/api'
+import { jsPDF } from 'jspdf'
+import { 
+  TrendingUp, DollarSign, FileText, Users, AlertTriangle, 
+  ShoppingCart, Package, UserCheck, Sparkles, Send, 
+  Settings, ArrowRight
+} from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 
-const renderMarkdown = (text) => {
-  const lines = text.split('\n')
-  const result = []
-  let currentTable = null
+// --- Formatting & Config ---
 
-  const parseInline = (str) => {
-    const parts = str.split(/(\*\*.*?\*\*)/g)
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} style={{ fontWeight: 600, color: '#0F172A' }}>{part.slice(2, -2)}</strong>
-      }
-      return part
-    })
-  }
+const DATE_PRESETS = [
+  { label: 'Today', value: 'today' },
+  { label: 'Yesterday', value: 'yesterday' },
+  { label: 'Last 7 Days', value: 'week' },
+  { label: 'This Month', value: 'month' },
+  { label: 'This Year', value: 'year' },
+  { label: 'Custom', value: 'custom' },
+]
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (line.startsWith('|') && line.endsWith('|')) {
-      if (!currentTable) currentTable = []
-      if (!line.includes('---')) {
-        const cells = line.split('|').slice(1, -1).map(c => c.trim())
-        currentTable.push(cells)
-      }
-    } else {
-      if (currentTable) {
-        result.push(
-          <div key={`table-${i}`} style={{ overflowX: 'auto', margin: '12px 0', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
-            <table className="data-table">
-              <tbody>
-                {currentTable.map((row, rIdx) => (
-                  <tr key={rIdx} style={{ borderBottom: rIdx === currentTable.length - 1 ? 'none' : '1px solid #E2E8F0', background: rIdx === 0 ? '#F8FAFC' : 'transparent' }}>
-                    {row.map((cell, cIdx) => (
-                      <td key={cIdx} style={{ padding: '8px 12px', borderRight: cIdx === row.length - 1 ? 'none' : '1px solid #E2E8F0', fontWeight: rIdx === 0 ? 600 : 400 }}>{parseInline(cell)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-        currentTable = null
-      }
-      
-      if (line.startsWith('- ') || line.startsWith('* ')) {
-        result.push(<div key={i} style={{ display: 'flex', gap: '8px', margin: '4px 0' }}><span style={{ color: '#2563EB', fontWeight: 700 }}>•</span><span>{parseInline(line.substring(2))}</span></div>)
-      } else if (line.match(/^\d+\.\s/)) {
-        const match = line.match(/^(\d+\.\s)(.*)/)
-        result.push(<div key={i} style={{ display: 'flex', gap: '8px', margin: '6px 0' }}><span style={{ color: '#64748B', fontWeight: 600 }}>{match[1]}</span><span>{parseInline(match[2])}</span></div>)
-      } else if (line.length > 0) {
-        result.push(<p key={i} style={{ margin: '8px 0', lineHeight: 1.6 }}>{parseInline(line)}</p>)
-      } else {
-        result.push(<div key={i} style={{ height: '8px' }} />)
-      }
-    }
-  }
-  if (currentTable) {
-    result.push(
-      <div key="table-end" style={{ overflowX: 'auto', margin: '12px 0', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
-        <table className="data-table">
-          <tbody>
-            {currentTable.map((row, rIdx) => (
-              <tr key={rIdx} style={{ borderBottom: rIdx === currentTable.length - 1 ? 'none' : '1px solid #E2E8F0', background: rIdx === 0 ? '#F8FAFC' : 'transparent' }}>
-                {row.map((cell, cIdx) => (
-                  <td key={cIdx} style={{ padding: '8px 12px', borderRight: cIdx === row.length - 1 ? 'none' : '1px solid #E2E8F0', fontWeight: rIdx === 0 ? 600 : 400 }}>{parseInline(cell)}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-  return <div style={{ fontSize: '14px', fontFamily: "'Inter', sans-serif" }}>{result}</div>
+const formatLabel = (from, to) => {
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  })
+  return `${fmt(from)} – ${fmt(to)}`
 }
 
-export default function ChatPanel({ inventory = [], financeSummary, chatMessages: messages, setChatMessages: setMessages, showToast }) {
+const FormattedAIResponse = ({ text }) => {
+  const lines = text.split('\n')
+  return (
+    <div style={{ fontSize: 13, lineHeight: 1.7, fontFamily: "'Inter', sans-serif" }}>
+      {lines.map((line, i) => {
+        // Section headers with emojis
+        if (line.startsWith('📊') || line.startsWith('💡') || line.startsWith('✅') || 
+            line.startsWith('🔴') || line.startsWith('🟢') || line.startsWith('📈')) {
+          return (
+            <div key={i} style={{ fontWeight: 600, marginTop: 12, marginBottom: 4, fontSize: 14, color: '#0F172A' }}>
+              {line}
+            </div>
+          )
+        }
+        // Numbered items
+        if (/^\d+\./.test(line.trim())) {
+          return (
+            <div key={i} style={{ paddingLeft: 16, marginBottom: 4, color: '#334155' }}>
+              {line}
+            </div>
+          )
+        }
+        // Bullet points
+        if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
+          return (
+            <div key={i} style={{ paddingLeft: 16, marginBottom: 2, display: 'flex', gap: 8 }}>
+              <span style={{ color: '#2563EB', fontWeight: 600 }}>•</span>
+              <span style={{ color: '#334155' }}>{line.replace(/^[-•]\s/, '')}</span>
+            </div>
+          )
+        }
+        // Empty lines
+        if (!line.trim()) return <div key={i} style={{ height: 8 }} />
+        
+        // Bold text **...**
+        const boldFormatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        return (
+          <div key={i} dangerouslySetInnerHTML={{ __html: boldFormatted }} style={{ marginBottom: 2, color: '#334155' }} />
+        )
+      })}
+    </div>
+  )
+}
+
+const QUICK_ACTION_PROMPTS = {
+  explainSales: (data, dateLabel) => `
+Analyze this sales data for ${dateLabel} and explain performance in plain English:
+Revenue: ₹${Number(data.revenue).toLocaleString('en-IN')}
+Total Orders: ${data.totalOrders}
+Top Category: ${data.topCategory}
+Top Products: ${JSON.stringify(data.topProducts?.slice(0,5))}
+Structure: Observation → Reason → Recommendation`,
+
+  recommendPO: (data, dateLabel) => `
+Based on inventory and sales data for ${dateLabel}, recommend purchase orders:
+Low Stock Items: ${JSON.stringify(data.lowStockItems)}
+Recent Sales: ${JSON.stringify(data.topProducts?.slice(0,5))}
+For each item provide:
+1. Item name
+2. Current stock
+3. Recommended order quantity
+4. Urgency (High/Medium/Low)
+End with: "Click 'Create Purchase Order' to act on these recommendations."`,
+
+  analyzeHealth: (data, dateLabel) => `
+Analyze overall business health for ${dateLabel}:
+Revenue: ₹${Number(data.revenue).toLocaleString('en-IN')}
+Profit: ₹${Number(data.profit).toLocaleString('en-IN')}
+Health Score: ${data.healthScore}/100
+Low Stock: ${data.lowStock} products
+Customer Due: ₹${Number(data.customerDue).toLocaleString('en-IN')}
+Pending Bills: ${data.pendingBills?.count}
+Provide:
+1. Overall assessment
+2. Top 3 Strengths
+3. Top 3 Weaknesses  
+4. Top 5 Action Items`,
+
+  pendingPayments: (data, dateLabel) => `
+Analyze outstanding customer payments as of ${dateLabel}:
+${JSON.stringify(data.outstanding?.slice(0,10))}
+Provide:
+1. Total amount at risk
+2. Who to contact first and why
+3. Recovery strategy
+4. Estimated recovery timeline`,
+
+  lowStock: (data, dateLabel) => `
+Analyze low stock situation for ${dateLabel}:
+${JSON.stringify(data.lowStockItems?.slice(0,15))}
+For each critical item provide:
+1. How urgent is the reorder
+2. Recommended quantity based on min level
+3. Estimated days until stockout
+End with top 5 priority reorders.`,
+
+  topCustomers: (data, dateLabel) => `
+Analyze top customer data for ${dateLabel}:
+${JSON.stringify(data.topCustomers?.slice(0,10))}
+Provide:
+1. Who are the most valuable customers
+2. Which customers to focus on
+3. Suggestions for customer retention
+4. Any customers with outstanding dues`,
+
+  topProducts: (data, dateLabel) => `
+Analyze top selling products for ${dateLabel}:
+${JSON.stringify(data.topProducts?.slice(0,10))}
+Provide:
+1. Which products are driving revenue
+2. Category-wise performance
+3. Recommendations for inventory
+4. Products to promote`,
+
+  slowMoving: (data, dateLabel) => `
+Analyze slow moving products for ${dateLabel}:
+Low/No Sales Items: ${JSON.stringify(data.slowMoving?.slice(0,10))}
+Provide:
+1. Products with poor movement
+2. Reasons they might be slow
+3. Strategies to clear stock
+4. Whether to stop purchasing these`,
+
+  weeklySummary: (data, dateLabel) => `
+Generate a complete weekly business summary for ${dateLabel}:
+Revenue: ₹${Number(data.revenue).toLocaleString('en-IN')}
+Profit: ₹${Number(data.profit).toLocaleString('en-IN')}
+Orders: ${data.totalOrders}
+Top Product: ${data.topProducts?.[0]?.name || 'N/A'}
+Top Category: ${data.topCategory}
+Low Stock: ${data.lowStock} items
+Customer Due: ₹${Number(data.customerDue).toLocaleString('en-IN')}
+Format as a professional weekly report with:
+Executive Summary, Performance Highlights, Areas of Concern, and Action Items for next week.`,
+
+  monthlyReport: (data, dateLabel) => `
+Generate a comprehensive monthly business report for ${dateLabel}:
+Revenue: ₹${Number(data.revenue).toLocaleString('en-IN')}
+Profit: ₹${Number(data.profit).toLocaleString('en-IN')}
+Expenses: ₹${Number(data.totalExpenses || 0).toLocaleString('en-IN')}
+Orders: ${data.totalOrders}
+Health Score: ${data.healthScore}/100
+Top Category: ${data.topCategory}
+Low Stock Items: ${data.lowStock}
+Customer Due: ₹${Number(data.customerDue).toLocaleString('en-IN')}
+Generate a formal monthly report with sections:
+1. Executive Summary
+2. Financial Performance
+3. Sales Analysis
+4. Inventory Status
+5. Customer Analysis
+6. Key Recommendations
+7. Goals for Next Month`
+}
+
+export default function ChatPanel({ onNavigate }) {
+  // State
+  const [dateRange, setDateRange] = useState({
+    preset: 'custom',
+    from: '2021-01-01',
+    to: '2021-12-31',
+    label: '01 Jan 2021 – 31 Dec 2021'
+  })
+  
+  const [snapshotData, setSnapshotData] = useState(null)
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const bottomRef = useRef()
-  const recognitionRef = useRef(null)
+  const [apiKeyMissing, setApiKeyMissing] = useState(false)
+  
+  const chatRef = useRef(null)
+
+  // ─── INITIALIZATION & EFFECTS ───
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
-
-  // Initialize Speech Recognition
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = true
-      recognitionRef.current.interimResults = true
-
-      recognitionRef.current.onresult = (event) => {
-        let finalTranscript = ''
-        let interimTranscript = ''
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript
-          } else {
-            interimTranscript += event.results[i][0].transcript
-          }
-        }
-        if (finalTranscript) {
-          setInput(prev => (prev + ' ' + finalTranscript).trim())
-        }
-      }
-
-      recognitionRef.current.onerror = (event) => {
-        console.error("Speech recognition error", event.error)
-        setIsListening(false)
-      }
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false)
-      }
+    const key = localStorage.getItem('opsagent_groq_key')
+    if (!key) {
+      // Backend handles its own API key if env is set, but we show banner just in case
+      // We will try fetching. If it fails due to config, we set missing.
     }
   }, [])
 
-  const toggleListen = () => {
-    if (isListening) {
-      recognitionRef.current?.stop()
-      setIsListening(false)
-    } else {
-      setInput('')
-      recognitionRef.current?.start()
-      setIsListening(true)
+  const fetchSnapshot = useCallback(async () => {
+    try {
+      const res = await backendFetch('/ai/business-snapshot', {
+        method: 'POST',
+        body: JSON.stringify({ from: dateRange.from, to: dateRange.to })
+      })
+      if (res.success) {
+        setSnapshotData({ ...res.data, healthScore: res.healthScore })
+      }
+    } catch (err) {
+      console.error('Failed to fetch snapshot:', err)
     }
+  }, [dateRange])
+
+  useEffect(() => {
+    fetchSnapshot()
+  }, [fetchSnapshot])
+
+  // ─── DATE HANDLERS ───
+
+  const applyPreset = (preset) => {
+    const now = new Date()
+    let from, to, label
+
+    switch(preset) {
+      case 'today':
+        from = to = now.toISOString().split('T')[0]
+        label = 'Today'
+        break
+      case 'yesterday': {
+        const y = new Date(now)
+        y.setDate(now.getDate() - 1)
+        from = to = y.toISOString().split('T')[0]
+        label = 'Yesterday'
+        break
+      }
+      case 'week': {
+        const w = new Date(now)
+        w.setDate(now.getDate() - 6)
+        from = w.toISOString().split('T')[0]
+        to = now.toISOString().split('T')[0]
+        label = 'Last 7 Days'
+        break
+      }
+      case 'month':
+        from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+        to = now.toISOString().split('T')[0]
+        label = 'This Month'
+        break
+      case 'year':
+        from = `${now.getFullYear()}-01-01`
+        to = now.toISOString().split('T')[0]
+        label = 'This Year'
+        break
+      case 'custom':
+      default:
+        from = '2021-01-01'
+        to = '2021-12-31'
+        label = '01 Jan 2021 – 31 Dec 2021'
+    }
+
+    setDateRange({ preset, from, to, label })
   }
 
-  const sendMessage = async (overrideText = null) => {
-    const text = overrideText || input.trim()
-    if (!text) return
+  const handleCustomDateChange = (newFrom, newTo) => {
+    if (!newFrom || !newTo) return;
+    setDateRange(prev => ({
+      ...prev,
+      preset: 'custom',
+      from: newFrom,
+      to: newTo,
+      label: formatLabel(newFrom, newTo)
+    }))
+  }
 
-    const userMsg = { role: 'user', content: text }
-    const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  // ─── AI ACTIONS ───
+
+  const fetchContextData = async (question) => {
+    const q = question.toLowerCase()
+    const extra = {}
+
+    try {
+      if (q.includes('stock') || q.includes('reorder') || q.includes('inventory') || q.includes('low') || q.includes('product') || q.includes('purchase')) {
+        const res = await backendFetch('/ai/context/inventory')
+        if (res.success) {
+          extra.inventory = res.data.inventory || []
+          extra.lowStockItems = res.data.lowStock || []
+        }
+      }
+      if (q.includes('product') || q.includes('selling') || q.includes('sales') || q.includes('revenue') || q.includes('summary') || q.includes('report') || q.includes('business')) {
+        const res = await backendFetch(`/ai/context/products?from=${dateRange.from}&to=${dateRange.to}`)
+        if (res.success) {
+          extra.topProducts = res.data || []
+        }
+      }
+      if (q.includes('payment') || q.includes('pending') || q.includes('due') || q.includes('owe') || q.includes('customer')) {
+        const res = await backendFetch('/ai/context/outstanding')
+        if (res.success) {
+          extra.outstanding = res.data || []
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch AI context:', err)
+    }
+    return extra
+  }
+
+  const buildAIContext = async (userQuestion, extraData = {}) => {
+    const dateLabel = dateRange.label
+    return `
+You are OpsAgent AI, a professional business consultant for a hardware shop CRM.
+IMPORTANT: Always reference the date range "${dateLabel}" naturally in your response.
+
+BUSINESS CONTEXT (${dateLabel}):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date Range:          ${dateLabel}
+Revenue:             ₹${Number(snapshotData?.revenue || 0).toLocaleString('en-IN')}
+Profit:              ₹${Number(snapshotData?.profit || 0).toLocaleString('en-IN')}
+Total Orders:        ${snapshotData?.totalOrders || 0}
+Pending Bills:       ${snapshotData?.pendingBills?.count || 0} bills (₹${Number(snapshotData?.pendingBills?.amount || 0).toLocaleString('en-IN')})
+Customer Due:        ₹${Number(snapshotData?.customerDue || 0).toLocaleString('en-IN')}
+Low Stock Items:     ${snapshotData?.lowStock || 0} products
+Pending POs:         ${snapshotData?.pendingPOs || 0}
+Top Category:        ${snapshotData?.topCategory || 'N/A'}
+Business Health:     ${snapshotData?.healthScore || 'N/A'}/100
+
+${extraData.inventory ? `
+INVENTORY STATUS:
+${extraData.inventory.slice(0,10).map(i => `- ${i.name}: ${i.qty} ${i.unit} (min: ${i.min})`).join('\n')}
+` : ''}
+
+${extraData.topProducts ? `
+TOP SELLING PRODUCTS (${dateLabel}):
+${extraData.topProducts.slice(0,5).map((p,i) => `${i+1}. ${p.name}: ${p.qty} units, ₹${Number(p.revenue).toLocaleString('en-IN')}`).join('\n')}
+` : ''}
+
+${extraData.outstanding ? `
+OUTSTANDING PAYMENTS:
+${extraData.outstanding.slice(0,5).map(o => `- ${o.customer}: ₹${Number(o.totalDue).toLocaleString('en-IN')} (${o.daysOverdue} days)`).join('\n')}
+` : ''}
+
+${extraData.lowStockItems ? `
+LOW STOCK PRODUCTS:
+${extraData.lowStockItems.slice(0,8).map(i => `- ${i.name}: ${i.qty}/${i.min} ${i.unit}`).join('\n')}
+` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+USER QUESTION: ${userQuestion}
+
+RESPONSE FORMAT:
+Always structure your response as:
+📊 Observation:
+[What you see in the data]
+💡 Reason:
+[Why this is happening]
+✅ Recommendation:
+[Specific action to take]
+
+Be specific with numbers from the data. Reference the date range naturally. Be concise and professional. Maximum 200 words unless generating a report. Never generate unnecessary conversation.`
+  }
+
+  const sendMessage = async (question, quickActionKey = null) => {
+    if (!question.trim() && !quickActionKey) return
+
+    const actualQuestion = question || 'Analyzing data...'
     
-    setMessages(prev => [...prev, { ...userMsg, time: now }])
+    // Auto scroll to chat
+    chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+    const userMsg = { role: 'user', content: actualQuestion, timestamp: new Date() }
+    setMessages(prev => [...prev, userMsg])
     setInput('')
     setLoading(true)
 
     try {
-      let conversationHistory = messages.map(m => ({ role: m.role, content: m.content })).concat(userMsg)
-      const systemPrompt = `You are OpsAgent, an AI back-office manager for a small service business.
-Current inventory data: ${JSON.stringify(inventory)}
-Current finance data: ${JSON.stringify(financeSummary)}
-
-You can answer questions with specific numbers and practical insights.
-You also have access to TOOLS to perform actions on behalf of the user. If the user asks you to perform an action (e.g. "Add a customer", "Create an inventory item"), use the appropriate tool. If you use a tool, you will receive the result and should summarize it for the user.
-IMPORTANT: When asked about "low stock", carefully check all inventory items. An item is "low stock" if its "qty" is less than its "min" threshold.`
-
-      const tools = [
-        {
-          type: "function",
-          function: {
-            name: "add_customer",
-            description: "Add a new customer to the database.",
-            parameters: {
-              type: "object",
-              properties: {
-                name: { type: "string", description: "Name of the customer" },
-                phone: { type: "string", description: "Phone number" },
-                email: { type: "string", description: "Email address" }
-              },
-              required: ["name"]
-            }
-          }
-        },
-        {
-          type: "function",
-          function: {
-            name: "add_inventory_item",
-            description: "Add a new item to the inventory.",
-            parameters: {
-              type: "object",
-              properties: {
-                name: { type: "string", description: "Name of the item" },
-                hsn: { type: "string", description: "HSN code" },
-                qty: { type: "number", description: "Initial quantity" },
-                unit: { type: "string", description: "Unit of measurement (e.g. Nos, Kg)" }
-              },
-              required: ["name", "qty"]
-            }
-          }
-        }
-      ]
-
-      let aiReply = await callAI(null, conversationHistory, systemPrompt, tools)
+      const extraData = await fetchContextData(quickActionKey || actualQuestion)
       
-      if (!aiReply) throw new Error("Empty response from AI")
-
-      if (aiReply.tool_calls && aiReply.tool_calls.length > 0) {
-        // Handle tool calls
-        setMessages(prev => [...prev, { role: 'assistant', content: "Executing action...", isSystem: true, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }])
-        
-        for (const toolCall of aiReply.tool_calls) {
-          conversationHistory.push(aiReply.message) // Add the assistant's tool call message
-          
-          let result = ""
-          try {
-            const args = JSON.parse(toolCall.function.arguments)
-            if (toolCall.function.name === 'add_customer') {
-              const res = await backendFetch('/customers', { method: 'POST', body: JSON.stringify(args) })
-              result = `Successfully added customer: ${res.name} (ID: ${res.id})`
-            } else if (toolCall.function.name === 'add_inventory_item') {
-              const res = await backendFetch('/inventory', { method: 'POST', body: JSON.stringify(args) })
-              result = `Successfully added inventory item: ${res.name} with quantity ${res.qty}`
-            } else {
-              result = `Error: Unknown function ${toolCall.function.name}`
-            }
-          } catch (e) {
-            result = `Error executing tool: ${e.message}`
-          }
-
-          // Provide tool response
-          conversationHistory.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            name: toolCall.function.name,
-            content: result
-          })
-        }
-
-        // Call AI again with tool results
-        aiReply = await callAI(null, conversationHistory, systemPrompt, tools)
+      let finalPrompt = ''
+      if (quickActionKey && QUICK_ACTION_PROMPTS[quickActionKey]) {
+        finalPrompt = QUICK_ACTION_PROMPTS[quickActionKey]({ ...snapshotData, ...extraData }, dateRange.label)
+      } else {
+        finalPrompt = await buildAIContext(actualQuestion, extraData)
       }
-      
-      const finalContent = aiReply.text || "Action completed."
-      setMessages(prev => prev.filter(m => !m.isSystem).concat([{ role: 'assistant', content: finalContent, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }]))
-      
+
+      const res = await backendFetch('/ai/ask', {
+        method: 'POST',
+        body: JSON.stringify({
+          question: actualQuestion,
+          context: finalPrompt,
+          apiKey: localStorage.getItem('opsagent_groq_key')
+        })
+      })
+
+      if (!res.success) {
+        if (res.error?.includes('configured')) setApiKeyMissing(true)
+        throw new Error(res.error || 'Failed to get AI response')
+      }
+
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: res.answer,
+        timestamp: new Date(),
+        dateRange: dateRange.label,
+        quickActionKey,
+        lowStockItems: extraData.lowStockItems
+      }])
     } catch (err) {
-      setMessages(prev => prev.filter(m => !m.isSystem).concat([{ role: 'assistant', content: `Error: ${err.message}. Please check your API key in Settings.`, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }]))
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `Sorry, I couldn't process that. Error: ${err.message}`,
+        timestamp: new Date()
+      }])
     } finally {
       setLoading(false)
     }
   }
 
-  const starters = ["What's my low stock?", "Summarize finances", "Show open GRNs"]
+  // ─── UTILS ───
+
+  const exportMonthlyReportPDF = (reportText, dateLabel) => {
+    const doc = new jsPDF('portrait', 'mm', 'a4')
+    const pageWidth = doc.internal.pageSize.getWidth()
+
+    doc.setFillColor(15, 23, 42)
+    doc.rect(0, 0, pageWidth, 25, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('OpsAgent AI', 14, 16)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(dateLabel, pageWidth-14, 16, { align: 'right' })
+
+    doc.setTextColor(15, 23, 42)
+    const lines = doc.splitTextToSize(reportText.replace(/\*/g, ''), pageWidth - 28)
+    let y = 35
+    lines.forEach(line => {
+      if (y > 275) { doc.addPage(); y = 20 }
+      if (line.match(/^\d\./)) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+      } else {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+      }
+      doc.text(line, 14, y)
+      y += 6
+    })
+
+    const pages = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i)
+      doc.setFillColor(15, 23, 42)
+      doc.rect(0, 285, pageWidth, 12, 'F')
+      doc.setTextColor(148, 163, 184)
+      doc.setFontSize(7)
+      doc.text(`OpsAgent AI Business Report | ${dateLabel} | Page ${i} of ${pages}`, pageWidth/2, 292, { align: 'center' })
+    }
+
+    doc.save(`OpsAgent_Report_${dateLabel.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`)
+  }
+
+  const handleCreatePOFromAI = (lowStockItems) => {
+    window.dispatchEvent(new CustomEvent('createPOFromAI', { detail: { items: lowStockItems || [] } }))
+    onNavigate('purchase_orders')
+  }
+
+  // ─── RENDERERS ───
+
+  const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`
+
+  const getScoreColor = (score) => {
+    if (score >= 90) return '#16A34A' // Green - Excellent
+    if (score >= 70) return '#2563EB' // Blue - Good
+    if (score >= 50) return '#D97706' // Amber - Average
+    return '#DC2626' // Red - Needs Attention
+  }
+
+  const getScoreLabel = (score) => {
+    if (score >= 90) return 'Excellent'
+    if (score >= 70) return 'Good'
+    if (score >= 50) return 'Average'
+    return 'Needs Attention'
+  }
+
+  const getDynamicLabel = (type) => {
+    switch(dateRange.preset) {
+      case 'today': return type === 'revenue' ? "Today's Revenue" : "Today's Profit"
+      case 'yesterday': return type === 'revenue' ? "Yesterday's Revenue" : "Yesterday's Profit"
+      case 'week': return type === 'revenue' ? "Past 7 Days Revenue" : "Past 7 Days Profit"
+      case 'month': return type === 'revenue' ? "This Month's Revenue" : "This Month's Profit"
+      case 'year': return type === 'revenue' ? "This Year's Revenue" : "This Year's Profit"
+      case 'custom':
+      default: return type === 'revenue' ? "Total Revenue" : "Total Profit"
+    }
+  }
+
+  const kpiCards = [
+    { label: getDynamicLabel('revenue'), value: formatCurrency(snapshotData?.revenue), icon: TrendingUp, color: '#16A34A' },
+    { label: getDynamicLabel('profit'), value: formatCurrency(snapshotData?.profit), icon: DollarSign, color: '#2563EB' },
+    { label: 'Pending Bills', value: `${snapshotData?.pendingBills?.count || 0} (${formatCurrency(snapshotData?.pendingBills?.amount)})`, icon: FileText, color: '#D97706' },
+    { label: 'Customer Due', value: formatCurrency(snapshotData?.customerDue), icon: Users, color: '#EA580C' },
+    { label: 'Low Stock Products', value: snapshotData?.lowStock || 0, icon: AlertTriangle, color: '#DC2626' },
+    { label: 'Pending POs', value: snapshotData?.pendingPOs || 0, icon: ShoppingCart, color: '#9333EA' },
+    { label: 'Total Orders', value: snapshotData?.totalOrders || 0, icon: Package, color: '#0891B2' },
+    { label: 'Total Customers', value: snapshotData?.uniqueCustomers || 0, icon: UserCheck, color: '#4F46E5' },
+  ]
+
+  const actionCards = [
+    { key: 'explainSales', icon: '📊', title: 'Explain Sales Report', desc: 'Analyze revenue and sales trends' },
+    { key: 'recommendPO', icon: '📦', title: 'Recommend Purchase Order', desc: 'Find products that need restocking' },
+    { key: 'analyzeHealth', icon: '📈', title: 'Analyze Business Health', desc: 'Get overall business performance score' },
+    { key: 'pendingPayments', icon: '💰', title: 'Show Pending Payments', desc: 'Who owes you money and how much' },
+    { key: 'lowStock', icon: '📦', title: 'Find Low Stock Products', desc: 'Products below reorder level' },
+    { key: 'topCustomers', icon: '👥', title: 'Top Customers', desc: 'Best customers by revenue' },
+    { key: 'topProducts', icon: '🔥', title: 'Top Selling Products', desc: 'Best performing products' },
+    { key: 'slowMoving', icon: '📉', title: 'Slow Moving Products', desc: 'Products with low sales velocity' },
+    { key: 'weeklySummary', icon: '📅', title: 'Generate Weekly Summary', desc: "Summary of this week's performance" },
+    { key: 'monthlyReport', icon: '📄', title: 'Monthly Business Report', desc: 'Comprehensive monthly analysis' },
+  ]
+
+  const suggestedQuestions = [
+    "Which products should I reorder?", "Who owes me money?", "Which products are selling slowly?",
+    "Summarize this period's business", "Which category had highest revenue?", "Explain this period's sales",
+    "Which customers haven't bought recently?", "What should I focus on?", "Show me profit analysis",
+    "Which supplier is most reliable?", "What is my best selling category?", "How is cash flow looking?"
+  ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', maxWidth: '1024px', margin: '0 auto', paddingBottom: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC', color: '#0F172A', overflowY: 'auto', fontFamily: "'Inter', sans-serif" }}>
       
-      <div style={{ flex: 1, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-        
-        {/* Messages Area */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {messages.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
-              <div style={{ width: '64px', height: '64px', background: '#EFF6FF', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-                <Sparkles size={32} color="#2563EB" />
-              </div>
-              <p style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A', marginBottom: '24px', fontFamily: "'Inter', sans-serif" }}>How can I help you today?</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px' }}>
-                {starters.map((s, i) => (
-                  <button 
-                    key={i} 
-                    onClick={() => sendMessage(s)} 
-                    disabled={loading} 
-                    className="btn-press"
-                    style={{
-                      padding: '8px 16px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '99px',
-                      fontSize: '13px', fontWeight: 600, color: '#64748B', cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-                      transition: 'all 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.borderColor = '#2563EB' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0' }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((msg, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '75%', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  padding: '14px 20px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  background: msg.role === 'user' ? '#2563EB' : '#F1F5F9',
-                  color: msg.role === 'user' ? 'white' : '#0F172A',
-                  borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-                  border: msg.role === 'assistant' ? '1px solid #E2E8F0' : 'none',
-                }}>
-                  {msg.role === 'assistant' ? renderMarkdown(msg.content) : <p style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.6, fontFamily: "'Inter', sans-serif", margin: 0 }}>{msg.content}</p>}
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 500, color: '#94A3B8', marginTop: '6px', padding: '0 4px', fontFamily: "'Inter', sans-serif" }}>{msg.time}</span>
-              </div>
-            </div>
-          ))}
-
-          {loading && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <div style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '16px 20px', borderRadius: '12px 12px 12px 4px', display: 'flex', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                <div className="dot-bounce-1" style={{ width: '8px', height: '8px', background: '#94A3B8', borderRadius: '50%' }} />
-                <div className="dot-bounce-2" style={{ width: '8px', height: '8px', background: '#94A3B8', borderRadius: '50%' }} />
-                <div className="dot-bounce-3" style={{ width: '8px', height: '8px', background: '#94A3B8', borderRadius: '50%' }} />
-              </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
+      {/* ── HEADER ── */}
+      <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: 'rgba(248, 250, 252, 0.95)', zIndex: 50, backdropFilter: 'blur(8px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={24} color="white" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#0F172A' }}>OpsAgent AI</h1>
+            <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>Your AI Business Handler</p>
+          </div>
         </div>
 
-        {/* Input Area */}
-        <div style={{ padding: '20px', borderTop: '1px solid #E2E8F0', background: 'white' }}>
-          <div style={{
-            background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '99px',
-            display: 'flex', alignItems: 'center', padding: '4px 4px 4px 16px',
-            transition: 'all 0.2s'
-          }} className="focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500">
-            <textarea
-              value={input}
-              onChange={e => {
-                setInput(e.target.value);
-                e.target.style.height = '40px';
-                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                  e.target.style.height = '40px';
-                }
-              }}
-              disabled={loading}
-              placeholder="Message OpsAgent... (Shift+Enter for new line)"
-              rows={1}
-              style={{
-                flex: 1, minHeight: '40px', maxHeight: '120px', resize: 'none', background: 'transparent',
-                border: 'none', outline: 'none', fontSize: '14px', fontWeight: 500, color: '#0F172A',
-                fontFamily: "'Inter', sans-serif", paddingTop: '10px', overflowY: 'auto'
-              }}
-            />
-            <button
-              onClick={toggleListen}
-              disabled={loading}
-              className="btn-press"
-              style={{
-                width: '36px', height: '36px', flexShrink: 0,
-                background: isListening ? '#EF4444' : '#F1F5F9',
-                color: isListening ? 'white' : '#64748B', border: 'none', borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: loading ? 'not-allowed' : 'pointer', marginRight: '8px',
-                transition: 'background 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-              }}
-              title={isListening ? "Stop listening" : "Start speaking"}
-            >
-              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-            </button>
-            <button
-              onClick={() => { sendMessage(null); setInput(''); }}
-              disabled={!input.trim() || loading}
-              className="btn-press"
-              style={{
-                width: '36px', height: '36px', flexShrink: 0,
-                background: (!input.trim() || loading) ? '#CBD5E1' : '#2563EB',
-                color: 'white', border: 'none', borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer',
-                transition: 'background 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-              }}
-            >
-              <Send size={16} style={{ marginLeft: input.trim() ? '2px' : '0' }} />
-            </button>
+        {/* Global Date Filter */}
+        <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E2E8F0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 16 }}>📅</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Analysis Period:</span>
+          </div>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {DATE_PRESETS.map(p => (
+              <button 
+                key={p.value} 
+                onClick={() => applyPreset(p.value)}
+                style={{
+                  padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor: dateRange.preset === p.value ? '#2563EB' : '#E2E8F0',
+                  background: dateRange.preset === p.value ? '#2563EB' : 'transparent',
+                  color: dateRange.preset === p.value ? 'white' : '#64748B',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {dateRange.preset === 'custom' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: 'white', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, width: 'fit-content' }}>
+              <span style={{ fontSize: 13, color: '#64748B' }}>Custom:</span>
+              <input 
+                type="date" 
+                value={dateRange.from} 
+                onChange={e => handleCustomDateChange(e.target.value, dateRange.to)}
+                style={{ background: 'transparent', border: 'none', color: '#0F172A', fontSize: 14, outline: 'none', colorScheme: 'light' }} 
+              />
+              <span style={{ color: '#64748B' }}>to</span>
+              <input 
+                type="date" 
+                value={dateRange.to} 
+                onChange={e => handleCustomDateChange(dateRange.from, e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: '#0F172A', fontSize: 14, outline: 'none', colorScheme: 'light' }} 
+              />
+            </div>
+          )}
+
+          <div style={{ fontSize: 13, color: '#38BDF8', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+            ✓ Showing data for: {dateRange.label}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        
+        {/* ── SECTION 1: AI BUSINESS SNAPSHOT ── */}
+        <div>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 16 }}>AI Business Snapshot</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
+            {kpiCards.map((k, i) => {
+              const Icon = k.icon
+              return (
+                <div key={i} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ background: `${k.color}20`, width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={22} color={k.color} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, color: '#64748B', fontWeight: 500, marginBottom: 4 }}>{k.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>{k.value}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Health Score */}
+          <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ width: 140, height: 140, borderRadius: '50%', border: `8px solid ${getScoreColor(snapshotData?.healthScore || 0)}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <span style={{ fontSize: 36, fontWeight: 800, color: '#1E293B', lineHeight: 1 }}>{snapshotData?.healthScore || 0}</span>
+              <span style={{ fontSize: 14, color: '#64748B', fontWeight: 600, marginTop: 4 }}>/ 100</span>
+              <span style={{ position: 'absolute', bottom: -28, fontSize: 14, fontWeight: 700, color: getScoreColor(snapshotData?.healthScore || 0), textAlign: 'center', width: '100%' }}>
+                {getScoreLabel(snapshotData?.healthScore || 0)}
+              </span>
+            </div>
+            <div style={{ flex: 1, minWidth: 250 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 16px 0', color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                🏥 Business Health Score
+              </h3>
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: 0 }}>
+                {snapshotData?.healthScore >= 70 
+                  ? "Your business is performing well in this period. Maintain inventory levels and focus on timely payment collections to improve further."
+                  : "Your business requires attention in this period. Focus on recovering pending payments and restocking low inventory to improve your score."}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── SECTION 2: AI QUICK ACTIONS ── */}
+        <div>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 16 }}>AI Quick Actions</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            {actionCards.map((a, i) => (
+              <button 
+                key={i} 
+                onClick={() => sendMessage(`Executing action: ${a.title}`, a.key)}
+                disabled={loading}
+                style={{
+                  background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20, textAlign: 'left',
+                  cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', height: '100%'
+                }}
+                onMouseEnter={e => { if(!loading) e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.background = '#F8FAFC' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <span style={{ fontSize: 28 }}>{a.icon}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#0F172A' }}>{a.title}</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#64748B', marginBottom: 16, flex: 1 }}>{a.desc}</div>
+                <div style={{ fontSize: 12, color: '#38BDF8', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  → Click to analyze
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── SECTION 3: SUGGESTED QUESTIONS ── */}
+        <div>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: '#64748B', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ask a specific question</h2>
+          <div style={{ display: 'flex', overflowX: 'auto', gap: 10, paddingBottom: 12, '::-webkit-scrollbar': { height: 4 } }}>
+            {suggestedQuestions.map((q, i) => (
+              <button
+                key={i}
+                onClick={() => sendMessage(q)}
+                disabled={loading}
+                style={{
+                  background: 'white', border: '1px solid #E2E8F0', borderRadius: 99, padding: '8px 16px',
+                  fontSize: 13, color: '#475569', whiteSpace: 'nowrap', cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s', flexShrink: 0
+                }}
+                onMouseEnter={e => { if(!loading) { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.background = '#EFF6FF' } }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'white' }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── SECTION 4: AI CHAT INTERFACE ── */}
+        <div ref={chatRef} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, display: 'flex', flexDirection: 'column', height: 600 }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Sparkles size={18} color="#38BDF8" /> Ask OpsAgent AI
+              </h3>
+              <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>Responses based on your CRM data for selected period</p>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {apiKeyMissing && (
+              <div style={{ background: '#451A03', border: '1px solid #B45309', borderRadius: 8, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <AlertTriangle color="#F59E0B" />
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#FCD34D', fontSize: 14 }}>Groq API Key Required</div>
+                    <div style={{ color: '#FDE68A', fontSize: 13, marginTop: 2 }}>Set your key in Settings to use AI features.</div>
+                  </div>
+                </div>
+                <button onClick={() => onNavigate('settings')} style={{ background: '#D97706', color: 'white', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Go to Settings →</button>
+              </div>
+            )}
+
+            {messages.length === 0 && !apiKeyMissing && (
+              <div style={{ textAlign: 'center', color: '#64748B', marginTop: 100 }}>
+                <Sparkles size={32} opacity={0.3} style={{ marginBottom: 16 }} />
+                <p>No messages yet. Ask a question or select a quick action above.</p>
+              </div>
+            )}
+
+            {messages.map((msg, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    padding: '16px',
+                    background: msg.role === 'user' ? '#2563EB' : 'white',
+                    color: msg.role === 'user' ? 'white' : '#0F172A',
+                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  }}>
+                    {msg.role === 'user' ? (
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>{msg.content}</div>
+                    ) : (
+                      <FormattedAIResponse text={msg.content} />
+                    )}
+                    
+                    {msg.role === 'assistant' && msg.quickActionKey === 'monthlyReport' && (
+                      <button 
+                        onClick={() => exportMonthlyReportPDF(msg.content, msg.dateRange)}
+                        style={{ marginTop: 16, background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <FileText size={16} /> Export PDF
+                      </button>
+                    )}
+
+                    {msg.role === 'assistant' && msg.quickActionKey === 'recommendPO' && (
+                      <button 
+                        onClick={() => handleCreatePOFromAI(msg.lowStockItems)}
+                        style={{ marginTop: 16, background: '#2563EB', border: 'none', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <ShoppingCart size={16} /> Create Purchase Order →
+                      </button>
+                    )}
+                  </div>
+                  
+                  {msg.role === 'assistant' && msg.dateRange && (
+                    <span style={{ fontSize: 11, color: '#64748B', marginTop: 6, marginLeft: 4 }}>Based on: {msg.dateRange}</span>
+                  )}
+                  {msg.role === 'user' && (
+                    <span style={{ fontSize: 11, color: '#64748B', marginTop: 6, marginRight: 4 }}>{msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{ background: 'white', padding: '16px', borderRadius: '16px 16px 16px 4px', display: 'flex', gap: 6 }}>
+                  <div className="dot-bounce-1" style={{ width: 8, height: 8, background: '#94A3B8', borderRadius: '50%' }} />
+                  <div className="dot-bounce-2" style={{ width: 8, height: 8, background: '#94A3B8', borderRadius: '50%' }} />
+                  <div className="dot-bounce-3" style={{ width: 8, height: 8, background: '#94A3B8', borderRadius: '50%' }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: 20, borderTop: '1px solid #E2E8F0', background: '#F8FAFC', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+            <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 99, display: 'flex', alignItems: 'center', padding: '6px 6px 6px 20px' }}>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+                disabled={loading || apiKeyMissing}
+                placeholder="Type your question..."
+                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#0F172A', fontSize: 14 }}
+              />
+              <button
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim() || loading || apiKeyMissing}
+                style={{
+                  width: 40, height: 40, borderRadius: '50%', background: (!input.trim() || loading || apiKeyMissing) ? '#CBD5E1' : '#2563EB',
+                  color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!input.trim() || loading || apiKeyMissing) ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                <Send size={18} style={{ marginLeft: 2 }} />
+              </button>
+            </div>
           </div>
         </div>
 

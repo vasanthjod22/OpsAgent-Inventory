@@ -70,7 +70,7 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px', maxWidth: '768px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
       
       <div>
         <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', fontFamily: "'Inter', sans-serif" }}>System Settings</h2>

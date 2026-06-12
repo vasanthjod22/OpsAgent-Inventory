@@ -259,7 +259,7 @@ router.post('/executive-summary', auth, async (req, res) => {
       .reduce((s, b) => s + (b.grand_total || b.grandTotal || 0), 0)
 
     const lowStockItems = (inventory||[])
-      .filter(i => i.qty < i.min)
+      .filter(i => i.qty <= i.min)
       .map(i => i.name)
 
     const topCustomers = Object.entries(

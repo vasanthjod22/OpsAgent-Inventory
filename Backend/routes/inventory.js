@@ -9,21 +9,27 @@ const router = express.Router();
 // GET /api/inventory/categories
 router.get('/categories', auth, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data: catData, error: catErr } = await supabase
       .from('categories')
       .select('name')
       .eq('user_id', req.user.id)
 
-    if (error) {
-      // Fallback to inventory distinct if table doesn't exist yet
-      const { data: invData, error: invErr } = await supabase.from('inventory').select('category').eq('user_id', req.user.id).not('category', 'is', null)
-      if (invErr) throw invErr
-      const cats = [...new Set(invData.map(item => item.category).filter(Boolean))].sort()
-      return res.json({ categories: cats })
-    }
+    if (catErr && catErr.code !== '42P01') throw catErr // Ignore if table doesn't exist yet
 
-    const categories = data.map(c => c.name).sort()
-    res.json({ categories })
+    const { data: invData, error: invErr } = await supabase
+      .from('inventory')
+      .select('category')
+      .eq('user_id', req.user.id)
+      .not('category', 'is', null)
+
+    if (invErr) throw invErr
+
+    const cats = [...new Set([
+      ...(catData || []).map(c => c.name),
+      ...invData.map(item => item.category).filter(Boolean)
+    ])].sort()
+
+    res.json({ categories: cats })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -49,12 +55,63 @@ router.post('/categories', auth, async (req, res) => {
   }
 })
 
+// GET /api/inventory/units
+router.get('/units', auth, async (req, res) => {
+  try {
+    const { data: unitData, error: unitErr } = await supabase
+      .from('units')
+      .select('name')
+      .eq('user_id', req.user.id)
+
+    if (unitErr && unitErr.code !== '42P01') throw unitErr // Ignore if table doesn't exist yet
+
+    const { data: invData, error: invErr } = await supabase
+      .from('inventory')
+      .select('unit')
+      .eq('user_id', req.user.id)
+      .not('unit', 'is', null)
+
+    if (invErr) throw invErr
+
+    const baseUnits = ['Nos', 'Kg', 'Ltrs', 'Set', 'Metre', 'Sqft']
+    const units = [...new Set([
+      ...baseUnits,
+      ...(unitData || []).map(u => u.name),
+      ...invData.map(item => item.unit).filter(Boolean)
+    ])].sort()
+
+    res.json({ units })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/inventory/units
+router.post('/units', auth, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    
+    const { data, error } = await supabase
+      .from('units')
+      .insert([{ user_id: req.user.id, name: name.trim() }])
+      .select()
+      .single();
+
+    if (error && error.code !== '23505') throw error;
+
+    res.status(201).json(data || { name: name.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/inventory/stats
 router.get('/stats', auth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('inventory')
-      .select('qty, min, max, rate')
+      .select('qty, min, max, rate, gst')
       .eq('user_id', req.user.id)
 
     if (error) throw error
@@ -64,7 +121,7 @@ router.get('/stats', auth, async (req, res) => {
       lowStock: data.filter(i => i.qty <= i.min && i.qty > 0).length,
       outOfStock: data.filter(i => i.qty === 0).length,
       overstock: data.filter(i => i.qty > i.max).length,
-      totalValue: data.reduce((sum, i) => sum + (i.qty * (i.rate || 0)), 0)
+      totalValue: data.reduce((sum, i) => sum + (i.qty * (i.rate || 0) * (1 + (i.gst || 0) / 100)), 0)
     }
 
     res.json(stats)
@@ -189,6 +246,8 @@ router.post('/', auth, async (req, res) => {
     min: Number(min) || 0, max: Number(max) || 0,
     rate: Number(req.body.rate) || 0,
     gst: Number(req.body.gst) || 0,
+    total_qty: req.body.total_qty !== undefined ? Number(req.body.total_qty) : Number(qty),
+    cost_price: Number(req.body.cost_price) || 0,
     date_added: req.body.date_added || today,
     restock_source: req.body.restock_source || 'manual'
   };
@@ -196,7 +255,8 @@ router.post('/', auth, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   
-  await supabase.from('categories').insert([{ user_id: req.user.id, name: category }]);
+  await supabase.from('categories').insert([{ user_id: req.user.id, name: category }]).catch(() => {});
+  await supabase.from('units').insert([{ user_id: req.user.id, name: unit }]).catch(() => {});
   
   res.status(201).json(inserted);
 });
@@ -226,7 +286,10 @@ router.put('/:id', auth, async (req, res) => {
   }
 
   if (req.body.category) {
-    await supabase.from('categories').insert([{ user_id: req.user.id, name: req.body.category }]);
+    await supabase.from('categories').insert([{ user_id: req.user.id, name: req.body.category }]).catch(() => {});
+  }
+  if (req.body.unit) {
+    await supabase.from('units').insert([{ user_id: req.user.id, name: req.body.unit }]).catch(() => {});
   }
 
   res.json(updated);
@@ -239,9 +302,14 @@ router.patch('/:id/stock', auth, async (req, res) => {
   if (fetchErr || !item) return res.status(404).json({ error: 'Item not found' });
 
   const newQty = Math.max(0, item.qty + Number(delta));
+  let newTotalQty = item.total_qty ?? item.qty;
+  if (Number(delta) > 0) {
+    newTotalQty += Number(delta);
+  }
+
   const { data: updated, error: updateErr } = await supabase
     .from('inventory')
-    .update({ qty: newQty })
+    .update({ qty: newQty, total_qty: newTotalQty })
     .eq('user_id', req.user.id)
     .eq('id', req.params.id)
     .select()
@@ -286,7 +354,7 @@ router.post('/import', auth, async (req, res) => {
     if (!item.hsn) {
       skipped.push('(no hsn)');
     } else {
-      const newItem = { user_id: req.user.id, hsn: item.hsn, name: item.name || '', category: item.category || 'General', qty: Number(item.qty) || 0, unit: item.unit || 'Nos', min: Number(item.min) || 0, max: Number(item.max) || 0, rate: Number(item.rate) || 0, gst: Number(item.gst) || 0 };
+      const newItem = { user_id: req.user.id, hsn: item.hsn, name: item.name || '', category: item.category || 'General', qty: Number(item.qty) || 0, unit: item.unit || 'Nos', min: Number(item.min) || 0, max: Number(item.max) || 0, rate: Number(item.rate) || 0, gst: Number(item.gst) || 0, total_qty: item.total_qty !== undefined ? Number(item.total_qty) : Number(item.qty), cost_price: Number(item.cost_price) || 0 };
       toInsert.push(newItem);
       added.push(newItem);
     }

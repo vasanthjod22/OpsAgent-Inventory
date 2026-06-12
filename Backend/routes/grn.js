@@ -44,11 +44,7 @@ router.post('/', auth, async (req, res) => {
     return res.status(400).json({ error: 'supplier and items are required' });
   }
 
-  const { count, error: countErr } = await supabase.from('grn').select('*', { count: 'exact', head: true }).eq('user_id', req.user.id);
-  if (countErr) return res.status(500).json({ error: countErr.message });
-
-  const next = (count || 0) + 1;
-  const grnId = `GRN-${1000 + next}`;
+  const grnId = `GRN-${uuidv4().split('-')[0].toUpperCase()}`;
 
   let inventoryUpdated = false;
   let status = 'Pending';
@@ -89,9 +85,11 @@ router.post('/', auth, async (req, res) => {
         if (invMatch) {
           // Update existing item - Only update qty and rate, do NOT affect other properties
           const newQty = (Number(invMatch.qty) || 0) + (Number(item.quantity) || 0);
-          const updates = { qty: newQty, last_restocked: today, restock_source: grnId };
+          const updates = { qty: newQty, last_restocked: parseDate(date) || today, restock_source: grnId };
           
-          if (item.unit_price) updates.rate = Number(item.unit_price);
+          if (item.unit_price !== undefined && item.unit_price !== null && item.unit_price !== '') {
+            updates.rate = Number(item.unit_price);
+          }
 
           await supabase.from('inventory').update(updates).eq('user_id', req.user.id).eq('id', invMatch.id);
         } else {
@@ -107,7 +105,7 @@ router.post('/', auth, async (req, res) => {
             min: Number(item.min) || 0,
             max: Number(item.max) || 0,
             date_added: today,
-            last_restocked: today,
+            last_restocked: parseDate(date) || today,
             restock_source: grnId
           }]);
         }

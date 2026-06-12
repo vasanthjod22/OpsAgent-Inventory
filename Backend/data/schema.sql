@@ -22,13 +22,15 @@ CREATE TABLE IF NOT EXISTS inventory (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   hsn TEXT NOT NULL,
   name TEXT NOT NULL,
-  category TEXT DEFAULT 'Uncategorized',
+  category TEXT DEFAULT 'Steel Bars',
   qty NUMERIC DEFAULT 0,
   unit TEXT DEFAULT 'Nos',
   min NUMERIC DEFAULT 0,
   max NUMERIC DEFAULT 0,
   rate NUMERIC DEFAULT 0,
   gst NUMERIC DEFAULT 0,
+  total_qty NUMERIC DEFAULT 0,
+  cost_price NUMERIC DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

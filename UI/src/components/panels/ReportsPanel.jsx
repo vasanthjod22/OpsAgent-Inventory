@@ -2,14 +2,22 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   BarChart2, Calendar, Download, TrendingUp, AlertCircle,
   Package, Receipt, Users, FileText, CheckCircle, FileCheck,
-  RefreshCw, Copy, Archive, Grid, ChevronDown, ChevronRight
+  RefreshCw, Copy, Archive, Grid, ChevronDown, ChevronRight,
+  Activity, Search, ArrowLeft, ArrowRight, DollarSign, ShoppingCart
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import FormattedAIResponse from '../ui/FormattedAIResponse'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
-
+import SalesReport from './SalesReport'
+import FinanceReport from './FinanceReport'
+import InventoryReport from './InventoryReport'
+import PurchaseReport from './PurchaseReport'
+import CustomerReport from './CustomerReport'
+import ProductReport from './ProductReport'
+import BillingReport from './BillingReport'
+import DemandAnalysis from './DemandAnalysis'
 /* ─── Helpers ─────────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => {
@@ -70,6 +78,19 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
   const [reportHistory, setReportHistory] = useState([])
   const [companySettings, setCompanySettings] = useState({})
   const [categories, setCategories] = useState([])
+  const [activeReport, setActiveReport] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const REPORT_CARDS = [
+    { id: 'sales_report', title: 'Sales Report', icon: TrendingUp, desc: 'Daily, weekly and monthly sales performance with trends', tags: ['Charts', 'Export', 'Filters'], color: '#16A34A' },
+    { id: 'finance_report', title: 'Finance Report', icon: DollarSign, desc: 'Revenue, expenses, profit and loss analysis', tags: ['P&L', 'Export', 'Charts'], color: '#2563EB' },
+    { id: 'inventory_report', title: 'Inventory Report', icon: Package, desc: 'Stock levels, low stock, dead stock and category analysis', tags: ['Stock', 'Categories'], color: '#7C3AED' },
+    { id: 'purchase_report', title: 'Purchase Report', icon: ShoppingCart, desc: 'Purchase orders, supplier analysis and procurement trends', tags: ['POs', 'Suppliers'], color: '#EA580C' },
+    { id: 'customer_report', title: 'Customer Report', icon: Users, desc: 'Customer performance, dues, and purchase history', tags: ['CRM', 'Outstanding'], color: '#0891B2' },
+    { id: 'product_report', title: 'Product Report', icon: BarChart2, desc: 'Product performance, profitability and sales ranking', tags: ['Products', 'Profit'], color: '#4F46E5' },
+    { id: 'billing_report', title: 'Billing Report', icon: Receipt, desc: 'Invoice summary, GST collected and payment analysis', tags: ['GST', 'Invoices'], color: '#DB2777' },
+    { id: 'demand_report', title: 'Demand Analysis', icon: Activity, desc: 'Product demand trends, fast and slow moving items', tags: ['Demand', 'Trends'], color: '#D97706' },
+  ]
 
   // Load categories for category filter
   useEffect(() => {
@@ -182,7 +203,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
       doc.text(`Total Stock Value (Est): ${fmt(totalValue)}`, 14, yPos)
       yPos += 12
 
-      const invData = inventory.map(i => [i.hsn, i.name, i.qty, i.qty < i.min ? 'Low' : 'OK'])
+      const invData = inventory.map(i => [i.hsn, i.name, i.qty, i.qty <= i.min ? 'Low' : 'OK'])
       doc.autoTable({
         startY: yPos,
         head: [['HSN', 'Item', 'Qty', 'Status']],
@@ -291,10 +312,10 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
       case 'inventory': 
         return {
           totalValue: Math.round(inventory.reduce((s, i) => s + ((Number(i.qty)||0) * (Number(i.rate)||0)), 0)),
-          lowStockCount: inventory.filter(i => i.qty < i.min).length,
+          lowStockCount: inventory.filter(i => i.qty <= i.min).length,
           totalItems: inventory.length,
           topItemsByValue: [...inventory].sort((a,b) => (b.qty * (b.rate||0)) - (a.qty * (a.rate||0))).slice(0, 10),
-          lowStockItems: inventory.filter(i => i.qty < i.min).slice(0, 10)
+          lowStockItems: inventory.filter(i => i.qty <= i.min).slice(0, 10)
         }
       case 'gst': 
         let totCgst = 0, totSgst = 0
@@ -605,9 +626,9 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.totalItems}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.totalQty}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>{fmt(cat.totalValue)}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>{fmt(cat.totalValue)}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.soldQty}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>{fmt(cat.revenue)}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>{fmt(cat.revenue)}</div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: status.bg, color: status.color, whiteSpace: 'nowrap' }}>{status.label}</span>
                         </div>
@@ -631,7 +652,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
                                   <div style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{item.name}</div>
                                   <div style={{ fontSize: 13, fontWeight: 600, color: iCol }}>{qty} {item.unit}</div>
                                   <div style={{ fontSize: 13, color: '#64748B' }}>{fmt(rate)}</div>
-                                  <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>{fmt(qty * rate)}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>{fmt(qty * rate)}</div>
                                   <div style={{ fontSize: 13, color: '#64748B' }}>{min} {item.unit}</div>
                                   <div style={{ fontSize: 11, fontWeight: 600, color: iCol }}>{iStatus}</div>
                                 </div>
@@ -667,7 +688,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-          <StatCard icon={TrendingUp} label="Total Revenue (Paid)" value={fmt(revPaid)} color="#059669" bg="#F0FDF4" subtext="Current period" />
+          <StatCard icon={TrendingUp} label="Total Revenue (Paid)" value={fmt(revPaid)} color="#1D4ED8" bg="#F0FDF4" subtext="Current period" />
           <StatCard icon={FileText} label="Total Bills" value={fBills.length} color="#2563EB" bg="#EFF6FF" subtext={`Avg: ${fBills.length ? fmt(revPaid/fBills.length) : '₹0'} per bill`} />
           <StatCard icon={FileCheck} label="Quotations" value={fQuotes.length} color="#7C3AED" bg="#F5F3FF" subtext="Quotes sent" />
           <StatCard icon={AlertCircle} label="Outstanding" value={fmt(outstanding)} color="#DC2626" bg="#FEF2F2" subtext="Unpaid bills" />
@@ -689,7 +710,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
                 {topCust.map((c, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '8px 4px', fontWeight: 600, color: '#334155' }}>{c.name}</td>
-                    <td style={{ padding: '8px 4px', textAlign: 'right', color: '#059669', fontWeight: 600 }}>{fmt(c.totalPurchases)}</td>
+                    <td style={{ padding: '8px 4px', textAlign: 'right', color: '#1D4ED8', fontWeight: 600 }}>{fmt(c.totalPurchases)}</td>
                     <td style={{ padding: '8px 4px', textAlign: 'right', color: c.outstanding > 0 ? '#DC2626' : '#94A3B8' }}>{fmt(c.outstanding)}</td>
                   </tr>
                 ))}
@@ -721,7 +742,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <StatCard icon={Receipt} label="Total CGST Collected" value={fmt(totCgst)} color="#2563EB" bg="#EFF6FF" />
           <StatCard icon={Receipt} label="Total SGST Collected" value={fmt(totSgst)} color="#7C3AED" bg="#F5F3FF" />
-          <StatCard icon={TrendingUp} label="Total Tax Collected" value={fmt(totCgst + totSgst)} color="#059669" bg="#F0FDF4" />
+          <StatCard icon={TrendingUp} label="Total Tax Collected" value={fmt(totCgst + totSgst)} color="#1D4ED8" bg="#F0FDF4" />
         </div>
         <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Tax Breakdown by Bill</h3>
@@ -793,7 +814,7 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
                       {(c.tags || []).map((t, i) => <span key={i} style={{ fontSize: 10, padding: '2px 6px', background: '#F1F5F9', borderRadius: 4 }}>{t}</span>)}
                     </div>
                   </td>
-                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>{fmt(c.totalPurchases)}</td>
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#1D4ED8' }}>{fmt(c.totalPurchases)}</td>
                   <td style={{ padding: '10px', textAlign: 'right', color: c.outstanding > 0 ? '#DC2626' : '#94A3B8' }}>{fmt(c.outstanding)}</td>
                 </tr>
               ))}
@@ -813,76 +834,140 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
     { id: 'customers', label: 'Customers', icon: Users },
   ]
 
+  const filteredCards = REPORT_CARDS.filter(c => 
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
+
+  if (activeReport === 'sales_report') {
+    return <SalesReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'finance_report') {
+    return <FinanceReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'inventory_report') {
+    return <InventoryReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'purchase_report') {
+    return <PurchaseReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'customer_report') {
+    return <CustomerReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'product_report') {
+    return <ProductReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'billing_report') {
+    return <BillingReport onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport === 'demand_report') {
+    return <DemandAnalysis onBack={() => setActiveReport(null)} />
+  }
+
+  if (activeReport) {
+    const reportData = REPORT_CARDS.find(c => c.id === activeReport)
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', paddingBottom: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'white', padding: '16px 24px', borderRadius: 14, border: '1px solid #E2E8F0' }}>
+          <button onClick={() => setActiveReport(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: '#64748B', fontSize: 14, fontWeight: 600 }}>
+            <ArrowLeft size={18} /> Back to Reports
+          </button>
+          <div style={{ width: 1, height: 24, background: '#E2E8F0' }} />
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>{reportData?.title}</h2>
+        </div>
+        <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: 40, textAlign: 'center', color: '#64748B' }}>
+          <reportData.icon size={48} color={reportData.color} style={{ opacity: 0.2, marginBottom: 16 }} />
+          <h3>{reportData.title} is under construction</h3>
+          <p>This report will be implemented in the next phase.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', paddingBottom: 40 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '16px 24px', borderRadius: 14, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, height: '100%', paddingBottom: 40 }}>
+      {/* ── HEADER & SEARCH ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '24px', borderRadius: 14, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>Reports</h2>
-          <p style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>Generate and export business intelligence reports</p>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: '0 0 4px' }}>Reports</h2>
+          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>Select a report to view detailed analytics</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={period} onChange={e => setPeriod(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outline: 'none' }}>
-            <option value="this_week">This Week</option>
-            <option value="this_month">This Month</option>
-            <option value="this_quarter">This Quarter</option>
-            <option value="this_year">This Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
-          {period === 'custom' && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#F8FAFC', padding: 4, borderRadius: 8, border: '1px solid #E2E8F0' }}>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding: '4px 8px', border: 'none', background: 'none', outline: 'none', fontSize: 12 }} />
-              <span style={{ color: '#94A3B8' }}>to</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding: '4px 8px', border: 'none', background: 'none', outline: 'none', fontSize: 12 }} />
+        <div style={{ position: 'relative', width: 300 }}>
+          <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <input 
+            type="text" 
+            placeholder="Search reports..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, outline: 'none' }}
+          />
+        </div>
+      </div>
+
+      {/* ── REPORTS GRID ── */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+        gap: 16 
+      }}>
+        {filteredCards.map(card => {
+          const Icon = card.icon
+          return (
+            <div 
+              key={card.id}
+              onClick={() => setActiveReport(card.id)}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                e.currentTarget.style.borderColor = '#BFDBFE'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'none'
+                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.borderColor = '#E2E8F0'
+              }}
+              style={{
+                background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20,
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: `${card.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={22} color={card.color} />
+                </div>
+                <div style={{ paddingTop: 2 }}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{card.title}</h3>
+                </div>
+              </div>
+              <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748B', lineHeight: 1.5, flex: 1 }}>{card.desc}</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                {card.tags.map(t => (
+                  <span key={t} style={{ fontSize: 11, fontWeight: 500, color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: 4 }}>
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#2563EB', display: 'flex', alignItems: 'center', gap: 4 }}>
+                View Report <ArrowRight size={14} />
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: activeTab === id ? '#2563EB' : '#64748B', borderBottom: activeTab === id ? '2px solid #2563EB' : '2px solid transparent', transition: 'all 0.15s' }}>
-              <Icon size={14} />{label}
-            </button>
-          ))}
-        </div>
-        
-        <div style={{ minHeight: 400 }}>
-          {activeTab === 'sales' && <SalesTab />}
-          {activeTab === 'inventory' && <InventoryTab />}
-          {activeTab === 'gst' && <GstTab />}
-          {activeTab === 'customers' && <CustomersTab />}
-        </div>
-      </div>
-
-      {/* History */}
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Report History</h3>
-        {reportHistory.length === 0 ? <p style={{ fontSize: 13, color: '#94A3B8' }}>No reports generated yet</p> : (
-          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ textAlign: 'left', padding: '10px' }}>Report ID</th>
-                <th style={{ textAlign: 'left', padding: '10px' }}>Type</th>
-                <th style={{ textAlign: 'left', padding: '10px' }}>Period</th>
-                <th style={{ textAlign: 'left', padding: '10px' }}>Generated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportHistory.map((r, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '10px', fontWeight: 600, color: '#2563EB' }}>{r.report_id}</td>
-                  <td style={{ padding: '10px', textTransform: 'capitalize' }}>{r.report_type}</td>
-                  <td style={{ padding: '10px', color: '#64748B' }}>{fmtDate(r.period_from)} - {fmtDate(r.period_to)}</td>
-                  <td style={{ padding: '10px', color: '#64748B' }}>{fmtDate(r.generated_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          )
+        })}
+        {filteredCards.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: '#64748B', background: 'white', borderRadius: 12, border: '1px dashed #CBD5E1' }}>
+            No reports found matching "{searchQuery}"
+          </div>
         )}
       </div>
+
     </div>
   )
 }

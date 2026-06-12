@@ -27,6 +27,7 @@ const formatBill = (b) => ({
   terms: b.terms,
   inventoryUpdated: b.inventory_updated,
   transportDetails: b.transport_details || null,
+  paymentMethod: b.payment_method || 'Cash',
   createdAt: b.created_at
 });
 
@@ -42,7 +43,7 @@ router.get('/', auth, async (req, res) => {
 
 // POST /api/bills — create bill, deduct inventory stock
 router.post('/', auth, async (req, res) => {
-  const { customerName, customerPhone, customerAddress, items, subtotal, discount, grandTotal, paymentStatus, amountPaid, balanceDue, notes, includeTerms, terms, date, updateInventory } = req.body;
+  const { customerName, customerPhone, customerAddress, items, subtotal, discount, grandTotal, paymentStatus, paymentMethod, amountPaid, balanceDue, notes, includeTerms, terms, date, updateInventory } = req.body;
 
   if (!customerName || !items || items.length === 0) {
     return res.status(400).json({ error: 'customerName and items are required' });
@@ -84,6 +85,7 @@ router.post('/', auth, async (req, res) => {
     discount: discount || 0,
     grand_total: grandTotal || 0,
     payment_status: paymentStatus || 'Unpaid',
+    payment_method: paymentMethod || 'Cash',
     amount_paid: amountPaid || null,
     balance_due: balanceDue || null,
     notes: notes || '',
@@ -167,7 +169,7 @@ router.delete('/:id', auth, async (req, res) => {
 
 // PUT /api/bills/:id — edit bill
 router.put('/:id', auth, async (req, res) => {
-  const { customerName, customerPhone, customerAddress, items, subtotal, discount, grandTotal, paymentStatus, amountPaid, balanceDue, notes, includeTerms, terms, date, updateInventory } = req.body;
+  const { customerName, customerPhone, customerAddress, items, subtotal, discount, grandTotal, paymentStatus, paymentMethod, amountPaid, balanceDue, notes, includeTerms, terms, date, updateInventory } = req.body;
 
   if (!customerName || !items || items.length === 0) {
     return res.status(400).json({ error: 'customerName and items are required' });
@@ -215,6 +217,7 @@ router.put('/:id', auth, async (req, res) => {
     discount: discount || 0,
     grand_total: grandTotal || 0,
     payment_status: paymentStatus || 'Unpaid',
+    payment_method: paymentMethod || 'Cash',
     amount_paid: amountPaid || null,
     balance_due: balanceDue || null,
     notes: notes || '',

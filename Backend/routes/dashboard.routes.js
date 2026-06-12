@@ -1,6 +1,7 @@
 const express = require('express');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
+const { AnalyticsService } = require('../services/analytics.service');
 
 const router = express.Router();
 
@@ -12,141 +13,42 @@ router.get('/kpis', auth, async (req, res) => {
     const yesterdayStr = new Date(today.getTime() - 86400000).toISOString().split('T')[0];
     const weekAgoStr = new Date(today.getTime() - 7 * 86400000).toISOString().split('T')[0];
 
-    // TODAY'S SALES
-    const { data: todayBills } = await supabase
+    const todayMetrics = await AnalyticsService.getCoreMetrics(userId, todayStr, todayStr);
+    const yesterdayMetrics = await AnalyticsService.getCoreMetrics(userId, yesterdayStr, yesterdayStr);
+    const outstanding = await AnalyticsService.getOutstandingReceivables(userId);
+    const inventoryStatus = await AnalyticsService.getInventoryStatus(userId);
+    const customerMetrics = await AnalyticsService.getCustomerMetrics(userId, `${weekAgoStr}T00:00:00`, new Date().toISOString());
+    const purchaseMetrics = await AnalyticsService.getPurchaseMetrics(userId, todayStr, todayStr);
+
+    const { data: allPaidBills } = await supabase
       .from('bills')
-      .select('grand_total, payment_status, date')
+      .select('grand_total')
       .eq('user_id', userId)
-      .eq('date', todayStr);
+      .eq('payment_status', 'Paid');
 
-    const todaySales = todayBills
-      ?.filter(b => b.payment_status === 'Paid')
-      .reduce((s, b) => s + Number(b.grand_total || 0), 0) || 0;
-
-    const todayOrders = todayBills?.length || 0;
-
-    // YESTERDAY COMPARISON
-    const { data: yesterdayBills } = await supabase
-      .from('bills')
-      .select('grand_total, payment_status, date')
-      .eq('user_id', userId)
-      .eq('date', yesterdayStr);
-
-    const yesterdaySales = yesterdayBills
-      ?.filter(b => b.payment_status === 'Paid')
-      .reduce((s, b) => s + Number(b.grand_total || 0), 0) || 0;
-
-    // TODAY'S PROFIT
-    // Profit = SUM(amount - (cost_price * quantity)) for Paid bills today
-    // To do this perfectly we need bill items and inventory cost price. 
-    // The user's prompt says: "Sum of (bill_items.amount - inventory.cost_price × qty)".
-    // Let's do a simplified calculation based on items in todayBills if we fetch them.
-    const { data: todayBillsWithItems } = await supabase
-      .from('bills')
-      .select('items, payment_status, date')
-      .eq('user_id', userId)
-      .eq('payment_status', 'Paid')
-      .eq('date', todayStr);
-
-    const { data: inventoryData } = await supabase
-      .from('inventory')
-      .select('name, sku, cost_price')
-      .eq('user_id', userId);
-
-    let todayProfit = 0;
-    todayBillsWithItems?.forEach(b => {
-      (b.items || []).forEach(item => {
-        const invItem = inventoryData?.find(i => (i.name?.toLowerCase() === item.description?.toLowerCase()) || (i.sku === item.sku));
-        const costPrice = invItem?.cost_price || 0;
-        const revenue = Number(item.amount || 0);
-        const qty = Number(item.quantity || 0);
-        todayProfit += (revenue - (costPrice * qty));
-      });
-    });
-
-    let yesterdayProfit = 0;
-    const { data: yesterdayBillsWithItems } = await supabase
-      .from('bills')
-      .select('items, payment_status, date')
-      .eq('user_id', userId)
-      .eq('payment_status', 'Paid')
-      .eq('date', yesterdayStr);
-
-    yesterdayBillsWithItems?.forEach(b => {
-      (b.items || []).forEach(item => {
-        const invItem = inventoryData?.find(i => (i.name?.toLowerCase() === item.description?.toLowerCase()) || (i.sku === item.sku));
-        const costPrice = invItem?.cost_price || 0;
-        const revenue = Number(item.amount || 0);
-        const qty = Number(item.quantity || 0);
-        yesterdayProfit += (revenue - (costPrice * qty));
-      });
-    });
-
-    // PENDING BILLS
-    const { data: pendingBillsData } = await supabase
-      .from('bills')
-      .select('grand_total, balance_due, payment_status')
-      .eq('user_id', userId)
-      .neq('payment_status', 'Paid');
-
-    const pendingBillsCount = pendingBillsData?.length || 0;
-    const pendingBillsAmount = pendingBillsData?.reduce((s, b) => s + Number(b.balance_due || b.grand_total || 0), 0) || 0;
-
-    // PENDING POs
-    const { count: pendingPOs } = await supabase
-      .from('purchase_orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .not('status', 'in', '("Fully Received","Cancelled")');
-
-    // LOW STOCK
-    const { data: lowStockInventory } = await supabase
-      .from('inventory')
-      .select('qty, min')
-      .eq('user_id', userId);
-
-    const lowStock = lowStockInventory?.filter(i => (i.qty || 0) < (i.min || 0)).length || 0;
-
-    // CUSTOMER DUE (Outstanding receivables)
-    const { data: unpaidBills } = await supabase
-      .from('bills')
-      .select('grand_total, balance_due')
-      .eq('user_id', userId)
-      .in('payment_status', ['Unpaid', 'Partial']);
-
-    const customerDue = unpaidBills?.reduce((s, b) => s + Number(b.balance_due || b.grand_total || 0), 0) || 0;
-
-    // TOTAL CUSTOMERS
-    const { count: totalCustomers } = await supabase
-      .from('customers')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    const { count: newCustomers } = await supabase
-      .from('customers')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', `${weekAgoStr}T00:00:00`);
+    const totalSalesAllTime = allPaidBills?.reduce((s, b) => s + Number(b.grand_total || 0), 0) || 0;
 
     res.json({
       success: true,
-      todaySales,
-      todaySalesChange: yesterdaySales > 0 ? ((todaySales - yesterdaySales) / yesterdaySales) * 100 : 0,
-      todayProfit,
-      todayProfitChange: yesterdayProfit > 0 ? ((todayProfit - yesterdayProfit) / yesterdayProfit) * 100 : 0,
-      todayOrders,
-      todayOrdersChange: (yesterdayBills?.length || 0) > 0 ? ((todayOrders - (yesterdayBills?.length || 0)) / (yesterdayBills?.length || 1)) * 100 : 0,
+      todaySales: todayMetrics.totalRevenue,
+      todaySalesChange: yesterdayMetrics.totalRevenue > 0 ? ((todayMetrics.totalRevenue - yesterdayMetrics.totalRevenue) / yesterdayMetrics.totalRevenue) * 100 : 0,
+      todayProfit: todayMetrics.grossProfit,
+      todayProfitChange: yesterdayMetrics.grossProfit > 0 ? ((todayMetrics.grossProfit - yesterdayMetrics.grossProfit) / yesterdayMetrics.grossProfit) * 100 : 0,
+      todayOrders: todayMetrics.totalOrders,
+      todayOrdersChange: yesterdayMetrics.totalOrders > 0 ? ((todayMetrics.totalOrders - yesterdayMetrics.totalOrders) / yesterdayMetrics.totalOrders) * 100 : 0,
       pendingBills: {
-        count: pendingBillsCount,
-        amount: pendingBillsAmount
+        count: outstanding.pendingBillsCount,
+        amount: outstanding.totalOutstanding
       },
-      pendingPOs: pendingPOs || 0,
-      lowStock,
-      customerDue,
-      totalCustomers: totalCustomers || 0,
-      newCustomersThisWeek: newCustomers || 0
+      pendingPOs: purchaseMetrics.pendingPOsCount,
+      lowStock: inventoryStatus.lowStockCount,
+      customerDue: outstanding.totalOutstanding,
+      totalCustomers: customerMetrics.totalCustomers,
+      newCustomersThisWeek: customerMetrics.newCustomers,
+      totalSalesAllTime
     });
   } catch (err) {
+    console.error('Dashboard KPIs Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -158,33 +60,20 @@ router.get('/sales-trend', auth, async (req, res) => {
     const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
     const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
 
-    const { data: bills } = await supabase
-      .from('bills')
-      .select('grand_total, date, payment_status')
-      .eq('user_id', req.user.id)
-      .gte('date', fromDate)
-      .lte('date', toDate)
-      .order('date');
+    const metrics = await AnalyticsService.getCoreMetrics(req.user.id, fromDate, toDate);
 
-    // Group by date
-    const grouped = {};
-    bills?.forEach(bill => {
-      const dateObj = new Date(bill.date || bill.created_at || new Date());
-      // Format to "DD MMM"
-      const date = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-      if (!grouped[date]) {
-        grouped[date] = { date, sales: 0, orders: 0, _sort: dateObj.getTime() };
-      }
-      grouped[date].orders++;
-      if (bill.payment_status === 'Paid') {
-        grouped[date].sales += Number(bill.grand_total || 0);
-      }
-    });
-
-    const dataArray = Object.values(grouped).sort((a, b) => a._sort - b._sort).map(d => {
-      delete d._sort;
-      return d;
-    });
+    const dataArray = Object.values(metrics.dateMap)
+      .map(d => ({
+        date: new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }),
+        sales: d.revenue,
+        orders: d.orders,
+        _sort: new Date(d.date).getTime()
+      }))
+      .sort((a, b) => a._sort - b._sort)
+      .map(d => {
+        delete d._sort;
+        return d;
+      });
 
     res.json({ success: true, data: dataArray });
   } catch (err) {
@@ -194,43 +83,14 @@ router.get('/sales-trend', auth, async (req, res) => {
 
 router.get('/sales-by-category', auth, async (req, res) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, category: reqCategory } = req.query;
 
     const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
     const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
 
-    const { data: bills } = await supabase
-      .from('bills')
-      .select('items, payment_status, date')
-      .eq('user_id', req.user.id)
-      .eq('payment_status', 'Paid')
-      .gte('date', fromDate)
-      .lte('date', toDate);
+    const metrics = await AnalyticsService.getCoreMetrics(req.user.id, fromDate, toDate, reqCategory);
 
-    const { data: inventory } = await supabase
-      .from('inventory')
-      .select('name, sku, category')
-      .eq('user_id', req.user.id);
-
-    const categoryMap = {};
-
-    bills?.forEach(bill => {
-      (bill.items || []).forEach(item => {
-        const invItem = inventory?.find(i =>
-          i.name?.toLowerCase() === item.description?.toLowerCase() ||
-          (i.sku && i.sku === item.inventorySku)
-        );
-        const category = invItem?.category || 'Other';
-
-        if (!categoryMap[category]) {
-          categoryMap[category] = { category, revenue: 0, qty: 0 };
-        }
-        categoryMap[category].revenue += Number(item.amount || 0);
-        categoryMap[category].qty += Number(item.quantity || 0);
-      });
-    });
-
-    const result = Object.values(categoryMap)
+    const result = Object.values(metrics.categoryMap)
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 8);
 
@@ -242,37 +102,20 @@ router.get('/sales-by-category', auth, async (req, res) => {
 
 router.get('/top-products', auth, async (req, res) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, category } = req.query;
 
     const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
     const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
 
-    const { data: bills } = await supabase
-      .from('bills')
-      .select('items')
-      .eq('user_id', req.user.id)
-      .eq('payment_status', 'Paid')
-      .gte('date', fromDate)
-      .lte('date', toDate);
+    const metrics = await AnalyticsService.getCoreMetrics(req.user.id, fromDate, toDate, category);
 
-    const productMap = {};
-    bills?.forEach(bill => {
-      (bill.items || []).forEach(item => {
-        const name = item.description || 'Unknown';
-        if (!productMap[name]) {
-          productMap[name] = {
-            name: name.length > 20 ? name.substring(0, 20) + '...' : name,
-            fullName: name,
-            revenue: 0,
-            qty: 0
-          };
-        }
-        productMap[name].revenue += Number(item.amount || 0);
-        productMap[name].qty += Number(item.quantity || 0);
-      });
-    });
-
-    const result = Object.values(productMap)
+    const result = Object.values(metrics.productMap)
+      .map(p => ({
+        name: p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name,
+        fullName: p.name,
+        revenue: p.revenue,
+        qty: p.qty
+      }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 

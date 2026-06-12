@@ -11,7 +11,7 @@ import SummaryCard from '../SummaryCard'
 
 const COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2']
 
-export default function FinancePanel({ bills = [], transactions = [], purchaseOrders = [] }) {
+export default function FinancePanel({ bills = [], transactions = [], purchaseOrders = [], inventory = [] }) {
   const [activeTab, setActiveTab] = useState('Overview')
   
   // Year & Custom Mode Selector for YoY Comparison
@@ -100,6 +100,17 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       if (inRange(b.date || b.createdAt) && (b.paymentStatus === 'Paid' || b.amountPaid > 0)) {
         const amt = b.paymentStatus === 'Paid' ? parseFloat(b.grandTotal) : parseFloat(b.amountPaid);
         processDate(b.date || b.createdAt, amt, true)
+
+        let cogs = 0;
+        (b.items || []).forEach(item => {
+          const invItem = inventory?.find(i => i.id === item.inventoryId || (i.name?.toLowerCase() === item.description?.toLowerCase()) || (i.sku && i.sku === item.inventorySku));
+          const costPrice = invItem?.cost_price || 0;
+          const qty = Number(item.quantity || 0);
+          cogs += (costPrice * qty);
+        });
+        if (cogs > 0) {
+          processDate(b.date || b.createdAt, cogs, false, 'Cost of Goods Sold');
+        }
       }
     })
 
@@ -130,7 +141,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
   }
 
   const currentOverview = useMemo(() => getDashboardData(overviewMode, selectedYear, customStart, customEnd), 
-    [bills, purchaseOrders, transactions, overviewMode, selectedYear, customStart, customEnd])
+    [bills, purchaseOrders, transactions, inventory, overviewMode, selectedYear, customStart, customEnd])
 
   const previousOverview = useMemo(() => {
     if (overviewMode === 'Year') {
@@ -141,7 +152,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
       const e = customEnd ? new Date(new Date(customEnd).setFullYear(new Date(customEnd).getFullYear() - 1)).toISOString().split('T')[0] : ''
       return getDashboardData('Custom', null, s, e)
     }
-  }, [bills, purchaseOrders, transactions, overviewMode, selectedYear, customStart, customEnd])
+  }, [bills, purchaseOrders, transactions, inventory, overviewMode, selectedYear, customStart, customEnd])
 
   const yoyDifference = currentOverview.net - previousOverview.net
   const isProfitGrowth = yoyDifference >= 0
@@ -156,6 +167,20 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
           id: b.id, type: 'Revenue', source: 'Bill', description: b.customerName || 'Customer Bill',
           date: b.date || b.createdAt, amount: amt, status: b.paymentStatus
         })
+
+        let cogs = 0;
+        (b.items || []).forEach(item => {
+          const invItem = inventory?.find(i => i.id === item.inventoryId || (i.name?.toLowerCase() === item.description?.toLowerCase()) || (i.sku && i.sku === item.inventorySku));
+          const costPrice = invItem?.cost_price || 0;
+          const qty = Number(item.quantity || 0);
+          cogs += (costPrice * qty);
+        });
+        if (cogs > 0) {
+          ops.push({
+            id: b.id + '_cogs', type: 'Expense', source: 'COGS', description: `Cost of Goods Sold (${b.customerName || 'Bill'})`,
+            date: b.date || b.createdAt, amount: cogs, status: 'Completed'
+          })
+        }
       }
     })
     purchaseOrders?.forEach(po => {
@@ -206,7 +231,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
     })
 
     return ops
-  }, [bills, purchaseOrders, transactions, searchQuery, sortField, sortOrder, startDate, endDate])
+  }, [bills, purchaseOrders, transactions, inventory, searchQuery, sortField, sortOrder, startDate, endDate])
 
   // --- LOGIC: Tax Summary ---
   const taxSummary = useMemo(() => {

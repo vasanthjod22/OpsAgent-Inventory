@@ -30,6 +30,7 @@ const INITIAL_ITEM = { description: '', hsn: '', qty: 1, unit: 'Nos', rate: 0, a
 
 export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [], refreshData }) {
   const [activeTab, setActiveTab] = useState('history');
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [companySettings, setCompanySettings] = useState(null);
 
@@ -61,6 +62,29 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
     }
   };
 
+  useEffect(() => {
+    const handleCreatePOFromAI = (e) => {
+      const lowStockItems = e.detail?.items || [];
+      if (lowStockItems.length > 0) {
+        const newItems = lowStockItems.map(item => ({
+          ...INITIAL_ITEM,
+          description: item.name,
+          unit: item.unit || 'Nos',
+          qty: (item.min || 0) - (item.qty || 0) > 0 ? (item.min || 0) - (item.qty || 0) : 1
+        }));
+        setItems(newItems);
+      } else {
+        setItems([{ ...INITIAL_ITEM }]);
+      }
+      // Cannot call generatePONumber inside useEffect if it's missing deps, but it relies on purchaseOrders.length
+      setPoNumber(`PO-${new Date().getFullYear()}-${String(purchaseOrders.length + 1).padStart(4, '0')}`);
+      setActiveTab('create');
+    };
+
+    window.addEventListener('createPOFromAI', handleCreatePOFromAI);
+    return () => window.removeEventListener('createPOFromAI', handleCreatePOFromAI);
+  }, [purchaseOrders.length]);
+
   const generatePONumber = () => {
     const next = purchaseOrders.length + 1;
     const padded = String(next).padStart(4, '0');
@@ -69,6 +93,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
   };
 
   const handleCreateNew = () => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
     setPoNumber(generatePONumber());
     setSupplierName('');
     setSupplierPhone('');
@@ -137,6 +162,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
   };
 
   const handleDelete = async (id) => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
     if (!confirm('Are you sure you want to delete this PO?')) return;
     try {
       await backendFetch(`/purchase-orders/${id}`, {
@@ -398,7 +424,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
               onChange={e => setStatusFilter(e.target.value)}
               style={{ padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }}
             >
-              <option value="All">All Statuses</option>
+              <option value="All">All Status</option>
               {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>

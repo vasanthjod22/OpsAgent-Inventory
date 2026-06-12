@@ -3,6 +3,7 @@ import NotificationBell from './ui/NotificationBell'
 
 const titles = {
   dashboard: { label: 'Dashboard',  breadcrumb: 'Overview' },
+  reports:   { label: 'Reports',    breadcrumb: 'Overview' },
   finance:   { label: 'Finance',    breadcrumb: 'Overview' },
   grn:       { label: 'GRN Upload', breadcrumb: 'Operations' },
   inventory: { label: 'Inventory',  breadcrumb: 'Operations' },

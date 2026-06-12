@@ -16,7 +16,7 @@ export default function DashboardPanel({ onNavigate }) {
   const [kpis, setKpis] = useState(null)
   
   // Sales Trend State
-  const [trendFilter, setTrendFilter] = useState('week')
+  const [trendFilter, setTrendFilter] = useState('month')
   const [trendCustomFrom, setTrendCustomFrom] = useState(null)
   const [trendCustomTo, setTrendCustomTo] = useState(null)
   const [salesTrend, setSalesTrend] = useState([])
@@ -37,6 +37,9 @@ export default function DashboardPanel({ onNavigate }) {
 
   // ─── FETCH LOGIC ──────────────────────────────────────────────
   
+  const [categories, setCategories] = useState(['All Categories'])
+  const [categoryFilter, setCategoryFilter] = useState('All Categories')
+
   const fetchKpis = async () => {
     try {
       const res = await backendFetch('/dashboard/kpis')
@@ -53,8 +56,8 @@ export default function DashboardPanel({ onNavigate }) {
         to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
       } else {
         const range = getDateRange(trendFilter)
-        from = range.from
-        to = range.to
+        from = range.from || ''
+        to = range.to || ''
       }
       const res = await backendFetch(`/dashboard/sales-trend?from=${from}&to=${to}`)
       if (res.success) setSalesTrend(res.data)
@@ -63,16 +66,34 @@ export default function DashboardPanel({ onNavigate }) {
 
   const fetchCategorySales = async () => {
     try {
-      const range = getDateRange('month')
-      const res = await backendFetch(`/dashboard/sales-by-category?from=${range.from}&to=${range.to}`)
+      let from, to;
+      if (trendFilter === 'custom') {
+        if (!trendCustomFrom) return;
+        from = trendCustomFrom.toISOString()
+        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
+      } else {
+        const range = getDateRange(trendFilter)
+        from = range.from || ''
+        to = range.to || ''
+      }
+      const res = await backendFetch(`/dashboard/sales-by-category?from=${from}&to=${to}&category=${encodeURIComponent(categoryFilter)}`)
       if (res.success) setCategorySales(res.data)
     } catch (err) { console.error('Failed to fetch category sales', err) }
   }
 
   const fetchTopProducts = async () => {
     try {
-      const range = getDateRange('month')
-      const res = await backendFetch(`/dashboard/top-products?from=${range.from}&to=${range.to}`)
+      let from, to;
+      if (trendFilter === 'custom') {
+        if (!trendCustomFrom) return;
+        from = trendCustomFrom.toISOString()
+        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
+      } else {
+        const range = getDateRange(trendFilter)
+        from = range.from || ''
+        to = range.to || ''
+      }
+      const res = await backendFetch(`/dashboard/top-products?from=${from}&to=${to}&category=${encodeURIComponent(categoryFilter)}`)
       if (res.success) setTopProducts(res.data)
     } catch (err) { console.error('Failed to fetch top products', err) }
   }
@@ -80,8 +101,11 @@ export default function DashboardPanel({ onNavigate }) {
   const fetchLowStock = async () => {
     try {
       const inventoryRes = await backendFetch('/inventory')
-      const low = (inventoryRes || []).filter(i => (i.qty || 0) < (i.min || 0))
+      const low = (inventoryRes || []).filter(i => (i.qty || 0) <= (i.min || 0))
       setLowStockList(low.slice(0, 8))
+      
+      const cats = ['All Categories', ...new Set((inventoryRes || []).map(i => i.category).filter(Boolean))]
+      setCategories(cats)
     } catch (err) { console.error('Failed to fetch low stock', err) }
   }
 
@@ -115,7 +139,9 @@ export default function DashboardPanel({ onNavigate }) {
 
   useEffect(() => {
     fetchSalesTrend()
-  }, [trendFilter, trendCustomFrom, trendCustomTo])
+    fetchCategorySales()
+    fetchTopProducts()
+  }, [trendFilter, trendCustomFrom, trendCustomTo, categoryFilter])
 
   // ─── HELPERS ──────────────────────────────────────────────────
 
@@ -171,6 +197,11 @@ export default function DashboardPanel({ onNavigate }) {
 
     const kpiData = [
       { 
+        title: "Total Sales", val: formatCurrency(kpis.totalSalesAllTime), sub: "Lifetime revenue", 
+        icon: TrendingUp, color: '#2563EB', 
+        change: null
+      },
+      { 
         title: "Today's Sales", val: formatCurrency(kpis.todaySales), sub: "Revenue today", 
         icon: TrendingUp, color: '#16A34A', 
         change: kpis.todaySalesChange !== undefined ? { pct: kpis.todaySalesChange } : null
@@ -191,7 +222,7 @@ export default function DashboardPanel({ onNavigate }) {
       },
       { 
         title: "Low Stock Products", val: kpis.lowStock || 0, sub: "Below reorder level", 
-        icon: AlertTriangle, color: '#DC2626', onClick: () => onNavigate('inventory')
+        icon: AlertTriangle, color: '#DC2626', onClick: () => { sessionStorage.setItem('inventory_filter', 'low'); onNavigate('inventory') }
       },
       { 
         title: "Customer Due Amount", val: formatCurrency(kpis.customerDue), sub: "Outstanding receivables", 
@@ -204,7 +235,7 @@ export default function DashboardPanel({ onNavigate }) {
       },
       { 
         title: "Total Customers", val: kpis.totalCustomers || 0, sub: "Registered customers", 
-        icon: UserCheck, color: '#4F46E5', 
+        icon: UserCheck, color: '#4F46E5', onClick: () => onNavigate('customers'),
         change: kpis.newCustomersThisWeek !== undefined ? { pct: kpis.newCustomersThisWeek, label: 'new this week' } : null
       }
     ]
@@ -310,18 +341,27 @@ export default function DashboardPanel({ onNavigate }) {
               <CartesianGrid {...gridStyle} />
               <XAxis dataKey="date" {...axisStyle} />
               <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
-              <RechartsTooltip {...tooltipStyle} formatter={(v, n) => [n === 'sales' ? formatCurrency(v) : v, n === 'sales' ? 'Sales' : 'Orders']} />
+              <RechartsTooltip {...tooltipStyle} formatter={(v, n) => [n === 'Sales Revenue' ? formatCurrency(v) : v, n]} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-              <Line name="Sales Revenue" type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} dot={{ fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
-              <Line name="Total Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={2} dot={{ fill: '#7C3AED', r: 3 }} strokeDasharray="5 5" yAxisId="right" />
+              <Line name="Sales Revenue" type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} dot={salesTrend?.length > 24 ? false : { fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
+              <Line name="Total Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={2} dot={salesTrend?.length > 24 ? false : { fill: '#7C3AED', r: 3 }} strokeDasharray="5 5" yAxisId="right" />
               <YAxis yAxisId="right" orientation="right" {...axisStyle} tickLine={false} axisLine={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
         {/* Category Sales */}
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
-          <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Revenue by Category</h3>
+        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Revenue by Category</h3>
+            <select 
+              value={categoryFilter} 
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '12px', outline: 'none', background: 'white' }}
+            >
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={categorySales}>
               <CartesianGrid {...gridStyle} />
@@ -338,13 +378,13 @@ export default function DashboardPanel({ onNavigate }) {
 
       {/* ── TOP PRODUCTS ── */}
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Top 5 Selling Products (This Month)</h3>
+        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Top 5 Selling Products {categoryFilter !== 'All Categories' ? `(${categoryFilter})` : ''}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
             <CartesianGrid {...gridStyle} horizontal={false}/>
             <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
             <YAxis type="category" dataKey="name" width={180} {...axisStyle} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
-            <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v, n) => [n === 'revenue' ? formatCurrency(v) : v, n === 'revenue' ? 'Revenue' : 'Units Sold']} />
+            <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v, n) => [n === 'Revenue' ? formatCurrency(v) : v, n]} />
             <Bar dataKey="revenue" name="Revenue" radius={[0,4,4,0]} maxBarSize={28}>
               {topProducts.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
             </Bar>
@@ -359,7 +399,7 @@ export default function DashboardPanel({ onNavigate }) {
         <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A' }}>Low Stock Alerts</h3>
-            <button onClick={() => onNavigate('inventory')} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={() => { sessionStorage.setItem('inventory_filter', 'low'); onNavigate('inventory') }} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
               View All <ArrowRight size={14} />
             </button>
           </div>

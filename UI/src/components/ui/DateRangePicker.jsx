@@ -10,6 +10,7 @@ const PRESETS = [
   { label: 'Last Month', value: 'last_month' },
   { label: 'This Quarter',value:'quarter' },
   { label: 'This Year',  value: 'year' },
+  { label: 'All Time',   value: 'all' },
   { label: 'Custom',     value: 'custom' },
 ]
 
@@ -97,15 +98,15 @@ export const getDateRange = (preset) => {
           today.getTime() + 86399999
         ).toISOString()
       }
+    case 'all':
+      return { 
+        from: new Date('2000-01-01T00:00:00Z').toISOString(), 
+        to: new Date(today.getTime() + 86399999).toISOString() 
+      }
     default:
       return {
-        from: new Date(
-          now.getFullYear(),
-          now.getMonth(), 1
-        ).toISOString(),
-        to: new Date(
-          today.getTime() + 86399999
-        ).toISOString()
+        from: new Date('2021-01-01T00:00:00Z').toISOString(),
+        to: new Date('2021-12-31T23:59:59Z').toISOString()
       }
   }
 }

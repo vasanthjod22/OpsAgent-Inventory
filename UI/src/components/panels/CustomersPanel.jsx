@@ -19,7 +19,7 @@ const fmtDate = (d) => {
 }
 
 const AVATAR_COLORS = [
-  '#2563EB', '#7C3AED', '#DB2777', '#059669', '#D97706',
+  '#2563EB', '#7C3AED', '#DB2777', '#1D4ED8', '#D97706',
   '#DC2626', '#0891B2', '#65A30D', '#EA580C', '#8B5CF6',
 ]
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length]
@@ -177,6 +177,79 @@ const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Ic
   )
 }
 
+const PageBtn = ({ active, disabled, onClick, children }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      width: 32, height: 32, borderRadius: 6,
+      border: active ? 'none' : '1px solid #E2E8F0',
+      background: active ? '#2563EB' : 'white',
+      color: active ? 'white' : disabled ? '#CBD5E1' : '#374151',
+      fontSize: 13, fontWeight: active ? 600 : 400,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      transition: 'all 0.15s ease',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}
+  >
+    {children}
+  </button>
+)
+
+const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange, onLimitChange }) => {
+  const getPageNumbers = () => {
+    const pages = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      pages.push(1)
+      if (currentPage > 3) pages.push('...')
+      const start = Math.max(2, currentPage-1)
+      const end = Math.min(totalPages-1, currentPage+1)
+      for (let i = start; i <= end; i++) pages.push(i)
+      if (currentPage < totalPages - 2) pages.push('...')
+      pages.push(totalPages)
+    }
+    return pages
+  }
+
+  const startItem = (currentPage-1) * itemsPerPage + 1
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems)
+
+  if (totalItems === 0) return null
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid #E2E8F0', marginTop: 16 }}>
+      <span style={{ fontSize: 13, color: '#0F172A' }}>
+        Showing {startItem}–{endItem} of <strong>{totalItems}</strong> customers
+      </span>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <PageBtn onClick={() => onPageChange(1)} disabled={currentPage === 1}>«</PageBtn>
+        <PageBtn onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>‹</PageBtn>
+        {getPageNumbers().map((page, i) => (
+          page === '...' ? (
+            <span key={i} style={{ padding: '0 8px', color: '#1E293B' }}>...</span>
+          ) : (
+            <PageBtn key={i} active={page === currentPage} onClick={() => onPageChange(page)}>{page}</PageBtn>
+          )
+        ))}
+        <PageBtn onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>›</PageBtn>
+        <PageBtn onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>»</PageBtn>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 13, color: '#0F172A' }}>Per page:</span>
+        <select
+          value={itemsPerPage}
+          onChange={e => onLimitChange(Number(e.target.value))}
+          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13, color: '#0F172A', outline: 'none' }}
+        >
+          {[12, 24, 48, 96].map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Customer Card (Grid View) ─────────────────────────────── */
 function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind, onCopy, onDelete, companyName }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -293,7 +366,7 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '10px 12px' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#059669', marginBottom: 2 }}>{fmt(customer.totalPurchases)}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#1D4ED8', marginBottom: 2 }}>{fmt(customer.totalPurchases)}</div>
           <div style={{ fontSize: 10, color: '#6B7280' }}>Total Purchases</div>
         </div>
         <div style={{ background: hasOutstanding ? '#FEF2F2' : '#F8FAFC', borderRadius: 8, padding: '10px 12px' }}>
@@ -403,7 +476,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
 
       {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-        <StatCard icon={TrendingUp} label="Total Purchases" value={fmt(customer.totalPurchases)} color="#059669" bg="#F0FDF4" />
+        <StatCard icon={TrendingUp} label="Total Purchases" value={fmt(customer.totalPurchases)} color="#1D4ED8" bg="#F0FDF4" />
         <StatCard icon={AlertCircle} label="Outstanding" value={fmt(customer.outstanding)} color={customer.outstanding > 0 ? '#DC2626' : '#94A3B8'} bg={customer.outstanding > 0 ? '#FEF2F2' : '#F8FAFC'} />
         <StatCard icon={Receipt} label="Total Bills" value={customer.bills.length} color="#2563EB" bg="#EFF6FF" />
         <StatCard icon={FileText} label="Total Quotes" value={customer.quotations.length} color="#7C3AED" bg="#F5F3FF" />
@@ -437,7 +510,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                 {timeline.length === 0 ? <p style={{ fontSize: 13, color: '#94A3B8' }}>No activity yet</p> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {timeline.map((item, i) => {
-                      const statusC = { Paid: '#059669', Unpaid: '#DC2626', Partial: '#D97706', Approved: '#059669', Rejected: '#DC2626', Draft: '#64748B', Sent: '#2563EB' }
+                      const statusC = { Paid: '#1D4ED8', Unpaid: '#DC2626', Partial: '#D97706', Approved: '#1D4ED8', Rejected: '#DC2626', Draft: '#64748B', Sent: '#2563EB' }
                       const statusB = { Paid: '#F0FDF4', Unpaid: '#FEF2F2', Partial: '#FFFBEB', Approved: '#F0FDF4', Rejected: '#FEF2F2', Draft: '#F1F5F9', Sent: '#EFF6FF' }
                       return (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
@@ -462,7 +535,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
               <div>
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Payment Analysis</h4>
                 {[
-                  { label: 'Paid', count: paidBills.length, color: '#059669', bg: '#F0FDF4' },
+                  { label: 'Paid', count: paidBills.length, color: '#1D4ED8', bg: '#F0FDF4' },
                   { label: 'Partial', count: partialBills.length, color: '#D97706', bg: '#FFFBEB' },
                   { label: 'Unpaid', count: unpaidBills.length, color: '#DC2626', bg: '#FEF2F2' },
                 ].map(({ label, count, color, bg }) => (
@@ -494,7 +567,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#64748B' }}>
                   <span>Total: <strong style={{ color: '#0F172A' }}>{fmt(customer.totalPurchases + customer.outstanding)}</strong></span>
-                  <span>Paid: <strong style={{ color: '#059669' }}>{fmt(customer.totalPurchases)}</strong></span>
+                  <span>Paid: <strong style={{ color: '#1D4ED8' }}>{fmt(customer.totalPurchases)}</strong></span>
                   <span>Outstanding: <strong style={{ color: '#DC2626' }}>{fmt(customer.outstanding)}</strong></span>
                 </div>
                 <Btn onClick={() => onNavigate('billing')} icon={Plus} variant="primary" small>New Bill</Btn>
@@ -512,7 +585,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                     <tbody>
                       {customer.bills.map((b, i) => {
                         const status = b.paymentStatus || b.payment_status
-                        const sc = { Paid: '#059669', Unpaid: '#DC2626', Partial: '#D97706' }
+                        const sc = { Paid: '#1D4ED8', Unpaid: '#DC2626', Partial: '#D97706' }
                         const sb = { Paid: '#F0FDF4', Unpaid: '#FEF2F2', Partial: '#FFFBEB' }
                         return (
                           <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}
@@ -552,7 +625,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                     </thead>
                     <tbody>
                       {customer.quotations.map((q, i) => {
-                        const statusC = { Draft: '#64748B', Sent: '#2563EB', Approved: '#059669', Rejected: '#DC2626' }
+                        const statusC = { Draft: '#64748B', Sent: '#2563EB', Approved: '#1D4ED8', Rejected: '#DC2626' }
                         const statusB = { Draft: '#F1F5F9', Sent: '#EFF6FF', Approved: '#F0FDF4', Rejected: '#FEF2F2' }
                         const status = q.status || 'Draft'
                         return (
@@ -587,7 +660,7 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{item.name}</div>
                          <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
                            <span style={{ color: '#64748B' }}>{item.qty} {item.unit}</span>
-                           <span style={{ fontWeight: 700, color: '#059669' }}>{fmt(item.amount)}</span>
+                           <span style={{ fontWeight: 700, color: '#1D4ED8' }}>{fmt(item.amount)}</span>
                          </div>
                        </div>
                        <div style={{ height: 6, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
@@ -853,6 +926,8 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
     return () => window.removeEventListener('open-contact-modal', handleOpenContact)
   }, [])
 
+  const [pagination, setPagination] = useState({ currentPage: 1, itemsPerPage: 9 })
+
   const [availableTags, setAvailableTags] = useState([
     { label: 'VIP', color: '#F59E0B' },
     { label: 'Contractor', color: '#2563EB' },
@@ -940,6 +1015,16 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
     return list
   }, [allCustomers, search, filter, sort])
 
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPagination(p => ({ ...p, currentPage: 1 }))
+  }, [search, filter, sort])
+
+  const paginatedDisplayed = useMemo(() => {
+    const start = (pagination.currentPage - 1) * pagination.itemsPerPage
+    return displayed.slice(start, start + pagination.itemsPerPage)
+  }, [displayed, pagination.currentPage, pagination.itemsPerPage])
+
   const handleSaveCustomer = async (formData) => {
     try {
       let saved
@@ -966,6 +1051,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
   }
 
   const handleDelete = async (customer) => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
     if (customer.bills.length > 0) {
       showToast('Cannot delete a customer with existing bills', 'error')
       return
@@ -1046,7 +1132,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
       <CustomerDetail
         customer={detailLive}
         onBack={() => setDetailCustomer(null)}
-        onEdit={() => { setEditingCustomer(detailLive); setShowModal(true) }}
+        onEdit={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setEditingCustomer(detailLive); setShowModal(true) }}
         onNavigate={onNavigate}
         showToast={showToast}
         companyName={companySettings.name}
@@ -1114,7 +1200,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
               ))}
             </div>
             {/* Add Customer */}
-            <Btn onClick={() => { setEditingCustomer(null); setShowModal(true) }} icon={Plus} variant="primary">Add Customer</Btn>
+            <Btn onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setEditingCustomer(null); setShowModal(true) }} icon={Plus} variant="primary">Add Customer</Btn>
           </div>
         </div>
 
@@ -1123,7 +1209,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
       {/* Summary Strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         <StatCard icon={Users} label="Total Customers" value={allCustomers.length} color="#2563EB" bg="#EFF6FF" />
-        <StatCard icon={TrendingUp} label="Total Revenue" value={fmt(totalRevenue)} color="#059669" bg="#F0FDF4" />
+        <StatCard icon={TrendingUp} label="Total Revenue" value={fmt(totalRevenue)} color="#1D4ED8" bg="#F0FDF4" />
         <StatCard icon={AlertCircle} label="Outstanding" value={fmt(totalOutstanding)} color="#DC2626" bg="#FEF2F2"
           onClick={totalOutstanding > 0 ? () => setFilter('outstanding') : undefined}
         />
@@ -1153,10 +1239,11 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
 
       {/* Grid View */}
       {viewMode === 'grid' && displayed.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-          {displayed.map(customer => (
-            <CustomerCard
-              key={customer.name}
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {paginatedDisplayed.map(customer => (
+              <CustomerCard
+                key={customer.name}
               customer={customer}
               companyName={companySettings.name}
               onView={() => setDetailCustomer(customer)}
@@ -1166,8 +1253,17 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
               onCopy={() => handleCopyPhone(customer)}
               onDelete={() => handleDelete(customer)}
             />
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={Math.ceil(displayed.length / pagination.itemsPerPage)}
+            totalItems={displayed.length}
+            itemsPerPage={pagination.itemsPerPage}
+            onPageChange={page => setPagination(p => ({ ...p, currentPage: page }))}
+            onLimitChange={limit => setPagination({ currentPage: 1, itemsPerPage: limit })}
+          />
+        </>
       )}
 
       {/* List View */}
@@ -1197,7 +1293,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
                 </tr>
               </thead>
               <tbody>
-                {displayed.map((customer, i) => (
+                {paginatedDisplayed.map((customer, i) => (
                   <tr key={customer.name}
                     style={{ borderBottom: i < displayed.length - 1 ? '1px solid #F1F5F9' : 'none' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
@@ -1215,7 +1311,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', color: '#64748B' }}>{customer.phone || '—'}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#059669' }}>{fmt(customer.totalPurchases)}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1D4ED8' }}>{fmt(customer.totalPurchases)}</td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: customer.outstanding > 0 ? '#DC2626' : '#94A3B8' }}>{fmt(customer.outstanding)}</td>
                     <td style={{ padding: '12px 16px', color: '#64748B' }}>{fmtDate(customer.lastPurchase)}</td>
                     <td style={{ padding: '12px 16px' }}>
@@ -1227,7 +1323,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
                         <Btn small onClick={() => onNavigate('billing')} icon={Receipt} variant="secondary">Bill</Btn>
                         {customer.outstanding > 0 && (
                           <button onClick={() => handleSendReminder(customer)} title="Send WhatsApp reminder"
-                            style={{ padding: '5px 8px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 6, cursor: 'pointer', color: '#059669' }}>
+                            style={{ padding: '5px 8px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 6, cursor: 'pointer', color: '#1D4ED8' }}>
                             <MessageSquare size={13} />
                           </button>
                         )}
@@ -1237,6 +1333,16 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
                 ))}
               </tbody>
             </table>
+          </div>
+          <div style={{ padding: '0 16px' }}>
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={Math.ceil(displayed.length / pagination.itemsPerPage)}
+              totalItems={displayed.length}
+              itemsPerPage={pagination.itemsPerPage}
+              onPageChange={page => setPagination(p => ({ ...p, currentPage: page }))}
+              onLimitChange={limit => setPagination({ currentPage: 1, itemsPerPage: limit })}
+            />
           </div>
         </div>
       )}

@@ -9,6 +9,7 @@ import {
 import { backendFetch } from '../../utils/backend'
 import AutocompleteInput from '../AutocompleteInput'
 import { BillProcessingModal } from '../ui/BillProcessingModal'
+import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 const todayISO = () => new Date().toISOString().split('T')[0]
 const fmtDate = (iso) => {
   if (!iso) return ''
@@ -743,7 +744,7 @@ const TransportBillModal = ({ bill, company, onClose, onSave }) => {
         </div>
 
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Transportation Details</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Transportation Details</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[
               ['driverName',      'Driver Name',       'e.g. Ramu'],
@@ -756,7 +757,7 @@ const TransportBillModal = ({ bill, company, onClose, onSave }) => {
               ['deliveryFee',     'Delivery Fee (₹)',  '0'],
             ].map(([key, label, ph]) => (
               <div key={key}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>{label}</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', display: 'block', marginBottom: 4 }}>{label}</label>
                 <input
                   type={key.includes('Fee') ? 'number' : 'text'}
                   style={inp}
@@ -771,7 +772,7 @@ const TransportBillModal = ({ bill, company, onClose, onSave }) => {
         </div>
 
         <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 12, background: '#FAFBFC' }}>
-          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} style={{ height: 42, padding: '0 26px', borderRadius: 9, border: 'none', background: '#EA580C', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
             Save & Download PDF
           </button>
@@ -808,7 +809,7 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
       <div style={{ background: 'white', borderRadius: '16px', maxWidth: '560px', width: '100%', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', background: '#FAFBFC' }}>
           <div style={{ fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>Update Inventory?</div>
-          <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>The following items will be deducted from stock:</div>
+          <div style={{ fontSize: '12px', color: '#1E293B', marginTop: '4px' }}>The following items will be deducted from stock:</div>
         </div>
         <div style={{ padding: '16px 24px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -823,8 +824,8 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
               {(matchedItems || []).map((m, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #F1F5F9', background: m.afterStock < m.min ? '#FFF7ED' : 'white' }}>
                   <td style={{ padding: '9px 10px', fontWeight: 600, color: '#0F172A' }}>{m.name}</td>
-                  <td style={{ padding: '9px 10px', color: '#64748B' }}>{m.billedQty} {m.unit}</td>
-                  <td style={{ padding: '9px 10px', color: '#64748B' }}>{m.currentStock} {m.unit}</td>
+                  <td style={{ padding: '9px 10px', color: '#1E293B' }}>{m.billedQty} {m.unit}</td>
+                  <td style={{ padding: '9px 10px', color: '#1E293B' }}>{m.currentStock} {m.unit}</td>
                   <td style={{ padding: '9px 10px', fontWeight: 700, color: m.afterStock < 0 ? '#DC2626' : m.afterStock < m.min ? '#D97706' : '#16A34A' }}>{m.afterStock} {m.unit}</td>
                 </tr>
               ))}
@@ -837,7 +838,7 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
           )}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button onClick={onSkip} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer', color: '#64748B' }}>
+          <button onClick={onSkip} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer', color: '#1E293B' }}>
             Skip
           </button>
           <button onClick={() => onConfirm(matchedItems)} style={{ height: '38px', padding: '0 18px', borderRadius: '8px', border: 'none', background: '#2563EB', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
@@ -868,7 +869,7 @@ function LineItemsTable({ items, setItems, inventory }) {
       confirmButtonColor: '#EF4444',
       cancelButtonColor: '#F1F5F9',
       confirmButtonText: 'Yes, Delete it',
-      cancelButtonText: '<span style="color: #475569; font-weight: 600;">Cancel</span>',
+      cancelButtonText: '<span style="color: #0F172A; font-weight: 600;">Cancel</span>',
       iconColor: '#FBBF24',
       customClass: {
         confirmButton: 'swal2-confirm-btn',
@@ -968,7 +969,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                 return (
                   <React.Fragment key={item.id}>
                     <tr style={{ borderBottom: '1px solid #E2E8F0', background: rowBg }}>
-                      <td style={{ padding: '7px 4px', textAlign: 'center', color: '#64748B', fontWeight: 700, fontSize: '12px', borderRight: '1px solid #E2E8F0', verticalAlign: 'middle' }}>
+                      <td style={{ padding: '7px 4px', textAlign: 'center', color: '#1E293B', fontWeight: 700, fontSize: '12px', borderRight: '1px solid #E2E8F0', verticalAlign: 'middle' }}>
                         {item.sno}
                       </td>
 
@@ -1099,7 +1100,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                         <div style={{ fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', fontSize: '12px' }}>
                           {item.amount ? `₹${fmtINR(item.amount)}` : <span style={{ color: '#CBD5E1' }}>—</span>}
                         </div>
-                        {item.amount > 0 && <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>Qty × Rate</div>}
+                        {item.amount > 0 && <div style={{ fontSize: '9px', color: '#334155', marginTop: '2px' }}>Qty × Rate</div>}
                       </td>
 
                       <td style={{ padding: '7px 8px', textAlign: 'right', borderRight: '1px solid #E2E8F0', verticalAlign: 'middle' }}>
@@ -1107,7 +1108,7 @@ function LineItemsTable({ items, setItems, inventory }) {
                           {item.taxInclAmount ? `₹${fmtINR(item.taxInclAmount)}` : '—'}
                         </div>
                         {item.taxInclAmount > 0 && (
-                          <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>
+                          <div style={{ fontSize: '9px', color: '#334155', marginTop: '2px' }}>
                             {(parseFloat(item.cgstPercent)||0) + (parseFloat(item.sgstPercent)||0) > 0
                               ? `+${parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST`
                               : 'No GST'}
@@ -1151,7 +1152,7 @@ function LineItemsTable({ items, setItems, inventory }) {
 
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={13} style={{ padding: '28px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                  <td colSpan={13} style={{ padding: '28px', textAlign: 'center', color: '#334155', fontSize: '13px' }}>
                     No items added yet.
                   </td>
                 </tr>
@@ -1172,10 +1173,38 @@ function LineItemsTable({ items, setItems, inventory }) {
 function BillHistory({ bills, setBills, inventory, setInventory, company, showToast, onEditBill, onGenerateTransport }) {
   const [search, setSearch] = useState('')
   const [editStatusId, setEditStatusId] = useState(null)
+  
+  const [dateFilter, setDateFilter] = useState('all')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('All Categories')
+  
+  const categories = ['All Categories', ...new Set((inventory || []).map(i => i.category).filter(Boolean))]
 
-  const filtered = bills.filter(b =>
-    !search || b.customerName?.toLowerCase().includes(search.toLowerCase()) || b.billNumber?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = bills.filter(b => {
+    if (search && !b.customerName?.toLowerCase().includes(search.toLowerCase()) && !b.billNumber?.toLowerCase().includes(search.toLowerCase())) return false;
+    
+    if (dateFilter !== 'all') {
+       let range;
+       if (dateFilter === 'custom') {
+         range = { from: customFrom ? new Date(customFrom).toISOString() : null, to: customTo ? new Date(customTo).toISOString() : null }
+       } else {
+         range = getDateRange(dateFilter)
+       }
+       if (range.from && new Date(b.date || b.created_at) < new Date(range.from.substring(0, 10))) return false;
+       if (range.to && new Date(b.date || b.created_at) > new Date(range.to.substring(0, 10))) return false;
+    }
+
+    if (categoryFilter !== 'All Categories') {
+      const hasCategory = (b.items || []).some(item => {
+        const invItem = inventory?.find(i => i.id === item.inventoryId || (i.sku && i.sku === item.inventorySku) || i.name?.toLowerCase().trim() === item.description?.toLowerCase().trim());
+        return invItem && invItem.category === categoryFilter;
+      });
+      if (!hasCategory) return false;
+    }
+
+    return true;
+  })
 
   const totalRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + b.grandTotal, 0)
   const pendingAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : b.grandTotal), 0)
@@ -1197,7 +1226,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
       confirmButtonColor: '#EF4444',
       cancelButtonColor: '#E2E8F0',
       confirmButtonText: 'Yes, Delete it',
-      cancelButtonText: '<span style="color: #475569; font-weight: 600;">Cancel</span>'
+      cancelButtonText: '<span style="color: #0F172A; font-weight: 600;">Cancel</span>'
     }).then(async (result) => {
       if (result.isConfirmed) {
         setBills(prev => prev.filter(b => b.id !== id))
@@ -1223,20 +1252,34 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Bill History</div>
-            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '1px' }}>{bills.length} bills total</div>
+            <div style={{ fontSize: '12px', color: '#1E293B', marginTop: '1px' }}>{bills.length} bills total</div>
           </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <DateRangePicker 
+            value={dateFilter} onChange={setDateFilter}
+            customFrom={customFrom} customTo={customTo}
+            onCustomChange={(type, val) => type === 'from' ? setCustomFrom(val) : setCustomTo(val)}
+          />
+          <select 
+            value={categoryFilter} 
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '12px', outline: 'none', background: 'white' }}
+          >
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '16px', fontWeight: 800, color: '#16A34A' }}>₹{fmtINR0(totalRevenue)}</div>
-            <div style={{ fontSize: '10px', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Revenue</div>
+            <div style={{ fontSize: '10px', color: '#1E293B', textTransform: 'uppercase', fontWeight: 600 }}>Revenue</div>
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '16px', fontWeight: 800, color: '#DC2626' }}>₹{fmtINR0(pendingAmount)}</div>
-            <div style={{ fontSize: '10px', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Pending</div>
+            <div style={{ fontSize: '10px', color: '#1E293B', textTransform: 'uppercase', fontWeight: 600 }}>Pending</div>
           </div>
           <div style={{ position: 'relative', width: '200px' }}>
-            <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={14} color="#334155" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search bills..." style={{ width: '100%', paddingLeft: '30px', paddingRight: '10px', height: '34px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
         </div>
@@ -1247,13 +1290,13 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
           <thead>
             <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
               {['Bill No', 'Customer', 'Date', 'Amount', 'Status', 'Actions'].map((h, i) => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: i >= 3 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{h}</th>
+                <th key={h} style={{ padding: '10px 16px', textAlign: i >= 3 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8' }}>
+              <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#334155' }}>
                 {bills.length === 0 ? 'No bills yet. Generate your first bill!' : 'No bills match your search.'}
               </td></tr>
             )}
@@ -1263,8 +1306,8 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ fontWeight: 600, color: '#0F172A' }}>{b.customerName}</div>
                 </td>
-                <td style={{ padding: '12px 16px', color: '#64748B' }}>{fmtDate(b.date)}</td>
-                <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#0F172A' }}>₹{fmtINR0(b.grandTotal)}</td>
+                <td style={{ padding: '12px 16px', color: '#1E293B' }}>{fmtDate(b.date)}</td>
+                <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#0F172A' }}>₹{fmtINR(b.grandTotal)}</td>
                 <td style={{ padding: '12px 16px', textAlign: 'center', position: 'relative' }}>
                   {editStatusId === b.id ? (
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1274,7 +1317,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
                           {s}
                         </button>
                       ))}
-                      <button onClick={() => setEditStatusId(null)} style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: '11px', cursor: 'pointer' }}>✕</button>
+                      <button onClick={() => setEditStatusId(null)} style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', fontSize: '11px', cursor: 'pointer' }}>✕</button>
                     </div>
                   ) : (
                     <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '99px', background: STATUS_BG[b.paymentStatus], color: STATUS_COLORS[b.paymentStatus], fontSize: '11px', fontWeight: 700, border: `1px solid ${STATUS_BORDER[b.paymentStatus]}` }}>
@@ -1285,15 +1328,15 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
                 <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                     <button onClick={() => redownload(b)} title="Re-download PDF"
-                      style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                      style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E293B' }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.borderColor = '#93C5FD' }}
-                      onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                      onMouseLeave={e => { e.currentTarget.style.color = '#1E293B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
                       <Download size={14} />
                     </button>
                     <button onClick={() => setEditStatusId(editStatusId === b.id ? null : b.id)} title="Change status"
-                      style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                      style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E293B' }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#7C3AED'; e.currentTarget.style.borderColor = '#C4B5FD' }}
-                      onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
+                      onMouseLeave={e => { e.currentTarget.style.color = '#1E293B'; e.currentTarget.style.borderColor = '#E2E8F0' }}>
                       <Edit2 size={14} />
                     </button>
                     <button onClick={() => deleteBill(b.id)} title="Delete"
@@ -1340,11 +1383,11 @@ function TransportBillHistory({ bills, company, showToast }) {
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Transport Bills History</div>
-            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '1px' }}>{transportBills.length} transport bills</div>
+            <div style={{ fontSize: '12px', color: '#1E293B', marginTop: '1px' }}>{transportBills.length} transport bills</div>
           </div>
         </div>
         <div style={{ position: 'relative', width: '250px' }}>
-          <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={14} color="#334155" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transport bills..." style={{ width: '100%', paddingLeft: '30px', paddingRight: '10px', height: '34px', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
         </div>
       </div>
@@ -1354,13 +1397,13 @@ function TransportBillHistory({ bills, company, showToast }) {
           <thead>
             <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
               {['Bill No', 'Customer', 'Driver Name', 'Vehicle', 'Action'].map((h, i) => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: i === 4 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>{h}</th>
+                <th key={h} style={{ padding: '10px 16px', textAlign: i === 4 ? 'center' : 'left', fontSize: '11px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8' }}>
+              <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#334155' }}>
                 {transportBills.length === 0 ? 'No transport bills yet. Generate one from the Bill History.' : 'No transport bills match your search.'}
               </td></tr>
             )}
@@ -1368,8 +1411,8 @@ function TransportBillHistory({ bills, company, showToast }) {
               <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9', background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: '#EA580C' }}>{b.billNumber}</td>
                 <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0F172A' }}>{b.customerName}</td>
-                <td style={{ padding: '12px 16px', color: '#475569' }}>{b.transportDetails?.driverName || '—'}</td>
-                <td style={{ padding: '12px 16px', color: '#475569' }}>{b.transportDetails?.vehicleNumber || '—'}</td>
+                <td style={{ padding: '12px 16px', color: '#0F172A' }}>{b.transportDetails?.driverName || '—'}</td>
+                <td style={{ padding: '12px 16px', color: '#0F172A' }}>{b.transportDetails?.vehicleNumber || '—'}</td>
                 <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                   <button onClick={() => redownload(b)} title="Download PDF"
                     style={{ width: '30px', height: '30px', borderRadius: '7px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}
@@ -1414,6 +1457,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
   const [discount, setDiscount] = useState('')
   const [igst, setIgst] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('Unpaid')
+  const [paymentMethod, setPaymentMethod] = useState('Cash')
   const [amountPaid, setAmountPaid] = useState('')
   const [notes, setNotes] = useState('')
   const [includeTerms, setIncludeTerms] = useState(false)
@@ -1496,9 +1540,9 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
   const balanceDue = grandTotal - Number(amountPaid || 0)
 
   const inp = { width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', color: '#0F172A', outline: 'none', background: 'white', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }
-  const readOnly = { ...inp, background: '#F8FAFC', color: '#64748B', cursor: 'default' }
+  const readOnly = { ...inp, background: '#F8FAFC', color: '#1E293B', cursor: 'default' }
   const Lbl = ({ children }) => (
-    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>{children}</label>
+    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', marginBottom: '6px' }}>{children}</label>
   )
 
   const buildBillData = () => ({
@@ -1512,6 +1556,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
     discount: discountVal,
     grandTotal,
     paymentStatus,
+    paymentMethod,
     amountPaid: paymentStatus === 'Partial' ? Number(amountPaid || 0) : null,
     balanceDue: paymentStatus === 'Partial' ? balanceDue : null,
     notes,
@@ -1530,6 +1575,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
     setDiscount('')
     setIgst('')
     setPaymentStatus('Unpaid')
+    setPaymentMethod('Cash')
     setAmountPaid('')
     setNotes('')
     setIncludeTerms(false)
@@ -1651,7 +1697,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: 0, fontFamily: "'Inter', sans-serif" }}>Billing</h2>
-          <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Create tax invoices and manage payment history</p>
+          <p style={{ fontSize: '14px', color: '#1E293B', marginTop: '4px' }}>Create tax invoices and manage payment history</p>
         </div>
       </div>
 
@@ -1665,7 +1711,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
               borderRadius: '8px',
               border: 'none',
               background: activeTab === tab ? '#EFF6FF' : 'transparent',
-              color: activeTab === tab ? '#2563EB' : '#64748B',
+              color: activeTab === tab ? '#2563EB' : '#1E293B',
               fontWeight: 600,
               fontSize: '14px',
               cursor: 'pointer',
@@ -1703,7 +1749,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Create New Bill</div>
-            <div style={{ fontSize: '12px', color: '#64748B' }}>Bill Number: <span style={{ fontWeight: 700, color: '#2563EB' }}>{billNumber}</span></div>
+            <div style={{ fontSize: '12px', color: '#1E293B' }}>Bill Number: <span style={{ fontWeight: 700, color: '#2563EB' }}>{billNumber}</span></div>
           </div>
         </div>
 
@@ -1713,7 +1759,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* Customer */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>Bill To (Customer)</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>Bill To (Customer)</div>
               <div><Lbl>Customer Name *</Lbl><input style={inp} value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Customer / Company Name" /></div>
               <div><Lbl>Phone (Optional)</Lbl><input style={inp} value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+91 98765 43210" /></div>
               <div><Lbl>Address (Optional)</Lbl><textarea style={{ ...inp, resize: 'vertical', minHeight: '64px' }} value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Customer address..." rows={2} /></div>
@@ -1721,7 +1767,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
 
             {/* Company (read-only) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Bill From (Company)
                 {!company?.name && (
                   <button onClick={() => onNavigate?.('settings')} style={{ fontSize: '11px', color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>⚠ Set up in Settings →</button>
@@ -1731,7 +1777,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
               <div>
                 <Lbl>GSTIN</Lbl>
                 <input style={readOnly} value={company?.gstin || '—'} readOnly />
-                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Saved from Company Profile · <button onClick={() => onNavigate?.('settings')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563EB', fontSize: '11px', padding: 0 }}>Update in Settings →</button></div>
+                <div style={{ fontSize: '11px', color: '#334155', marginTop: '4px' }}>Saved from Company Profile · <button onClick={() => onNavigate?.('settings')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563EB', fontSize: '11px', padding: 0 }}>Update in Settings →</button></div>
               </div>
               <div><Lbl>Bill Date</Lbl><input type="date" className="input-base" style={{ padding: '8px 12px', height: '36px' }} value={billDate} onChange={e => setBillDate(e.target.value)} /></div>
             </div>
@@ -1739,7 +1785,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
 
           {/* Line Items */}
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Line Items</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', marginBottom: '12px' }}>Line Items</div>
             <LineItemsTable items={items} setItems={setItems} inventory={inventory} />
           </div>
 
@@ -1748,60 +1794,76 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
             <div style={{ flex: 1, paddingRight: '24px' }}>
               {(company.bankName || company.accountNumber || company.ifsc) && (
                 <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', maxWidth: '300px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '8px' }}>Bank Details</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', marginBottom: '8px' }}>Bank Details</div>
                   {company.bankName && <div style={{ fontSize: '13px', color: '#0F172A', marginBottom: '4px' }}>{company.bankName}</div>}
-                  {company.accountNumber && <div style={{ fontSize: '13px', color: '#0F172A', marginBottom: '4px' }}><span style={{ color: '#64748B' }}>A/c No:</span> {company.accountNumber}</div>}
-                  {company.ifsc && <div style={{ fontSize: '13px', color: '#0F172A' }}><span style={{ color: '#64748B' }}>IFSC Code:</span> {company.ifsc}</div>}
+                  {company.accountNumber && <div style={{ fontSize: '13px', color: '#0F172A', marginBottom: '4px' }}><span style={{ color: '#1E293B' }}>A/c No:</span> {company.accountNumber}</div>}
+                  {company.ifsc && <div style={{ fontSize: '13px', color: '#0F172A' }}><span style={{ color: '#1E293B' }}>IFSC Code:</span> {company.ifsc}</div>}
                 </div>
               )}
             </div>
             <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#1E293B' }}>
                 <span>Subtotal</span>
                 <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(subtotal)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#1E293B' }}>
                 <span>CGST</span>
                 <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(totalCGST)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#1E293B' }}>
                 <span>SGST</span>
                 <span style={{ fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(totalSGST)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#1E293B' }}>
                 <span>IGST</span>
                 <input type="number" min="0" value={igst} onChange={e => setIgst(e.target.value)}
                   style={{ width: '100px', padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', outline: 'none', textAlign: 'right' }}
                   placeholder="0.00" />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#1E293B' }}>
                 <span>Discount</span>
                 <input type="number" min="0" value={discount} onChange={e => setDiscount(e.target.value)}
                   style={{ width: '100px', padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '12px', outline: 'none', textAlign: 'right' }}
                   placeholder="0.00" />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#1E293B' }}>
                 <span>Round Off</span>
                 <span style={{ fontWeight: 600, color: '#0F172A' }}>{roundoffAmount > 0 ? '+' : ''}{fmtINR(roundoffAmount)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', background: '#0F172A', borderRadius: '9px', padding: '10px 14px' }}>
                 <span style={{ fontWeight: 800, color: 'white', fontSize: '14px' }}>Grand Total</span>
-                <span style={{ fontWeight: 800, color: '#60A5FA', fontSize: '16px' }}>₹{fmtINR(grandTotal)}</span>
+                <span style={{ fontWeight: 800, color: '#38BDF8', fontSize: '16px' }}>₹{fmtINR(grandTotal)}</span>
               </div>
             </div>
           </div>
 
-          {/* Payment Status */}
-          <div>
-            <Lbl>Payment Status</Lbl>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['Paid', 'Unpaid', 'Partial'].map(s => (
-                <button key={s} onClick={() => setPaymentStatus(s)}
-                  style={{ height: '36px', padding: '0 18px', borderRadius: '8px', border: `1.5px solid ${paymentStatus === s ? STATUS_COLORS[s] : '#E2E8F0'}`, background: paymentStatus === s ? STATUS_BG[s] : 'white', color: paymentStatus === s ? STATUS_COLORS[s] : '#64748B', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s' }}>
-                  {s}
-                </button>
-              ))}
+          {/* Payment Status & Method */}
+          <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+            <div>
+              <Lbl>Payment Status</Lbl>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['Paid', 'Unpaid', 'Partial'].map(s => (
+                  <button key={s} onClick={() => setPaymentStatus(s)}
+                    style={{ height: '36px', padding: '0 18px', borderRadius: '8px', border: `1.5px solid ${paymentStatus === s ? STATUS_COLORS[s] : '#E2E8F0'}`, background: paymentStatus === s ? STATUS_BG[s] : 'white', color: paymentStatus === s ? STATUS_COLORS[s] : '#1E293B', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            {paymentStatus !== 'Unpaid' && (
+              <div>
+                <Lbl>Payment Method</Lbl>
+                <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} style={{ height: '36px', padding: '0 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none', background: 'white', color: '#0F172A', fontWeight: 600, minWidth: '160px' }}>
+                  <option value="Cash">💵 Cash</option>
+                  <option value="UPI">📱 UPI (GPay, PhonePe)</option>
+                  <option value="Bank Transfer">🏦 Bank Transfer</option>
+                  <option value="Card">💳 Credit / Debit Card</option>
+                </select>
+              </div>
+            )}
+          </div>
+          <div>
             {paymentStatus === 'Partial' && (
               <div style={{ marginTop: '10px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div>
@@ -1809,7 +1871,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
                   <input type="number" min="0" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} style={{ ...inp, width: '160px' }} placeholder="0.00" />
                 </div>
                 <div style={{ paddingTop: '18px' }}>
-                  <div style={{ fontSize: '13px', color: '#64748B' }}>Balance Due</div>
+                  <div style={{ fontSize: '13px', color: '#1E293B' }}>Balance Due</div>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: '#DC2626' }}>₹{fmtINR(Math.max(0, balanceDue))}</div>
                 </div>
               </div>
@@ -1839,7 +1901,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
               <button onClick={() => {
                 setEditBillId(null)
                 resetForm()
-              }} style={{ height: '44px', padding: '0 28px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>Cancel Edit</button>
+              }} style={{ height: '44px', padding: '0 28px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>Cancel Edit</button>
             )}
             <button onClick={handleGenerate}
               style={{ height: '44px', padding: '0 28px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #16A34A, #15803D)', color: 'white', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', boxShadow: '0 4px 14px rgba(22,163,74,0.35)' }}>
@@ -1860,6 +1922,7 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           setItems(b.items && b.items.length > 0 ? b.items : [makeItem()])
           setDiscount(b.discount || '')
           setPaymentStatus(b.paymentStatus || 'Unpaid')
+          setPaymentMethod(b.paymentMethod || 'Cash')
           setAmountPaid(b.amountPaid || '')
           setNotes(b.notes || '')
           setIncludeTerms(b.includeTerms || false)

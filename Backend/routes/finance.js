@@ -14,26 +14,41 @@ router.get('/', auth, async (req, res) => {
 
 // GET /api/finance/summary — computed totals
 router.get('/summary', auth, async (req, res) => {
-  const { data: finance, error } = await supabase.from('finance').select('type, amount, category').eq('user_id', req.user.id);
-  if (error) return res.status(500).json({ error: error.message });
+  const [
+    { data: finance, error: finErr },
+    { data: inventoryItems, error: invErr }
+  ] = await Promise.all([
+    supabase.from('finance').select('type, amount, category').eq('user_id', req.user.id),
+    supabase.from('inventory').select('qty, rate').eq('user_id', req.user.id)
+  ]);
+  
+  if (finErr) return res.status(500).json({ error: finErr.message });
+  if (invErr) return res.status(500).json({ error: invErr.message });
 
-  const income = finance.filter(t => t.type === 'Income');
-  const expenses = finance.filter(t => t.type === 'Expense');
+  const income = finance ? finance.filter(t => t.type === 'Income') : [];
+  const expenses = finance ? finance.filter(t => t.type === 'Expense') : [];
 
-  const totalRevenue = income.reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-  const totalExpenses = expenses.reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+  const totalRevenue = Math.round(income.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
+  const manualExpenses = Math.round(expenses.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
+  
+  const inventoryValuation = Math.round((inventoryItems || []).reduce((s, item) => s + (Number(item.qty || 0) * Number(item.rate || 0)), 0));
+  const totalExpenses = manualExpenses + inventoryValuation;
   const netProfit = totalRevenue - totalExpenses;
 
   const expMap = {};
   expenses.forEach(t => {
     expMap[t.category] = (expMap[t.category] || 0) + Math.abs(Number(t.amount));
   });
+  if (inventoryValuation > 0) {
+    expMap['Inventory Purchases'] = (expMap['Inventory Purchases'] || 0) + inventoryValuation;
+  }
+
   const topExpenseCategories = Object.entries(expMap)
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
 
-  res.json({ totalRevenue, totalExpenses, netProfit, topExpenseCategories, transactionCount: finance.length });
+  res.json({ totalRevenue, totalExpenses, netProfit, topExpenseCategories, transactionCount: finance ? finance.length : 0 });
 });
 
 // POST /api/finance — add transaction

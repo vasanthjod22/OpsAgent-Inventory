@@ -132,13 +132,19 @@ router.get('/', auth, async (req, res) => {
     const expenses = finance ? finance.filter(t => t.type === 'Expense') : [];
 
     const totalRevenue = income.reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-    const totalExpenses = expenses.reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+    const manualExpenses = Math.round(expenses.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
+
+    const inventoryValuation = Math.round((inventory || []).reduce((s, item) => s + (Number(item.qty || 0) * Number(item.rate || 0)), 0));
+    const totalExpenses = manualExpenses + inventoryValuation;
     const netProfit = totalRevenue - totalExpenses;
 
     const expMap = {};
     expenses.forEach(t => {
       expMap[t.category] = (expMap[t.category] || 0) + Math.abs(Number(t.amount));
     });
+    if (inventoryValuation > 0) {
+      expMap['Inventory Purchases'] = (expMap['Inventory Purchases'] || 0) + inventoryValuation;
+    }
     const topExpenseCategories = Object.entries(expMap)
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount)

@@ -580,15 +580,108 @@ const FilterChip = ({ label, onRemove }) => (
   </div>
 )
 
+const FormAutocomplete = ({ value, onChange, options, onAddOption, placeholder = "Select...", width = '100%' }) => {
+  const [inputValue, setInputValue] = useState(value || '')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const wrapperRef = useRef(null)
+
+  useEffect(() => {
+    setInputValue(value || '')
+  }, [value])
+
+  const filtered = options.filter(o => o.toLowerCase().includes(inputValue.toLowerCase()))
+  const isExactMatch = options.some(o => o.toLowerCase() === inputValue.trim().toLowerCase())
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setShowDropdown(false)
+        if (inputValue.trim() !== '' && inputValue !== value) {
+          onChange(inputValue.trim())
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [inputValue, value, onChange])
+
+  const handleAdd = async (newVal) => {
+    if (onAddOption) await onAddOption(newVal)
+    onChange(newVal)
+    setShowDropdown(false)
+  }
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', width }}>
+      <input
+        type="text"
+        value={inputValue}
+        placeholder={placeholder}
+        onChange={e => {
+          setInputValue(e.target.value)
+          setShowDropdown(true)
+        }}
+        onFocus={() => setShowDropdown(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            const val = inputValue.trim()
+            if (val && !isExactMatch) {
+              handleAdd(val)
+            } else {
+              onChange(val)
+              setShowDropdown(false)
+            }
+          }
+        }}
+        style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
+      />
+      <ChevronDown size={14} color="#64748B" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      {showDropdown && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 200, overflowY: 'auto' }}>
+          {filtered.map(opt => (
+            <div
+              key={opt}
+              onClick={() => { onChange(opt); setInputValue(opt); setShowDropdown(false) }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {opt}
+            </div>
+          ))}
+          {inputValue.trim() !== '' && !isExactMatch && (
+            <div
+              onClick={() => handleAdd(inputValue.trim())}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#2563EB', fontWeight: 600, borderTop: filtered.length > 0 ? '1px solid #F1F5F9' : 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Plus size={14} /> Add "{inputValue.trim()}"
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function InventoryPanel({ showToast }) {
   // Inventory States
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 12 })
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
-  const [status, setStatus] = useState('all')
+  const [status, setStatus] = useState(() => {
+    const f = sessionStorage.getItem('inventory_filter')
+    if (f) {
+      sessionStorage.removeItem('inventory_filter')
+      return f
+    }
+    return 'all'
+  })
   const [sortBy, setSortBy] = useState('name')
   const [categories, setCategories] = useState([])
+  const [units, setUnits] = useState(['Nos', 'Kg', 'Ltrs', 'Set', 'Metre', 'Sqft'])
   const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(false)
   const [allItems, setAllItems] = useState([])
@@ -623,7 +716,7 @@ export default function InventoryPanel({ showToast }) {
   // Modals
   const [adding, setAdding] = useState(false)
   const [editingItemId, setEditingItemId] = useState(null)
-  const [newItem, setNewItem] = useState({ hsn: '', name: '', category: 'Raw Materials', qty: '', unit: '', min: '', max: '', rate: '', gst: '18' })
+  const [newItem, setNewItem] = useState({ hsn: '', name: '', category: 'Raw Materials', total_qty: '', qty: '', unit: '', min: '', max: '', cost_price: '', rate: '', gst: '18' })
   const [confirmModal, setConfirmModal] = useState(null)
   const [showImport, setShowImport] = useState(false)
   
@@ -707,7 +800,12 @@ export default function InventoryPanel({ showToast }) {
     } catch (e) { console.error(e) }
   }
 
-
+  const fetchUnits = async () => {
+    try {
+      const data = await backendFetch('/inventory/units')
+      setUnits(data.units || ['Nos', 'Kg', 'Ltrs', 'Set', 'Metre', 'Sqft'])
+    } catch (e) { console.error(e) }
+  }
 
   const fetchGrnHistory = async () => {
     try {
@@ -718,11 +816,13 @@ export default function InventoryPanel({ showToast }) {
 
   useEffect(() => {
     fetchCategories()
+    fetchUnits()
     fetchGrnHistory()
   }, [])
 
   // Action Handlers
   const handleEditClick = (item) => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
     setNewItem({ ...item, gst: item.gst ?? '18' })
     setEditingItemId(item.id)
     setAdding(true)
@@ -763,6 +863,7 @@ export default function InventoryPanel({ showToast }) {
   }
 
   const handleDelete = (item) => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
     setConfirmModal({
       title: 'Delete Item',
       message: `Are you sure you want to completely delete ${item.name}?`,
@@ -782,6 +883,7 @@ export default function InventoryPanel({ showToast }) {
   }
 
   const handleDeleteGrn = (grn) => {
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
     setConfirmModal({
       title: 'Delete GRN',
       message: `Are you sure you want to delete the GRN from ${grn.supplier} and reverse its inventory updates?`,
@@ -908,22 +1010,51 @@ export default function InventoryPanel({ showToast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
-      
-      {/* SECTION 1: GRN UPLOAD (Collapsible) */}
-      <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <button
-          onClick={() => setGrnExpanded(!grnExpanded)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#F8FAFC', border: 'none', cursor: 'pointer' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 32, height: 32, background: '#EFF6FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Upload size={16} color="#2563EB" /></div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Upload Goods Receipt Note (GRN)</span>
-          </div>
-          {grnExpanded ? <ChevronUp size={20} color="#64748B" /> : <ChevronDown size={20} color="#64748B" />}
-        </button>
 
-        {grnExpanded && (
-          <div style={{ padding: 24, borderTop: '1px solid #E2E8F0' }}>
+      {/* SECTION 2: STAT CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <div style={{ padding: '20px', background: '#EFF6FF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase' }}>Total Items</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#1E3A8A' }}>{stats.totalItems || 0}</span>
+          </div>
+          <Package size={32} color="#2563EB" style={{ opacity: 0.2 }} />
+        </div>
+        <div onClick={() => setStatus('overstock')} style={{ padding: '20px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#D97706', textTransform: 'uppercase' }}>Overstock</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#92400E' }}>{stats.overstock || 0}</span>
+          </div>
+          <Package size={32} color="#D97706" style={{ opacity: 0.2 }} />
+        </div>
+        <div onClick={() => setStatus('low')} style={{ padding: '20px', background: '#FEF2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase' }}>Low Stock</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B' }}>{stats.lowStock || 0}</span>
+          </div>
+          <AlertTriangle size={32} color="#DC2626" style={{ opacity: 0.2 }} />
+        </div>
+        <div style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#16A34A', textTransform: 'uppercase' }}>Total Value</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{(stats.totalValue || 0).toLocaleString()}</span>
+          </div>
+          <TrendingUp size={32} color="#16A34A" style={{ opacity: 0.2 }} />
+        </div>
+      </div>
+      
+      {/* GRN UPLOAD MODAL */}
+      {grnExpanded && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'white', borderRadius: 12, width: 800, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 32, height: 32, background: '#EFF6FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Upload size={16} color="#2563EB" /></div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Upload Goods Receipt Note (GRN)</h3>
+              </div>
+              <button onClick={() => setGrnExpanded(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={20}/></button>
+            </div>
+            <div style={{ padding: 24 }}>
             {!grnFile && (
               <div
                 onDragOver={e => { e.preventDefault(); setGrnDragging(true) }}
@@ -1031,70 +1162,14 @@ export default function InventoryPanel({ showToast }) {
               </div>
             )}
 
-          </div>
-        )}
-      </div>
-
-      {/* GRN History Mini Table (Always visible if there's history) */}
-      {grnHistory.length > 0 && !grnData && (
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 24 }}>
-          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: '0 0 16px 0' }}>Recent Goods Receipts (GRN)</h4>
-          <div style={{ border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
-              <thead><tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Date</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Supplier</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Items Received</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
-              </tr></thead>
-              <tbody>
-                {grnHistory.map(g => (
-                  <tr key={g.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '12px 16px', color: '#0F172A', fontWeight: 500 }}>{new Date(g.date || g.created_at).toLocaleDateString()}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1E293B' }}>{g.supplier}</td>
-                    <td style={{ padding: '12px 16px', color: '#64748B' }}><span style={{ background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>{g.items?.length || 0} items</span></td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <ActionButton icon={<Trash2 size={16} />} color="#EF4444" hoverColor="#DC2626" tooltip="Delete GRN" onClick={() => handleDeleteGrn(g)} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* SECTION 2: STAT CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <div style={{ padding: '20px', background: '#EFF6FF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase' }}>Total Items</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#1E3A8A' }}>{stats.totalItems || 0}</span>
-          </div>
-          <Package size={32} color="#2563EB" style={{ opacity: 0.2 }} />
-        </div>
-        <div onClick={() => setStatus('overstock')} style={{ padding: '20px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#D97706', textTransform: 'uppercase' }}>Overstock</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#92400E' }}>{stats.overstock || 0}</span>
-          </div>
-          <Package size={32} color="#D97706" style={{ opacity: 0.2 }} />
-        </div>
-        <div onClick={() => setStatus('low')} style={{ padding: '20px', background: '#FEF2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase' }}>Low Stock</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B' }}>{stats.lowStock || 0}</span>
-          </div>
-          <AlertTriangle size={32} color="#DC2626" style={{ opacity: 0.2 }} />
-        </div>
-        <div style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#16A34A', textTransform: 'uppercase' }}>Total Value</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{(stats.totalValue || 0).toLocaleString()}</span>
-          </div>
-          <TrendingUp size={32} color="#16A34A" style={{ opacity: 0.2 }} />
-        </div>
-      </div>
+
+
+
 
       {/* SECTION 3: INVENTORY TABLE */}
       <div ref={tableRef} style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -1106,13 +1181,16 @@ export default function InventoryPanel({ showToast }) {
             <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '4px 10px', borderRadius: 99, fontSize: 13, fontWeight: 700 }}>{pagination.totalItems} items</span>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => setShowImport(true)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'white', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setGrnExpanded(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#EFF6FF', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <Upload size={16} /> Upload GRN
+            </button>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setShowImport(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'white', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Download size={16} /> Import CSV
             </button>
             <button onClick={() => exportCSV(items)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'white', color: '#16A34A', border: '1.5px solid #16A34A', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Export CSV
             </button>
-            <button onClick={() => { setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', qty: '', unit: prev?.unit || '', min: '', max: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', total_qty: '', qty: '', unit: prev?.unit || '', min: '', max: '', cost_price: '', rate: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Plus size={16} /> Add Item
             </button>
           </div>
@@ -1266,7 +1344,7 @@ export default function InventoryPanel({ showToast }) {
             <table className="data-table" style={{ width: '100%', minWidth: 900, marginTop: 16, textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0' }}>
-                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>HSN</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Rate</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>GST</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>📅 Date Added</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>🔄 Last Restocked</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
+                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>HSN</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Total Qty</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Current Qty</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Sold Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Purchase Rate</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>GST</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Total Value</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>📅 Date Added</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>🔄 Last Restocked</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1278,6 +1356,7 @@ export default function InventoryPanel({ showToast }) {
                       <td style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, padding: '12px 8px' }}>{item.hsn}</td>
                       <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{item.name}</td>
                       <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.category}</td>
+                      <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{formatQty(item.total_qty ?? item.qty)}</td>
                       <td style={{ padding: '12px 8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           <span style={{ fontWeight: 700, color: '#0F172A' }}>{formatQty(item.qty)}</span>
@@ -1285,6 +1364,9 @@ export default function InventoryPanel({ showToast }) {
                             <div style={{ height: '100%', width: `${pct}%`, background: item.qty < item.min ? '#DC2626' : item.qty > item.max ? '#D97706' : '#16A34A' }} />
                           </div>
                         </div>
+                      </td>
+                      <td style={{ fontWeight: 600, color: '#2563EB', padding: '12px 8px' }}>
+                        {formatQty(Math.max(0, (item.total_qty ?? item.qty) - item.qty))}
                       </td>
                       <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.unit}</td>
                       <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.min}</td>
@@ -1309,6 +1391,9 @@ export default function InventoryPanel({ showToast }) {
                         >
                           {Number(item.gst) > 0 ? <CheckSquare size={20} color="#16A34A" /> : <Square size={20} color="#94A3B8" />}
                         </button>
+                      </td>
+                      <td style={{ color: '#0F172A', padding: '12px 8px', fontWeight: 700 }}>
+                        ₹{(((Number(item.rate) || 0) * (1 + (Number(item.gst) || 0) / 100)) * (Number(item.qty) || 0)).toFixed(2)}
                       </td>
                       <td style={{ textAlign: 'center', padding: '12px 8px' }}>
                          {(() => {
@@ -1385,6 +1470,35 @@ export default function InventoryPanel({ showToast }) {
         </div>
       </div>
 
+      {/* GRN History Mini Table (Always visible if there's history) */}
+      {grnHistory.length > 0 && !grnData && (
+        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 24 }}>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: '0 0 16px 0' }}>Recent Goods Receipts (GRN)</h4>
+          <div style={{ border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead><tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Date</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Supplier</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569' }}>Items Received</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
+              </tr></thead>
+              <tbody>
+                {grnHistory.map(g => (
+                  <tr key={g.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '12px 16px', color: '#0F172A', fontWeight: 500 }}>{new Date(g.date || g.created_at).toLocaleDateString()}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1E293B' }}>{g.supplier}</td>
+                    <td style={{ padding: '12px 16px', color: '#64748B' }}><span style={{ background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>{g.items?.length || 0} items</span></td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <ActionButton icon={<Trash2 size={16} />} color="#EF4444" hoverColor="#DC2626" tooltip="Delete GRN" onClick={() => handleDeleteGrn(g)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Add/Edit Modal */}
       {adding && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
@@ -1404,12 +1518,12 @@ export default function InventoryPanel({ showToast }) {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
-                <CategoryAutocomplete
+                <FormAutocomplete
                   value={newItem.category}
                   onChange={val => setNewItem({ ...newItem, category: val })}
-                  categories={categories}
-                  width="100%"
-                  onAddCategory={async (newCat) => {
+                  options={categories}
+                  placeholder="Select Category..."
+                  onAddOption={async (newCat) => {
                     try {
                       await backendFetch('/inventory/categories', { method: 'POST', body: JSON.stringify({ name: newCat }) })
                       fetchCategories()
@@ -1418,23 +1532,34 @@ export default function InventoryPanel({ showToast }) {
                 />
               </div>
               <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Total Qty (Initial)</label>
+                <input type="number" value={newItem.total_qty || ''} onChange={e => setNewItem({ ...newItem, total_qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+              <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Current Qty</label>
                 <input type="number" value={newItem.qty} onChange={e => setNewItem({ ...newItem, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>
-                <select value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }}>
-                  <option value="">Select...</option>
-                  <option value="Nos">Nos</option>
-                  <option value="Kg">Kg</option>
-                  <option value="Ltrs">Ltrs</option>
-                  <option value="Set">Set</option>
-                  <option value="Metre">Metre</option>
-                  <option value="Sqft">Sqft</option>
-                </select>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Sold Qty (Auto)</label>
+                <input type="number" disabled value={Math.max(0, (Number(newItem.total_qty ?? newItem.qty) || 0) - (Number(newItem.qty) || 0))} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Rate (₹)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>
+                <FormAutocomplete
+                  value={newItem.unit}
+                  onChange={val => setNewItem({ ...newItem, unit: val })}
+                  options={units}
+                  placeholder="Select Unit..."
+                  onAddOption={async (newUnit) => {
+                    try {
+                      await backendFetch('/inventory/units', { method: 'POST', body: JSON.stringify({ name: newUnit }) })
+                      fetchUnits()
+                    } catch (e) { console.error(e) }
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Purchase Rate (₹)</label>
                 <input type="number" value={newItem.rate || ''} onChange={e => setNewItem({ ...newItem, rate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
