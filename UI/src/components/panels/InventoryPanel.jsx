@@ -39,20 +39,42 @@ const ITEM_FIELDS   = ['hsn', 'description', 'quantity', 'unit_price']
 const fieldLabel = (f) => f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
 /* ─── Action Button ───────────────────────────────────── */
-const ActionButton = ({ color, hoverColor, icon, tooltip, onClick }) => (
-  <button
-    onClick={onClick}
-    title={tooltip}
-    style={{
-      width: 32, height: 32, borderRadius: 6, background: color, border: 'none',
-      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: 'all 0.15s ease', color: 'white'
-    }}
-    onMouseEnter={e => e.target.style.background = hoverColor}
-    onMouseLeave={e => e.target.style.background = color}
-  >
-    {icon}
-  </button>
+const ActionBtn = ({ color, hover, icon, title, onClick }) => {
+  const [isHover, setIsHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setIsHover(true)}
+      onMouseLeave={() => setIsHover(false)}
+      style={{
+        width: 32, height: 32, borderRadius: 6, border: 'none',
+        background: isHover ? hover : color, color: 'white', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 0.15s ease', flexShrink: 0
+      }}
+    >
+      {icon}
+    </button>
+  )
+}
+
+const ColHeader = ({ label, tooltip }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <span style={{ fontSize: 13, fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{label}</span>
+    {tooltip && (
+      <span
+        title={tooltip}
+        style={{
+          fontSize: 10, color: '#94A3B8', cursor: 'help', border: '1px solid #CBD5E1',
+          borderRadius: '50%', width: 14, height: 14, display: 'inline-flex',
+          alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}
+      >
+        ?
+      </span>
+    )}
+  </div>
 )
 
 /* ─── Pagination Component ───────────────────────────────────── */
@@ -668,6 +690,35 @@ const FormAutocomplete = ({ value, onChange, options, onAddOption, placeholder =
 export default function InventoryPanel({ showToast }) {
   // Inventory States
   const [items, setItems] = useState([])
+  const [editValues, setEditValues] = useState({})
+
+  const handleFieldChange = (itemId, field, value) => {
+    setEditValues(prev => ({ ...prev, [`${itemId}-${field}`]: value }))
+  }
+
+  const getValue = (item, field) => {
+    const localVal = editValues[`${item.id}-${field}`]
+    return localVal !== undefined ? localVal : (item[field] ?? '')
+  }
+
+  const saveFieldToBackend = async (item, field) => {
+    const localVal = editValues[`${item.id}-${field}`]
+    if (localVal === undefined || String(localVal) === String(item[field])) return
+
+    try {
+      await backendFetch(`/inventory/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ [field]: Number(localVal) })
+      })
+      
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, [field]: Number(localVal) } : i))
+      
+      // Background refresh to update calculated fields
+      fetchInventory({ page: pagination.currentPage })
+    } catch (err) {
+      showToast?.(err.message, 'error')
+    }
+  }
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 12 })
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
@@ -829,36 +880,42 @@ export default function InventoryPanel({ showToast }) {
   }
 
   const handleToggleGst = async (item) => {
-    const newGst = (item.gst && Number(item.gst) > 0) ? 0 : 18;
     try {
-      setItems(items.map(i => i.id === item.id ? { ...i, gst: newGst } : i));
-      setAllItems(allItems.map(i => i.id === item.id ? { ...i, gst: newGst } : i));
+      const hasGst = (Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0) > 0
+      const payload = hasGst 
+        ? { cgst_percent: 0, sgst_percent: 0 } 
+        : { cgst_percent: 9, sgst_percent: 9 }
+      
       await backendFetch(`/inventory/${item.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ gst: newGst })
-      });
-      showToast?.('GST Updated', 'success');
+        body: JSON.stringify(payload)
+      })
+      fetchInventory({ page: pagination.currentPage })
+      showToast?.('GST Updated', 'success')
     } catch (err) {
-      showToast?.('Failed to update GST', 'error');
-      fetchInventory(); // revert
+      showToast?.(err.message, 'error')
     }
-  };
+  }
 
   const handleDamage = (item) => {
-    setConfirmModal({
-      title: 'Mark as Damaged',
-      message: `Are you sure you want to deduct 1 quantity from ${item.name} for damage?`,
-      confirmLabel: 'Confirm Damage',
-      danger: true,
-      onConfirm: async () => {
-        try {
-          await backendFetch(`/inventory/${item.id}/stock`, { method: 'PATCH', body: JSON.stringify({ delta: -1 }) })
-          showToast?.('Item marked as damaged', 'success')
-          showToast?.('Item marked as damaged', 'success')
-          fetchInventory()
-        } catch (e) { showToast?.(e.message, 'error') }
-        setConfirmModal(null)
-      }
+    const currentQty = (item.opening_stock || 0) + (item.stock_in || 0) - (item.stock_out || 0) - (item.damaged_qty || 0)
+    const qtyStr = prompt(`Enter quantity of ${item.name} to mark as damaged (Max: ${currentQty}):`)
+    if (!qtyStr) return
+    const qty = Number(qtyStr)
+    if (isNaN(qty) || qty <= 0 || qty > currentQty) {
+      alert(`Invalid quantity. Must be between 1 and ${currentQty}.`)
+      return
+    }
+    const reason = prompt(`Enter reason for damage:`, 'Damaged in transit')
+    
+    backendFetch(`/inventory/${item.id}/damage`, {
+      method: 'POST',
+      body: JSON.stringify({ qty, reason, notes: '' })
+    }).then(() => {
+      showToast?.(`Marked ${qty} ${item.unit} as damaged`, 'success')
+      fetchInventory({ page: pagination.currentPage })
+    }).catch(err => {
+      showToast?.(err.message, 'error')
     })
   }
 
@@ -919,8 +976,14 @@ export default function InventoryPanel({ showToast }) {
       const processedItem = { 
         ...newItem, 
         qty: Number(newItem.qty) || 0, 
+        opening_stock: Number(newItem.opening_stock ?? newItem.qty) || 0,
         min: Number(newItem.min) || 0, 
         max: Number(newItem.max) || 0,
+        reorder_qty: Number(newItem.reorder_qty) || 0,
+        purchase_rate: Number(newItem.purchase_rate || newItem.rate) || 0,
+        selling_rate: Number(newItem.selling_rate) || 0,
+        cgst_percent: Number(newItem.cgst_percent) || 0,
+        sgst_percent: Number(newItem.sgst_percent) || 0,
         date_added: parseDate(newItem.date_added),
         last_restocked: parseDate(newItem.last_restocked)
       };
@@ -1271,18 +1334,7 @@ export default function InventoryPanel({ showToast }) {
               {search && <FilterChip label={`Search: "${search}"`} onRemove={() => setSearch('')} />}
               {category !== 'all' && <FilterChip label={`Category: ${category}`} onRemove={() => { setCategory('all'); setPagination(p => ({...p, currentPage: 1})) }} />}
               {status !== 'all' && <FilterChip label={{'low':'Low Stock', 'ok':'OK', 'overstock':'Overstock', 'out':'Out of Stock'}[status]} onRemove={() => { setStatus('all'); setPagination(p => ({...p, currentPage: 1})) }} />}
-            </div>
-          )}
-        </div>
-
-        {/* Table Content */}
-        <div style={{ overflowX: 'auto', padding: '0 24px' }}>
-          {search && items.length > 0 && (
-            <div style={{ fontSize: 13, color: '#2563EB', fontWeight: 600, marginBottom: 12 }}>
-              Showing {pagination.totalItems} items matching "{search}"
-            </div>
-          )}
-          {loading && items.length === 0 ? (
+                   {loading && items.length === 0 ? (
             <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 50, background: '#F1F5F9', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />)}
             </div>
@@ -1341,117 +1393,201 @@ export default function InventoryPanel({ showToast }) {
               )}
             </div>
           ) : (
-            <table className="data-table" style={{ width: '100%', minWidth: 900, marginTop: 16, textAlign: 'left', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #E2E8F0' }}>
-                  <th style={{ padding: '12px 8px', color: '#0F172A', width: 40 }}>SNO</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>HSN</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Item Name</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Category</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Total Qty</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Current Qty</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Sold Qty</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Unit</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Min</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>Max</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Purchase Rate</th><th style={{ padding: '12px 8px', color: '#0F172A' }}>GST</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>Total Value</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>📅 Date Added</th><th style={{ padding: '12px 8px', color: '#0F172A', whiteSpace: 'nowrap' }}>🔄 Last Restocked</th><th style={{ textAlign: 'center', padding: '12px 8px', color: '#0F172A' }}>Status</th><th style={{ textAlign: 'right', padding: '12px 8px', color: '#0F172A' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(!search && items.length > pagination.itemsPerPage ? items.slice((pagination.currentPage - 1) * pagination.itemsPerPage, pagination.currentPage * pagination.itemsPerPage) : items).map((item, index) => {
-                  const pct = Math.min((item.qty / (item.max || 1)) * 100, 100)
-                  return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                      <td style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, padding: '12px 8px' }}>{(pagination.currentPage - 1) * pagination.itemsPerPage + index + 1}</td>
-                      <td style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, padding: '12px 8px' }}>{item.hsn}</td>
-                      <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{item.name}</td>
-                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.category}</td>
-                      <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{formatQty(item.total_qty ?? item.qty)}</td>
-                      <td style={{ padding: '12px 8px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontWeight: 700, color: '#0F172A' }}>{formatQty(item.qty)}</span>
-                          <div style={{ width: 60, height: 4, background: '#F1F5F9', borderRadius: 99, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: item.qty < item.min ? '#DC2626' : item.qty > item.max ? '#D97706' : '#16A34A' }} />
+            <div style={{ overflowX: 'auto', overflowY: 'visible', width: '100%', borderTop: '1px solid #E2E8F0', paddingBottom: 16 }}>
+              <table style={{ width: 'max-content', minWidth: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                    <th style={{ position: 'sticky', left: 0, zIndex: 2, background: '#F8FAFC', width: 50, padding: '12px 8px' }}><ColHeader label="#" /></th>
+                    <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="HSN/SKU" tooltip="HSN Code / Stock Keeping Unit" /></th>
+                    <th style={{ width: 200, padding: '12px 8px' }}><ColHeader label="Item Name" /></th>
+                    <th style={{ width: 120, padding: '12px 8px' }}><ColHeader label="Category" /></th>
+                    <th style={{ width: 90, padding: '12px 8px' }}><ColHeader label="Opening" tooltip="Opening stock quantity" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Stock In" tooltip="Total received from GRNs" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Stock Out" tooltip="Total sold from bills" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Damaged" tooltip="Written off / damaged units" /></th>
+                    <th style={{ width: 90, padding: '12px 8px' }}><ColHeader label="Current Qty" tooltip="Opening + In - Out - Damaged" /></th>
+                    <th style={{ width: 70, padding: '12px 8px' }}><ColHeader label="Unit" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Min" tooltip="Minimum stock / reorder point" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Max" /></th>
+                    <th style={{ width: 90, padding: '12px 8px' }}><ColHeader label="Reorder Qty" tooltip="Quantity to order when stock hits Min" /></th>
+                    <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Purchase Rate" tooltip="Cost price per unit" /></th>
+                    <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Selling Rate" tooltip="Selling price per unit" /></th>
+                    <th style={{ width: 70, padding: '12px 8px' }}><ColHeader label="CGST %" /></th>
+                    <th style={{ width: 70, padding: '12px 8px' }}><ColHeader label="SGST %" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="GST %" tooltip="Total GST (CGST + SGST)" /></th>
+                    <th style={{ width: 110, padding: '12px 8px' }}><ColHeader label="Total Value" tooltip="Current Qty × Purchase Rate" /></th>
+                    <th style={{ width: 130, padding: '12px 8px' }}><ColHeader label="Supplier" /></th>
+                    <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Date Added" /></th>
+                    <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Last Restock" /></th>
+                    <th style={{ width: 110, padding: '12px 8px' }}><ColHeader label="Status" /></th>
+                    <th style={{ position: 'sticky', right: 0, zIndex: 2, background: '#F8FAFC', width: 110, padding: '12px 8px', boxShadow: '-2px 0 4px rgba(0,0,0,0.05)' }}><ColHeader label="Actions" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!search && items.length > pagination.itemsPerPage ? items.slice((pagination.currentPage - 1) * pagination.itemsPerPage, pagination.currentPage * pagination.itemsPerPage) : items).map((item, index) => {
+                    const currentQty = (item.opening_stock || 0) + (item.stock_in || 0) - (item.stock_out || 0) - (item.damaged_qty || 0)
+                    const totalValue = currentQty * (item.purchase_rate || item.rate || 0)
+                    
+                    const getStatus = (cq, min, max) => {
+                      if (cq === 0) return { label: 'Out of Stock', color: '#4F46E5', bg: '#EEF2FF' }
+                      if (cq < min) return { label: 'Low Stock', color: '#EA580C', bg: '#FFF7ED' }
+                      if (max > 0 && cq > max) return { label: 'Overstock', color: '#D97706', bg: '#FEF3C7' }
+                      return { label: 'OK', color: '#16A34A', bg: '#F0FDF4' }
+                    }
+                    const statBadge = getStatus(currentQty, item.min || 0, item.max || 0)
+                    
+                    const inputStyle = { width: '100%', padding: '4px 6px', border: '1px solid transparent', borderRadius: 4, outlineColor: '#2563EB', fontSize: 13, background: 'transparent' }
+                    const inputFocusStyle = { background: 'white', border: '1px solid #E2E8F0', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }
+
+                    return (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0', ':hover': { background: '#F8FAFC' } }}>
+                        {/* 1. S.No */}
+                        <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'white', fontSize: 13, color: '#64748B', fontWeight: 500, padding: '12px 8px' }}>
+                          {(pagination.currentPage - 1) * pagination.itemsPerPage + index + 1}
+                        </td>
+                        {/* 2. HSN/SKU */}
+                        <td style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, padding: '12px 8px' }}>{item.hsn || item.sku}</td>
+                        {/* 3. Item Name */}
+                        <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{item.name}</td>
+                        {/* 4. Category */}
+                        <td style={{ color: '#0F172A', padding: '12px 8px' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: 99, background: '#F1F5F9', fontSize: 12 }}>{item.category}</span>
+                        </td>
+                        {/* 5. Opening Stock */}
+                        <td style={{ fontWeight: 600, color: '#475569', padding: '12px 8px' }}>{formatQty(item.opening_stock)}</td>
+                        {/* 6. Stock In */}
+                        <td style={{ fontWeight: 600, color: '#10B981', padding: '12px 8px' }}>+{formatQty(item.stock_in)}</td>
+                        {/* 7. Stock Out */}
+                        <td style={{ fontWeight: 600, color: '#3B82F6', padding: '12px 8px' }}>-{formatQty(item.stock_out)}</td>
+                        {/* 8. Damaged */}
+                        <td style={{ fontWeight: 600, color: '#EF4444', padding: '12px 8px' }}>-{formatQty(item.damaged_qty)}</td>
+                        {/* 9. Current Qty */}
+                        <td style={{ padding: '12px 8px' }}>
+                          <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 14 }}>{formatQty(currentQty)}</span>
+                        </td>
+                        {/* 10. Unit */}
+                        <td style={{ color: '#64748B', padding: '12px 8px' }}>{item.unit}</td>
+                        {/* 11. Min */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="number"
+                            value={getValue(item, 'min')}
+                            onChange={e => handleFieldChange(item.id, 'min', e.target.value)}
+                            onBlur={() => saveFieldToBackend(item, 'min')}
+                            onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                            onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                            style={inputStyle}
+                          />
+                        </td>
+                        {/* 12. Max */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="number"
+                            value={getValue(item, 'max')}
+                            onChange={e => handleFieldChange(item.id, 'max', e.target.value)}
+                            onBlur={() => saveFieldToBackend(item, 'max')}
+                            onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                            onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                            style={inputStyle}
+                          />
+                        </td>
+                        {/* 13. Reorder Qty */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="number"
+                            value={getValue(item, 'reorder_qty')}
+                            onChange={e => handleFieldChange(item.id, 'reorder_qty', e.target.value)}
+                            onBlur={() => saveFieldToBackend(item, 'reorder_qty')}
+                            onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                            onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                            style={inputStyle}
+                          />
+                        </td>
+                        {/* 14. Purchase Rate */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ color: '#64748B', fontSize: 13 }}>₹</span>
+                            <input type="number"
+                              value={getValue(item, 'purchase_rate') || getValue(item, 'rate')}
+                              onChange={e => handleFieldChange(item.id, 'purchase_rate', e.target.value)}
+                              onBlur={() => saveFieldToBackend(item, 'purchase_rate')}
+                              onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                              onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                              style={inputStyle}
+                            />
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ fontWeight: 600, color: '#2563EB', padding: '12px 8px' }}>
-                        {formatQty(Math.max(0, (item.total_qty ?? item.qty) - item.qty))}
-                      </td>
-                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>{item.unit}</td>
-                      <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.min}</td>
-                      <td style={{ color: '#1E293B', padding: '12px 8px' }}>{item.max}</td>
-                      <td style={{ color: '#0F172A', padding: '12px 8px' }}>
-                        {item.rate ? (
-                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                             <span style={{ fontWeight: 600 }}>₹{(Number(item.rate) * (1 + (Number(item.gst) || 0) / 100)).toFixed(2)}</span>
-                             {Number(item.gst) > 0 && <span style={{ fontSize: 10, color: '#64748B' }}>inc. {item.gst}% GST</span>}
-                           </div>
-                        ) : '—'}
-                      </td>
-                      <td style={{ padding: '12px 8px' }}>
-                        <button 
-                          onClick={() => handleToggleGst(item)}
-                          style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: 4, borderRadius: 4
-                          }}
-                          title={Number(item.gst) > 0 ? 'Remove 18% GST' : 'Add 18% GST'}
-                        >
-                          {Number(item.gst) > 0 ? <CheckSquare size={20} color="#16A34A" /> : <Square size={20} color="#94A3B8" />}
-                        </button>
-                      </td>
-                      <td style={{ color: '#0F172A', padding: '12px 8px', fontWeight: 700 }}>
-                        ₹{(((Number(item.rate) || 0) * (1 + (Number(item.gst) || 0) / 100)) * (Number(item.qty) || 0)).toFixed(2)}
-                      </td>
-                      <td style={{ textAlign: 'center', padding: '12px 8px' }}>
-                         {(() => {
-                           const dateAdded = item.date_added
-                           const src = item.restock_source || 'manual'
-                           const isGrn = src && src.startsWith('GRN')
-                           const fmtD = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
-                           // Age badge
-                           let ageBg = '#EFF6FF', ageColor = '#2563EB', ageLabel = 'New'
-                           if (dateAdded) {
-                             const days = Math.floor((Date.now() - new Date(dateAdded)) / 86400000)
-                             if (days > 180) { ageBg = '#FEF2F2'; ageColor = '#DC2626'; ageLabel = 'Old Stock' }
-                             else if (days > 90) { ageBg = '#FFFBEB'; ageColor = '#D97706'; ageLabel = 'Aging' }
-                             else if (days > 30) { ageBg = '#F0FDF4'; ageColor = '#059669'; ageLabel = 'Fresh' }
-                           }
-                           return (
-                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                               <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{fmtD(dateAdded)}</span>
-                               {dateAdded && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: ageBg, color: ageColor }}>{ageLabel}</span>}
-                               {dateAdded && <span onClick={() => handleEditClick(item)} style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
-                             </div>
-                           )
-                         })()}
-                       </td>
-                       <td style={{ textAlign: 'center', padding: '12px 8px' }}>
-                         {(() => {
-                           const lastR = item.last_restocked
-                           const src = item.restock_source || 'manual'
-                           const isGrn = src && src.startsWith('GRN')
-                           const fmtD = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
-                           let rColor = '#94A3B8', rBg = '#F1F5F9'
-                           if (lastR) {
-                             const days = Math.floor((Date.now() - new Date(lastR)) / 86400000)
-                             if (days <= 30) { rColor = '#059669'; rBg = '#F0FDF4' }
-                             else if (days <= 60) { rColor = '#D97706'; rBg = '#FFFBEB' }
-                             else { rColor = '#DC2626'; rBg = '#FEF2F2' }
-                           }
-                           return (
-                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                               <span style={{ fontSize: 12, fontWeight: 600, color: lastR ? rColor : '#94A3B8', background: lastR ? rBg : 'transparent', padding: lastR ? '2px 6px' : 0, borderRadius: 6 }}>{fmtD(lastR)}</span>
-                               {lastR && <span onClick={() => handleEditClick(item)} style={{ fontSize: 10, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}>{isGrn ? '📥' : '✏️'} {isGrn ? src : 'Manual'}</span>}
-                             </div>
-                           )
-                         })()}
-                       </td>
-                      <td style={{ textAlign: 'center', padding: '12px 8px' }}>{getStatusBadge(item)}</td>
-                      <td style={{ textAlign: 'right', padding: '12px 8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <ActionButton color="#2563EB" hoverColor="#1D4ED8" icon={<Pencil size={14} />} tooltip="Edit Item" onClick={() => handleEditClick(item)} />
-                          <ActionButton color="#EA580C" hoverColor="#C2410C" icon={<AlertTriangle size={14} />} tooltip="Mark as Damaged" onClick={() => handleDamage(item)} />
-                          <ActionButton color="#DC2626" hoverColor="#B91C1C" icon={<Trash2 size={14} />} tooltip="Delete Item" onClick={() => handleDelete(item)} />
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        {/* 15. Selling Rate */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ color: '#64748B', fontSize: 13 }}>₹</span>
+                            <input type="number"
+                              value={getValue(item, 'selling_rate')}
+                              onChange={e => handleFieldChange(item.id, 'selling_rate', e.target.value)}
+                              onBlur={() => saveFieldToBackend(item, 'selling_rate')}
+                              onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                              onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                              style={inputStyle}
+                            />
+                          </div>
+                        </td>
+                        {/* 16. CGST % */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="number"
+                            value={getValue(item, 'cgst_percent')}
+                            onChange={e => handleFieldChange(item.id, 'cgst_percent', e.target.value)}
+                            onBlur={() => saveFieldToBackend(item, 'cgst_percent')}
+                            onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                            onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                            style={{ ...inputStyle, width: 50 }}
+                          />
+                        </td>
+                        {/* 17. SGST % */}
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="number"
+                            value={getValue(item, 'sgst_percent')}
+                            onChange={e => handleFieldChange(item.id, 'sgst_percent', e.target.value)}
+                            onBlur={() => saveFieldToBackend(item, 'sgst_percent')}
+                            onFocus={e => Object.assign(e.target.style, inputFocusStyle)}
+                            onMouseLeave={e => { if(document.activeElement !== e.target) Object.assign(e.target.style, inputStyle) }}
+                            style={{ ...inputStyle, width: 50 }}
+                          />
+                        </td>
+                        {/* 18. GST % */}
+                        <td style={{ color: '#0F172A', padding: '12px 8px', fontWeight: 600 }}>
+                          {Number(item.cgst_percent || 0) + Number(item.sgst_percent || 0)}%
+                        </td>
+                        {/* 19. Total Value */}
+                        <td style={{ color: '#0F172A', padding: '12px 8px', fontWeight: 700 }}>
+                          ₹{totalValue.toFixed(2)}
+                        </td>
+                        {/* 20. Supplier */}
+                        <td style={{ color: '#475569', padding: '12px 8px' }}>{item.supplier_name || '—'}</td>
+                        {/* 21. Date Added */}
+                        <td style={{ color: '#64748B', padding: '12px 8px', fontSize: 12 }}>
+                          {item.date_added ? new Date(item.date_added).toLocaleDateString('en-IN') : '—'}
+                        </td>
+                        {/* 22. Last Restock */}
+                        <td style={{ color: '#64748B', padding: '12px 8px', fontSize: 12 }}>
+                          {item.last_restocked ? new Date(item.last_restocked).toLocaleDateString('en-IN') : '—'}
+                        </td>
+                        {/* 23. Status */}
+                        <td style={{ padding: '12px 8px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: statBadge.color, background: statBadge.bg, padding: '4px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                            {statBadge.label}
+                          </span>
+                        </td>
+                        {/* 24. Actions */}
+                        <td style={{ position: 'sticky', right: 0, zIndex: 1, background: 'white', padding: '12px 8px', boxShadow: '-2px 0 4px rgba(0,0,0,0.05)' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <ActionBtn color="#2563EB" hover="#1D4ED8" icon={<Pencil size={14} />} title="Edit Item" onClick={() => handleEditClick(item)} />
+                            <ActionBtn color="#EA580C" hover="#C2410C" icon={<AlertTriangle size={14} />} title="Mark Damaged" onClick={() => handleDamage(item)} />
+                            <ActionBtn color="#DC2626" hover="#B91C1C" icon={<Trash2 size={14} />} title="Delete Item" onClick={() => handleDelete(item)} />
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
         
@@ -1489,7 +1625,7 @@ export default function InventoryPanel({ showToast }) {
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1E293B' }}>{g.supplier}</td>
                     <td style={{ padding: '12px 16px', color: '#64748B' }}><span style={{ background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>{g.items?.length || 0} items</span></td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <ActionButton icon={<Trash2 size={16} />} color="#EF4444" hoverColor="#DC2626" tooltip="Delete GRN" onClick={() => handleDeleteGrn(g)} />
+                      <ActionBtn icon={<Trash2 size={16} />} color="#EF4444" hover="#DC2626" title="Delete GRN" onClick={() => handleDeleteGrn(g)} />
                     </td>
                   </tr>
                 ))}
@@ -1502,24 +1638,27 @@ export default function InventoryPanel({ showToast }) {
       {/* Add/Edit Modal */}
       {adding && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ background: 'white', borderRadius: 12, width: '100%', maxWidth: 540, overflow: 'hidden' }}>
+          <div style={{ background: 'white', borderRadius: 12, width: '100%', maxWidth: 640, overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>{editingItemId ? 'Edit Item' : 'Add New Item'}</h3>
               <button onClick={() => setAdding(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1E293B' }}><X size={20} /></button>
             </div>
-            <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
+              {/* Row 1 */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>HSN</label>
-                <input type="text" value={newItem.hsn} onChange={e => setNewItem({ ...newItem, hsn: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>HSN / SKU</label>
+                <input type="text" value={newItem.hsn || newItem.sku || ''} onChange={e => setNewItem({ ...newItem, hsn: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Item Name</label>
-                <input type="text" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <input type="text" value={newItem.name || ''} onChange={e => setNewItem({ ...newItem, name: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
+              
+              {/* Row 2 */}
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Category</label>
                 <FormAutocomplete
-                  value={newItem.category}
+                  value={newItem.category || ''}
                   onChange={val => setNewItem({ ...newItem, category: val })}
                   options={categories}
                   placeholder="Select Category..."
@@ -1532,21 +1671,19 @@ export default function InventoryPanel({ showToast }) {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Total Qty (Initial)</label>
-                <input type="number" value={newItem.total_qty || ''} onChange={e => setNewItem({ ...newItem, total_qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Supplier</label>
+                <input type="text" value={newItem.supplier_name || ''} onChange={e => setNewItem({ ...newItem, supplier_name: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} placeholder="Supplier Name" />
               </div>
+
+              {/* Row 3 */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Current Qty</label>
-                <input type="number" value={newItem.qty} onChange={e => setNewItem({ ...newItem, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Sold Qty (Auto)</label>
-                <input type="number" disabled value={Math.max(0, (Number(newItem.total_qty ?? newItem.qty) || 0) - (Number(newItem.qty) || 0))} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Opening Stock</label>
+                <input type="number" value={newItem.opening_stock ?? newItem.qty ?? ''} onChange={e => setNewItem({ ...newItem, opening_stock: e.target.value, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} disabled={!!editingItemId} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>
                 <FormAutocomplete
-                  value={newItem.unit}
+                  value={newItem.unit || ''}
                   onChange={val => setNewItem({ ...newItem, unit: val })}
                   options={units}
                   placeholder="Select Unit..."
@@ -1558,29 +1695,54 @@ export default function InventoryPanel({ showToast }) {
                   }}
                 />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Purchase Rate (₹)</label>
-                <input type="number" value={newItem.rate || ''} onChange={e => setNewItem({ ...newItem, rate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
-              </div>
+
+              {/* Row 4 */}
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Min Level</label>
-                <input type="number" value={newItem.min} onChange={e => setNewItem({ ...newItem, min: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <input type="number" value={newItem.min ?? ''} onChange={e => setNewItem({ ...newItem, min: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Max Level</label>
-                <input type="number" value={newItem.max} onChange={e => setNewItem({ ...newItem, max: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <input type="number" value={newItem.max ?? ''} onChange={e => setNewItem({ ...newItem, max: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+
+              {/* Row 5 */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Reorder Qty</label>
+                <input type="number" value={newItem.reorder_qty || ''} onChange={e => setNewItem({ ...newItem, reorder_qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Date Added</label>
                 <input type="text" placeholder="DD-MM-YYYY or YYYY-MM-DD" value={newItem.date_added || ''} onChange={e => setNewItem({ ...newItem, date_added: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
+
+              {/* Row 6 */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Last Restocked</label>
-                <input type="text" placeholder="DD-MM-YYYY or YYYY-MM-DD" value={newItem.last_restocked || ''} onChange={e => setNewItem({ ...newItem, last_restocked: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Purchase Rate (₹)</label>
+                <input type="number" value={newItem.rate || newItem.purchase_rate || ''} onChange={e => setNewItem({ ...newItem, rate: e.target.value, purchase_rate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>GST (%)</label>
-                <select value={newItem.gst || ''} onChange={e => setNewItem({ ...newItem, gst: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Selling Rate (₹)</label>
+                <input type="number" value={newItem.selling_rate || ''} onChange={e => setNewItem({ ...newItem, selling_rate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+
+              {/* Row 7 */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>CGST (%)</label>
+                <input type="number" value={newItem.cgst_percent || ''} onChange={e => setNewItem({ ...newItem, cgst_percent: e.target.value, gst: Number(e.target.value || 0) + Number(newItem.sgst_percent || 0) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>SGST (%)</label>
+                <input type="number" value={newItem.sgst_percent || ''} onChange={e => setNewItem({ ...newItem, sgst_percent: e.target.value, gst: Number(newItem.cgst_percent || 0) + Number(e.target.value || 0) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} />
+              </div>
+
+              {/* Row 8 */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Total GST (%)</label>
+                <select value={newItem.gst || ''} onChange={e => {
+                  const val = Number(e.target.value);
+                  setNewItem({ ...newItem, gst: val, cgst_percent: val/2, sgst_percent: val/2 });
+                }} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }}>
                   <option value="">None (0%)</option>
                   <option value="5">5%</option>
                   <option value="12">12%</option>
@@ -1588,7 +1750,21 @@ export default function InventoryPanel({ showToast }) {
                   <option value="28">28%</option>
                 </select>
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#F8FAFC', borderRadius: 8, padding: '8px 14px', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Profit Calculator</div>
+                {(() => {
+                  const profit = Number(newItem.selling_rate || 0) - Number(newItem.rate || newItem.purchase_rate || 0);
+                  const margin = Number(newItem.selling_rate || 0) > 0 ? (profit / Number(newItem.selling_rate)) * 100 : 0;
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: profit > 0 ? '#16A34A' : '#DC2626' }}>₹{profit.toFixed(2)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>({margin.toFixed(1)}% margin)</span>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
+            
             <div style={{ padding: '16px 24px', background: '#FAFBFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setAdding(false)} style={{ padding: '0 20px', height: 40, borderRadius: 8, border: 'none', background: '#DC2626', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleAdd} style={{ padding: '0 20px', height: 40, borderRadius: 8, border: 'none', background: '#2563EB', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Save Item</button>

@@ -932,4 +932,45 @@ router.get('/demand', auth, async (req, res) => {
   }
 });
 
+// GET /api/reports/sales
+router.get('/sales', auth, async (req, res) => {
+  try {
+    const { from, to, category } = req.query;
+    const userId = req.user.id;
+    const { AnalyticsService } = require('../services/analytics.service');
+
+    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const toDate = to || new Date().toISOString();
+
+    const metrics = await AnalyticsService.getCoreMetrics(userId, fromDate, toDate, category);
+
+    res.json({
+      success: true,
+      kpis: {
+        totalSales: metrics.totalRevenue,
+        totalOrders: metrics.totalOrders,
+        avgOrderValue: metrics.avgOrderValue,
+        totalProfit: metrics.grossProfit
+      },
+      trend: Object.values(metrics.dateMap).sort((a,b) => new Date(a.date) - new Date(b.date)),
+      byCategory: Object.values(metrics.categoryMap).sort((a,b) => b.revenue - a.revenue),
+      topProducts: Object.values(metrics.productMap).sort((a,b) => b.revenue - a.revenue).slice(0, 10),
+      paymentMethods: Object.values(metrics.paymentMap).sort((a,b) => b.value - a.value),
+      customerSummary: Object.values(metrics.customerMap)
+        .map(c => ({
+          customer: c.customer,
+          orders: c.orders,
+          total: c.total,
+          avgOrder: c.orders > 0 ? c.total / c.orders : 0,
+          lastOrder: c.lastOrder,
+          status: 'Active'
+        }))
+        .sort((a,b) => b.total - a.total)
+    });
+  } catch (err) {
+    console.error('Sales Report error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
