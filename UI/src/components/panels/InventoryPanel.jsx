@@ -1405,11 +1405,10 @@ export default function InventoryPanel({ showToast }) {
                     <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="HSN/SKU" tooltip="HSN Code / Stock Keeping Unit" /></th>
                     <th style={{ width: 200, padding: '12px 8px' }}><ColHeader label="Item Name" /></th>
                     <th style={{ width: 120, padding: '12px 8px' }}><ColHeader label="Category" /></th>
-                    <th style={{ width: 90, padding: '12px 8px' }}><ColHeader label="Opening" tooltip="Opening stock quantity" /></th>
-                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Stock In" tooltip="Total received from GRNs" /></th>
-                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Stock Out" tooltip="Total sold from bills" /></th>
+                    <th style={{ width: 90, padding: '12px 8px' }}><ColHeader label="Total Qty" tooltip="Opening stock / Total quantity" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Current Qty" tooltip="Current stock available" /></th>
+                    <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Sold Qty" tooltip="Total sold from bills" /></th>
                     <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Damaged" tooltip="Written off / damaged units" /></th>
-                    <th style={{ width: 90, padding: '12px 8px' }}><ColHeader label="Current Qty" tooltip="Opening + In - Out - Damaged" /></th>
                     <th style={{ width: 70, padding: '12px 8px' }}><ColHeader label="Unit" /></th>
                     <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Min" tooltip="Minimum stock / reorder point" /></th>
                     <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="Max" /></th>
@@ -1429,7 +1428,7 @@ export default function InventoryPanel({ showToast }) {
                 </thead>
                 <tbody>
                   {(!search && items.length > pagination.itemsPerPage ? items.slice((pagination.currentPage - 1) * pagination.itemsPerPage, pagination.currentPage * pagination.itemsPerPage) : items).map((item, index) => {
-                    const currentQty = (item.opening_stock || 0) + (item.stock_in || 0) - (item.stock_out || 0) - (item.damaged_qty || 0)
+                    const currentQty = item.qty || 0
                     const totalValue = currentQty * (item.purchase_rate || item.rate || 0)
                     
                     const getStatus = (cq, min, max) => {
@@ -1457,18 +1456,16 @@ export default function InventoryPanel({ showToast }) {
                         <td style={{ color: '#0F172A', padding: '12px 8px' }}>
                           <span style={{ padding: '2px 8px', borderRadius: 99, background: '#F1F5F9', fontSize: 12 }}>{item.category}</span>
                         </td>
-                        {/* 5. Opening Stock */}
-                        <td style={{ fontWeight: 600, color: '#475569', padding: '12px 8px' }}>{formatQty(item.opening_stock)}</td>
-                        {/* 6. Stock In */}
-                        <td style={{ fontWeight: 600, color: '#10B981', padding: '12px 8px' }}>+{formatQty(item.stock_in)}</td>
-                        {/* 7. Stock Out */}
-                        <td style={{ fontWeight: 600, color: '#3B82F6', padding: '12px 8px' }}>-{formatQty(item.stock_out)}</td>
-                        {/* 8. Damaged */}
-                        <td style={{ fontWeight: 600, color: '#EF4444', padding: '12px 8px' }}>-{formatQty(item.damaged_qty)}</td>
-                        {/* 9. Current Qty */}
+                        {/* 5. Total Qty */}
+                        <td style={{ fontWeight: 600, color: '#475569', padding: '12px 8px' }}>{formatQty(item.total_qty ?? item.qty)}</td>
+                        {/* 6. Current Qty */}
                         <td style={{ padding: '12px 8px' }}>
-                          <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 14 }}>{formatQty(currentQty)}</span>
+                          <span style={{ fontWeight: 700, color: '#10B981', fontSize: 14 }}>{formatQty(currentQty)}</span>
                         </td>
+                        {/* 7. Sold Qty */}
+                        <td style={{ fontWeight: 600, color: '#3B82F6', padding: '12px 8px' }}>{formatQty(Math.max(0, (item.total_qty ?? item.qty) - currentQty))}</td>
+                        {/* 8. Damaged */}
+                        <td style={{ fontWeight: 600, color: '#EF4444', padding: '12px 8px' }}>{formatQty(item.damaged_qty)}</td>
                         {/* 10. Unit */}
                         <td style={{ color: '#64748B', padding: '12px 8px' }}>{item.unit}</td>
                         {/* 11. Min */}
@@ -1680,8 +1677,8 @@ export default function InventoryPanel({ showToast }) {
 
               {/* Row 3 */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Opening Stock</label>
-                <input type="number" value={newItem.opening_stock ?? newItem.qty ?? ''} onChange={e => setNewItem({ ...newItem, opening_stock: e.target.value, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} disabled={!!editingItemId} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Total / Opening Stock</label>
+                <input type="number" value={newItem.total_qty ?? newItem.qty ?? ''} onChange={e => setNewItem({ ...newItem, total_qty: e.target.value, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', outlineColor: '#2563EB', fontSize: 13 }} disabled={!!editingItemId} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>

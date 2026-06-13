@@ -85,7 +85,8 @@ router.post('/', auth, async (req, res) => {
         if (invMatch) {
           // Update existing item - Only update qty and rate, do NOT affect other properties
           const newQty = (Number(invMatch.qty) || 0) + (Number(item.quantity) || 0);
-          const updates = { qty: newQty, last_restocked: parseDate(date) || today, restock_source: grnId };
+          const newTotalQty = (Number(invMatch.total_qty) ?? Number(invMatch.qty) ?? 0) + (Number(item.quantity) || 0);
+          const updates = { qty: newQty, total_qty: newTotalQty, last_restocked: parseDate(date) || today, restock_source: grnId };
           
           if (item.unit_price !== undefined && item.unit_price !== null && item.unit_price !== '') {
             updates.rate = Number(item.unit_price);
@@ -100,6 +101,7 @@ router.post('/', auth, async (req, res) => {
             name: item.description || item.hsn || 'Unknown Item',
             category: item.category || 'General',
             qty: Number(item.quantity) || 0,
+            total_qty: Number(item.quantity) || 0,
             unit: item.unit || 'Nos',
             rate: Number(item.unit_price) || 0,
             min: Number(item.min) || 0,
@@ -231,7 +233,8 @@ router.delete('/:id', auth, async (req, res) => {
 
         if (invMatch) {
           const newQty = Math.max(0, (Number(invMatch.qty) || 0) - (Number(item.quantity) || 0));
-          await supabase.from('inventory').update({ qty: newQty }).eq('user_id', req.user.id).eq('id', invMatch.id);
+          const newTotalQty = Math.max(0, (Number(invMatch.total_qty) ?? Number(invMatch.qty) ?? 0) - (Number(item.quantity) || 0));
+          await supabase.from('inventory').update({ qty: newQty, total_qty: newTotalQty }).eq('user_id', req.user.id).eq('id', invMatch.id);
         }
       }
     }
