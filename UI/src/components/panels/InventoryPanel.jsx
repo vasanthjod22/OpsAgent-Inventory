@@ -1334,7 +1334,11 @@ export default function InventoryPanel({ showToast }) {
               {search && <FilterChip label={`Search: "${search}"`} onRemove={() => setSearch('')} />}
               {category !== 'all' && <FilterChip label={`Category: ${category}`} onRemove={() => { setCategory('all'); setPagination(p => ({...p, currentPage: 1})) }} />}
               {status !== 'all' && <FilterChip label={{'low':'Low Stock', 'ok':'OK', 'overstock':'Overstock', 'out':'Out of Stock'}[status]} onRemove={() => { setStatus('all'); setPagination(p => ({...p, currentPage: 1})) }} />}
-                   {loading && items.length === 0 ? (
+            </div>
+          )}
+        </div>
+
+        {loading && items.length === 0 ? (
             <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 50, background: '#F1F5F9', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />)}
             </div>
