@@ -87,6 +87,7 @@ router.post('/', auth, async (req, res) => {
           const newQty = (Number(invMatch.qty) || 0) + (Number(item.quantity) || 0);
           const newTotalQty = (Number(invMatch.total_qty) ?? Number(invMatch.qty) ?? 0) + (Number(item.quantity) || 0);
           const updates = { qty: newQty, total_qty: newTotalQty, last_restocked: parseDate(date) || today, restock_source: grnId };
+          if (supplier) updates.supplier_name = supplier;
           
           if (item.unit_price !== undefined && item.unit_price !== null && item.unit_price !== '') {
             updates.rate = Number(item.unit_price);
@@ -106,9 +107,10 @@ router.post('/', auth, async (req, res) => {
             rate: Number(item.unit_price) || 0,
             min: Number(item.min) || 0,
             max: Number(item.max) || 0,
-            date_added: today,
+            date_added: parseDate(date) || today,
             last_restocked: parseDate(date) || today,
-            restock_source: grnId
+            restock_source: grnId,
+            supplier_name: supplier || null
           }]);
         }
       }
