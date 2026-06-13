@@ -1593,7 +1593,6 @@ export default function InventoryPanel({ showToast }) {
               </table>
             </div>
           )}
-        </div>
         
         {/* Pagination Wrapper */}
         <div style={{ padding: '0 24px' }}>
