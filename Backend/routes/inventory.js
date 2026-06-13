@@ -351,9 +351,7 @@ router.put('/:id', auth, async (req, res) => {
         updateData.gst / 2
     }
 
-    updateData.updated_at = 
-      new Date().toISOString()
-
+    // updated_at removed because column does not exist in schema
     const { data, error } = await supabase
       .from('inventory')
       .update(updateData)
@@ -467,8 +465,7 @@ router.post('/:id/damage', auth, async (req, res) => {
       await supabase
         .from('inventory')
         .update({ 
-          damaged_qty: newDamagedQty,
-          updated_at: new Date().toISOString()
+          damaged_qty: newDamagedQty
         })
         .eq('id', req.params.id)
         .eq('user_id', userId)
