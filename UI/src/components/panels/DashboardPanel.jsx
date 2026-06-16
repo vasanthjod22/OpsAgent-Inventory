@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Skeleton, SkeletonCard, SkeletonChart, SkeletonTable } from '../ui/Skeleton'
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell
@@ -12,22 +14,11 @@ import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 import { CHART_COLORS, CHART_DEFAULTS, tooltipStyle, gridStyle, axisStyle } from '../../utils/chartTheme'
 
 export default function DashboardPanel({ onNavigate }) {
-  const [loading, setLoading] = useState(true)
-  const [kpis, setKpis] = useState(null)
   
   // Sales Trend State
-  const [trendFilter, setTrendFilter] = useState('month')
+  const [trendFilter, setTrendFilter] = useState('all')
   const [trendCustomFrom, setTrendCustomFrom] = useState(null)
   const [trendCustomTo, setTrendCustomTo] = useState(null)
-  const [salesTrend, setSalesTrend] = useState([])
-
-  // Other Charts Data
-  const [categorySales, setCategorySales] = useState([])
-  const [topProducts, setTopProducts] = useState([])
-  
-  // Lists
-  const [lowStockList, setLowStockList] = useState([])
-  const [activities, setActivities] = useState([])
 
   // Modal State
   const [showExpenseModal, setShowExpenseModal] = useState(false)
@@ -37,111 +28,90 @@ export default function DashboardPanel({ onNavigate }) {
 
   // ─── FETCH LOGIC ──────────────────────────────────────────────
   
-  const [categories, setCategories] = useState(['All Categories'])
   const [categoryFilter, setCategoryFilter] = useState('All Categories')
 
-  const fetchKpis = async () => {
-    try {
+  const getFilterParams = () => {
+    let from = '', to = '';
+    if (trendFilter === 'custom') {
+      if (trendCustomFrom) {
+        from = trendCustomFrom.toISOString()
+        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
+      }
+    } else {
+      const range = getDateRange(trendFilter)
+      from = range.from || ''
+      to = range.to || ''
+    }
+    return { from, to }
+  }
+
+  const { from, to } = getFilterParams()
+
+  const { data: kpis, isLoading: kpisLoading, refetch: refetchKpis } = useQuery({
+    queryKey: ['kpis'],
+    queryFn: async () => {
       const res = await backendFetch('/dashboard/kpis')
-      if (res.success) setKpis(res)
-    } catch (err) { console.error('Failed to fetch KPIs', err) }
-  }
+      return res.success ? res : null
+    },
+    refetchInterval: 60000
+  })
 
-  const fetchSalesTrend = async () => {
-    try {
-      let from, to;
-      if (trendFilter === 'custom') {
-        if (!trendCustomFrom) return;
-        from = trendCustomFrom.toISOString()
-        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
-      } else {
-        const range = getDateRange(trendFilter)
-        from = range.from || ''
-        to = range.to || ''
-      }
+  const { data: salesTrend = [], isLoading: trendLoading, refetch: refetchTrend } = useQuery({
+    queryKey: ['salesTrend', from, to],
+    queryFn: async () => {
       const res = await backendFetch(`/dashboard/sales-trend?from=${from}&to=${to}`)
-      if (res.success) setSalesTrend(res.data)
-    } catch (err) { console.error('Failed to fetch sales trend', err) }
-  }
+      return res.success ? res.data : []
+    },
+    refetchInterval: 60000
+  })
 
-  const fetchCategorySales = async () => {
-    try {
-      let from, to;
-      if (trendFilter === 'custom') {
-        if (!trendCustomFrom) return;
-        from = trendCustomFrom.toISOString()
-        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
-      } else {
-        const range = getDateRange(trendFilter)
-        from = range.from || ''
-        to = range.to || ''
-      }
+  const { data: categorySales = [], isLoading: catLoading, refetch: refetchCat } = useQuery({
+    queryKey: ['categorySales', from, to, categoryFilter],
+    queryFn: async () => {
       const res = await backendFetch(`/dashboard/sales-by-category?from=${from}&to=${to}&category=${encodeURIComponent(categoryFilter)}`)
-      if (res.success) setCategorySales(res.data)
-    } catch (err) { console.error('Failed to fetch category sales', err) }
-  }
+      return res.success ? res.data : []
+    },
+    refetchInterval: 60000
+  })
 
-  const fetchTopProducts = async () => {
-    try {
-      let from, to;
-      if (trendFilter === 'custom') {
-        if (!trendCustomFrom) return;
-        from = trendCustomFrom.toISOString()
-        to = trendCustomTo ? trendCustomTo.toISOString() : new Date().toISOString()
-      } else {
-        const range = getDateRange(trendFilter)
-        from = range.from || ''
-        to = range.to || ''
-      }
+  const { data: topProducts = [], isLoading: topLoading, refetch: refetchTop } = useQuery({
+    queryKey: ['topProducts', from, to, categoryFilter],
+    queryFn: async () => {
       const res = await backendFetch(`/dashboard/top-products?from=${from}&to=${to}&category=${encodeURIComponent(categoryFilter)}`)
-      if (res.success) setTopProducts(res.data)
-    } catch (err) { console.error('Failed to fetch top products', err) }
-  }
+      return res.success ? res.data : []
+    },
+    refetchInterval: 60000
+  })
 
-  const fetchLowStock = async () => {
-    try {
-      const inventoryRes = await backendFetch('/inventory')
-      const low = (inventoryRes || []).filter(i => (i.qty || 0) <= (i.min || 0))
-      setLowStockList(low.slice(0, 8))
-      
-      const cats = ['All Categories', ...new Set((inventoryRes || []).map(i => i.category).filter(Boolean))]
-      setCategories(cats)
-    } catch (err) { console.error('Failed to fetch low stock', err) }
-  }
+  const { data: inventoryData, isLoading: invLoading, refetch: refetchInv } = useQuery({
+    queryKey: ['inventoryLowStock'],
+    queryFn: async () => {
+      const inventoryRes = await backendFetch('/inventory?limit=1000')
+      const items = inventoryRes?.items || []
+      const low = items.filter(i => (i.currentQty !== undefined ? i.currentQty : i.qty || 0) <= (i.min || 0))
+      const cats = ['All Categories', ...new Set(items.map(i => i.category).filter(Boolean))]
+      return { lowStockList: low.slice(0, 8), categories: cats }
+    },
+    refetchInterval: 60000
+  })
+  
+  const lowStockList = inventoryData?.lowStockList || []
+  const categories = inventoryData?.categories || ['All Categories']
 
-  const fetchActivities = async () => {
-    try {
+  const { data: activities = [], isLoading: actLoading, refetch: refetchAct } = useQuery({
+    queryKey: ['activities'],
+    queryFn: async () => {
       const res = await backendFetch('/activity?limit=10')
-      if (res.success) setActivities(res.data)
-    } catch (err) { console.error('Failed to fetch activities', err) }
-  }
+      return res.success ? res.data : []
+    },
+    refetchInterval: 60000
+  })
 
   const fetchAllData = useCallback(async () => {
-    setLoading(true)
-    await Promise.all([
-      fetchKpis(),
-      fetchSalesTrend(),
-      fetchCategorySales(),
-      fetchTopProducts(),
-      fetchLowStock(),
-      fetchActivities()
-    ])
-    setLoading(false)
-  }, [trendFilter, trendCustomFrom, trendCustomTo])
+    await Promise.all([refetchKpis(), refetchTrend(), refetchCat(), refetchTop(), refetchInv(), refetchAct()])
+  }, [refetchKpis, refetchTrend, refetchCat, refetchTop, refetchInv, refetchAct])
 
-  // ─── EFFECTS ──────────────────────────────────────────────────
-
-  useEffect(() => {
-    fetchAllData()
-    const interval = setInterval(fetchAllData, 60000)
-    return () => clearInterval(interval)
-  }, [fetchAllData])
-
-  useEffect(() => {
-    fetchSalesTrend()
-    fetchCategorySales()
-    fetchTopProducts()
-  }, [trendFilter, trendCustomFrom, trendCustomTo, categoryFilter])
+  const loading = kpisLoading || trendLoading || catLoading || topLoading || invLoading || actLoading
 
   // ─── HELPERS ──────────────────────────────────────────────────
 
@@ -321,6 +291,42 @@ export default function DashboardPanel({ onNavigate }) {
         ))}
       </div>
 
+      {loading && !kpis ? (
+      <div style={{ paddingBottom: '40px' }} className="animate-fadein">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <Skeleton className="w-48 h-8 mb-2" />
+            <Skeleton className="w-64 h-4" />
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Skeleton className="w-32 h-10 rounded-lg" />
+            <Skeleton className="w-32 h-10 rounded-lg" />
+          </div>
+        </div>
+
+        {/* KPI Skeletons */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+
+        {/* Charts Skeletons */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <SkeletonChart className="h-80" />
+          <SkeletonChart className="h-80" />
+        </div>
+
+        {/* Tables Skeletons */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
+          <SkeletonTable rows={4} />
+          <SkeletonTable rows={4} />
+          <SkeletonTable rows={4} />
+        </div>
+      </div>
+    ) : (
+      <>
       {renderKPIs()}
 
       {/* ── CHARTS ROW 1 ── */}
@@ -418,11 +424,12 @@ export default function DashboardPanel({ onNavigate }) {
                 </thead>
                 <tbody>
                   {lowStockList.map((item, i) => {
-                    const status = getLowStockStatus(item.qty, item.min)
+                    const displayQty = item.currentQty !== undefined ? item.currentQty : (item.qty || 0)
+                    const status = getLowStockStatus(displayQty, item.min)
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
                         <td style={{ padding: '14px 20px', fontSize: 14, color: '#0F172A', fontWeight: 500 }}>{item.name}</td>
-                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#374151' }}>{item.qty} {item.unit}</td>
+                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#374151' }}>{displayQty} {item.unit}</td>
                         <td style={{ padding: '14px 20px', fontSize: 14, color: '#64748B' }}>{item.min} {item.unit}</td>
                         <td style={{ padding: '14px 20px' }}>
                           <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: status.bg, color: status.color }}>
@@ -517,7 +524,8 @@ export default function DashboardPanel({ onNavigate }) {
           </div>
         </div>
       )}
-
+      </>
+    )}
     </div>
   )
 }

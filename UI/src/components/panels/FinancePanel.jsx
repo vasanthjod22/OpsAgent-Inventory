@@ -1,17 +1,17 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react'
 import {
   TrendingUp, TrendingDown, DollarSign, Download,
   BarChart3, Receipt, PieChart as PieChartIcon, Search, ArrowUpDown, Calendar
 } from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import SummaryCard from '../SummaryCard'
+import { useAppStore } from '../../store/appStore'
 
 const COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2']
 
-export default function FinancePanel({ bills = [], transactions = [], purchaseOrders = [], inventory = [] }) {
+export default function FinancePanel() {
+  const { bills = [], transactions = [], purchaseOrders = [], inventory = [] } = useAppStore();
   const [activeTab, setActiveTab] = useState('Overview')
   
   // Year & Custom Mode Selector for YoY Comparison
@@ -42,6 +42,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
     const categoryMap = {}
 
     let startDate, endDate;
+
     if (mode === 'Year') {
       startDate = new Date(year, 0, 1).getTime()
       endDate = new Date(year, 11, 31, 23, 59, 59, 999).getTime()
@@ -519,7 +520,7 @@ export default function FinancePanel({ bills = [], transactions = [], purchaseOr
               <tbody>
                 {operationsList.map((op, i) => (
                   <tr key={`${op.id}-${i}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '12px 16px', color: '#334155' }}>{new Date(op.date).toLocaleDateString()}</td>
+                    <td style={{ padding: '12px 16px', color: '#334155' }}>{formatDate(op.date)}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, background: '#F1F5F9', color: '#1E293B' }}>
                         {op.source}

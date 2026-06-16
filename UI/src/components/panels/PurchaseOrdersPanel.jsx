@@ -1,13 +1,15 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   ShoppingCart, Plus, Download, Trash2, Search, Edit2, 
   CheckCircle, Clock, AlertTriangle, FileText, Check, DollarSign, X
 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+
 import SummaryCard from '../SummaryCard';
 import { callAI } from '../../utils/api';
 import { backendFetch } from '../../utils/backend';
+import { useAppStore } from '../../store/appStore';
+
 const STATUS_COLORS = {
   'Draft': '#64748B',
   'Sent': '#2563EB',
@@ -28,7 +30,8 @@ const STATUS_BGS = {
 
 const INITIAL_ITEM = { description: '', hsn: '', qty: 1, unit: 'Nos', rate: 0, amount: 0 };
 
-export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [], refreshData }) {
+export default function PurchaseOrdersPanel({ refreshData }) {
+  const { purchaseOrders = [], inventory = [] } = useAppStore();
   const [activeTab, setActiveTab] = useState('history');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -174,7 +177,9 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
     }
   };
 
-  const generatePDF = (poData, shouldDownload = true) => {
+  const generatePDF = async (poData, shouldDownload = true) => {
+    const { jsPDF } = await import('jspdf');
+    await import('jspdf-autotable');
     const doc = new jsPDF();
     const data = poData || { poNumber, supplierName, supplierPhone, supplierEmail, supplierAddress, expectedDate, items, subtotal, taxAmount, grandTotal, notes, paymentTerms, createdAt: new Date() };
     
@@ -202,7 +207,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`PO No: ${data.poNumber}`, 195, 28, { align: 'right' });
-    doc.text(`Date: ${new Date(data.createdAt).toLocaleDateString('en-IN')}`, 195, 34, { align: 'right' });
+    doc.text(`Date: ${formatDate(data.createdAt)}`, 195, 34, { align: 'right' });
 
     // Supplier Box
     doc.setTextColor(0, 0, 0);
@@ -221,7 +226,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
     doc.setFont('helvetica', 'bold');
     doc.text('Expected Delivery:', 120, 55);
     doc.setFont('helvetica', 'normal');
-    doc.text(data.expectedDate ? new Date(data.expectedDate).toLocaleDateString('en-IN') : 'TBD', 120, 62);
+    doc.text(data.expectedDate ? formatDate(data.expectedDate) : 'TBD', 120, 62);
 
     doc.setFont('helvetica', 'bold');
     doc.text('Payment Terms:', 120, 68);
@@ -297,7 +302,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
     doc.text('This is a computer generated Purchase Order', 105, 290, { align: 'center' });
 
     if (shouldDownload) {
-      const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '');
+      const dateStr = formatDate(new Date()).replace(/\//g, '');
       const cleanSupplier = (data.supplierName || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
       doc.save(`${cleanSupplier}_PO_${dateStr}.pdf`);
     }
@@ -448,7 +453,7 @@ export default function PurchaseOrdersPanel({ purchaseOrders = [], inventory = [
                     <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0F172A', fontSize: '13px' }}>{po.poNumber}</td>
                     <td style={{ padding: '14px 16px', color: '#334155', fontSize: '13px' }}>{po.supplierName}</td>
                     <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '13px' }}>
-                      {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString('en-IN') : '-'}
+                      {po.expectedDate ? formatDate(po.expectedDate) : '-'}
                     </td>
                     <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '13px' }}>{po.items.length}</td>
                     <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0F172A', fontSize: '13px' }}>

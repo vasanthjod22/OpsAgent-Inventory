@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Users, TrendingUp, AlertCircle, Activity, Search, Filter,
@@ -8,13 +9,15 @@ import {
   Eye, RefreshCw, Send, BarChart2, Tag
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
+import { useAppStore } from '../../store/appStore'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 /* ─── Helpers ─────────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => {
   if (!d) return '—'
   try {
-    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    return formatDate(d)
   } catch { return d }
 }
 
@@ -201,6 +204,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
     const pages = []
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pages.push(i)
+
     } else {
       pages.push(1)
       if (currentPage > 3) pages.push('...')
@@ -907,7 +911,13 @@ function ContactModal({ onClose, onSave, existing }) {
 }
 
 /* ─── Main CustomersPanel ─────────────────────────────────────── */
-export default function CustomersPanel({ bills = [], quotations = [], customers: manualCustomers = [], setCustomers, showToast, onNavigate }) {
+export default function CustomersPanel({ showToast, onNavigate }) {
+  const queryClient = useQueryClient();
+
+  const { data: bills = [] } = useQuery({ queryKey: ['bills'], queryFn: async () => { const res = await backendFetch('/bills'); return res.bills || res || [] }, refetchInterval: 60000 })
+  const { data: quotations = [] } = useQuery({ queryKey: ['quotations'], queryFn: async () => { const res = await backendFetch('/quotations'); return res.quotations || res || [] }, refetchInterval: 60000 })
+  const { data: manualCustomers = [] } = useQuery({ queryKey: ['customers'], queryFn: async () => { const res = await backendFetch('/customers'); return res.customers || res || [] }, refetchInterval: 60000 })
+
   const [viewMode, setViewMode] = useState('grid')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
@@ -1027,22 +1037,20 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
 
   const handleSaveCustomer = async (formData) => {
     try {
-      let saved
       if (editingCustomer?.manualId) {
-        saved = await backendFetch(`/customers/${editingCustomer.manualId}`, {
+        await backendFetch(`/customers/${editingCustomer.manualId}`, {
           method: 'PATCH',
           body: JSON.stringify(formData),
         })
-        setCustomers(prev => prev.map(c => c.id === editingCustomer.manualId ? { ...c, ...formData } : c))
         showToast('Customer updated!', 'success')
       } else {
-        saved = await backendFetch('/customers', {
+        await backendFetch('/customers', {
           method: 'POST',
           body: JSON.stringify(formData),
         })
-        setCustomers(prev => [...prev, saved])
         showToast('Customer added!', 'success')
       }
+      queryClient.invalidateQueries(['customers'])
     } catch (err) {
       showToast(err.message || 'Failed to save customer', 'error')
     }
@@ -1060,7 +1068,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
     try {
       if (customer.manualId) {
         await backendFetch(`/customers/${customer.manualId}`, { method: 'DELETE' })
-        setCustomers(prev => prev.filter(c => c.id !== customer.manualId))
+        queryClient.invalidateQueries(['customers'])
       }
       showToast('Customer deleted', 'info')
     } catch (err) {
@@ -1101,25 +1109,7 @@ export default function CustomersPanel({ bills = [], quotations = [], customers:
         })
       }
       showToast(editingContact ? 'Contact updated' : 'Contact added', 'success')
-      if (onNavigate) {
-         // trigger refetch hack by reloading the panel or simply asking user to refresh for now. 
-         // Since app passes customer state, we'll mutate customers array directly.
-         const newCustomers = customers.map(c => {
-           if (c.id === detailLive.manualId) {
-              const updatedContacts = c.contacts || [];
-              if (formData.is_primary) updatedContacts.forEach(x => x.is_primary = false);
-              if (editingContact?.id) {
-                 const idx = updatedContacts.findIndex(x => x.id === editingContact.id);
-                 if (idx >= 0) updatedContacts[idx] = { ...updatedContacts[idx], ...formData };
-              } else {
-                 updatedContacts.push({ id: Date.now().toString(), ...formData });
-              }
-              return { ...c, contacts: updatedContacts };
-           }
-           return c;
-         });
-         setCustomers(newCustomers);
-      }
+      queryClient.invalidateQueries(['customers'])
     } catch (err) {
       showToast(err.message || 'Failed to save contact', 'error')
     }

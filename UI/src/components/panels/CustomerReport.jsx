@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   ArrowLeft, Download, Users, UserPlus, RefreshCw, AlertCircle, MessageCircle, Search, ArrowUpDown
@@ -44,6 +45,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
     const pages = []
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pages.push(i)
+
     } else {
       pages.push(1)
       if (currentPage > 3) pages.push('...')
@@ -139,7 +141,7 @@ export default function CustomerReport({ onBack }) {
     const headers = ['Customer', 'Total Orders', 'Total Spent', 'Avg Order', 'Customer Since']
     const rows = sortedHistory.map(c => [
       c.customer, c.orders, formatCurrency(c.totalSpent), formatCurrency(c.avgOrder), 
-      new Date(c.firstOrder).toLocaleDateString('en-IN')
+      formatDate(c.firstOrder)
     ])
     exportToPDF('Customer Purchase History', headers, rows, 'Customer_History')
   }
@@ -152,14 +154,14 @@ export default function CustomerReport({ onBack }) {
       const wsHistory = XLSX.utils.json_to_sheet(sortedHistory.map(c => ({
         Customer: c.customer, Phone: c.phone, TotalOrders: c.orders, 
         TotalSpent: c.totalSpent, AvgOrder: c.avgOrder, 
-        LastOrder: new Date(c.lastOrder).toLocaleDateString('en-IN'),
-        CustomerSince: new Date(c.firstOrder).toLocaleDateString('en-IN')
+        LastOrder: formatDate(c.lastOrder),
+        CustomerSince: formatDate(c.firstOrder)
       })))
       XLSX.utils.book_append_sheet(wb, wsHistory, "Purchase History")
 
       const wsOut = XLSX.utils.json_to_sheet(data.outstanding.map(o => ({
         Customer: o.customer, Phone: o.phone, Bills: o.bills,
-        TotalDue: o.totalDue, OldestBill: new Date(o.oldestBill).toLocaleDateString('en-IN'),
+        TotalDue: o.totalDue, OldestBill: formatDate(o.oldestBill),
         DaysOverdue: o.daysOverdue
       })))
       XLSX.utils.book_append_sheet(wb, wsOut, "Outstanding Balances")
@@ -428,8 +430,8 @@ export default function CustomerReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{c.orders}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{formatCurrency(c.totalSpent)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(c.avgOrder)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(c.lastOrder).toLocaleDateString('en-IN')}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(c.firstOrder).toLocaleDateString('en-IN')}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(c.lastOrder)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(c.firstOrder)}</td>
                     </tr>
                   ))}
                   {sortedHistory.length === 0 && (
@@ -475,7 +477,7 @@ export default function CustomerReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.phone || '-'}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.bills}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#DC2626' }}>{formatCurrency(o.totalDue)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(o.oldestBill).toLocaleDateString('en-IN')}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(o.oldestBill)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#DC2626', fontWeight: 600 }}>{o.daysOverdue} days</td>
                       <td style={{ padding: '16px 24px' }}>
                         <button 

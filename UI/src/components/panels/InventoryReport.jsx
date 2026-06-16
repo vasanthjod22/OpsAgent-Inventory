@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft, Download, Package, AlertTriangle, XCircle, Archive, Plus
@@ -87,7 +88,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
 export default function InventoryReport({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
-  const [period, setPeriod] = useState('month')
+  const [period, setPeriod] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
   const [customTo, setCustomTo] = useState(null)
   
@@ -451,7 +452,7 @@ export default function InventoryReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.category || 'Steel Bars'}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 700, color: '#64748B' }}>{formatQty(o.qty)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#DC2626' }}>{formatCurrency(o.valueLocked)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(o.last_restocked || o.created_at || new Date()).toLocaleDateString('en-IN')}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(o.last_restocked || o.created_at || new Date())}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#64748B' }}>{o.daysIdle} days</td>
                     </tr>
                   ))}

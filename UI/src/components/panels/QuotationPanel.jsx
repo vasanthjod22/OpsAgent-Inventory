@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import jsPDF from 'jspdf'
-import {
-  Plus, Trash2, Download, Search, Edit2, Info, CheckCircle, 
-  XCircle, FileText, Send, Eye, Lock, Receipt, FileCheck, X, Clock
-} from 'lucide-react'
+import { Edit2, Download, Search, Plus, X, FileText, CheckCircle } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import AutocompleteInput from '../AutocompleteInput'
+import { useAppStore } from '../../store/appStore'
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 const today = () => new Date().toISOString().split('T')[0]
@@ -17,7 +14,7 @@ const fmtDate = (iso) => {
   return `${d}/${m}/${y}`
 }
 
-const UNIT_OPTIONS = ['Nos', 'Kg', 'Sqft', 'Metre', 'Litre', 'Set']
+let UNIT_OPTIONS = ['Nos', 'Kg', 'Sqft', 'Metre', 'Litre', 'Set']
 
 const generateFilename = (prefix, customerName, date) => {
   const cleanName = (customerName || 'Customer').trim().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')
@@ -66,7 +63,8 @@ const numToWords = (num) => {
 
 // ─── PDF GENERATION ────────────────────────────────────────────────────────
 
-const generatePDF = (qt, company, isFinalized = false, copyType = 'original') => {
+const generatePDF = async (qt, company, isFinalized = false, copyType = 'original') => {
+  const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -412,7 +410,8 @@ const TermsToggle = ({ include, onToggle, terms, onTermsChange }) => (
 
 // ─── MAIN PANEL ────────────────────────────────────────────────────────────
 
-export default function QuotationPanel({ inventory = [], onNavigate }) {
+export default function QuotationPanel({ onNavigate }) {
+  const { inventory = [] } = useAppStore();
   const [activeTab, setActiveTab] = useState('create') // 'create', 'history', 'finalized'
   const [company, setCompany] = useState(null)
   const [bqs, setBqs] = useState([])

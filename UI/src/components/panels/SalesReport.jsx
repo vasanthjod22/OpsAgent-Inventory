@@ -32,7 +32,7 @@ const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-
 export default function SalesReport({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  const [dateRange, setDateRange] = useState('month')
+  const [dateRange, setDateRange] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
   const [customTo, setCustomTo] = useState(null)
   const [category, setCategory] = useState('All Categories')
@@ -86,8 +86,8 @@ export default function SalesReport({ onBack }) {
   const handleExportPDF = () => {
     if (!data) return;
     const fromDate = dateRange === 'Custom' ? customFrom : dateRange;
-    const headers = ['Customer', 'Orders', 'Total Value', 'Avg Order', 'Last Order', 'Status'];
-    const rows = data.customerSummary.map(c => [c.customer, c.orders, formatCurrency(c.total), formatCurrency(c.avgOrder), c.lastOrder, c.status]);
+    const headers = ['Customer', 'Orders', 'Total Value', 'Avg Order', 'Last Order', 'Payment Mode', 'Status'];
+    const rows = data.customerSummary.map(c => [c.customer, c.orders, formatCurrency(c.total), formatCurrency(c.avgOrder), c.lastOrder, c.paymentMode || 'Cash', c.status]);
     exportToPDF('Sales Report - ' + fromDate, headers, rows, `Sales_Report_${fromDate}`);
   };
 
@@ -283,6 +283,7 @@ export default function SalesReport({ onBack }) {
                     <th style={{ padding: '16px 24px', fontWeight: 600 }}>Total Value</th>
                     <th style={{ padding: '16px 24px', fontWeight: 600 }}>Avg Order</th>
                     <th style={{ padding: '16px 24px', fontWeight: 600 }}>Last Order</th>
+                    <th style={{ padding: '16px 24px', fontWeight: 600 }}>Payment Mode</th>
                     <th style={{ padding: '16px 24px', fontWeight: 600 }}>Status</th>
                   </tr>
                 </thead>
@@ -294,6 +295,7 @@ export default function SalesReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#0F172A', fontWeight: 600 }}>{formatCurrency(c.total)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(c.avgOrder)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{c.lastOrder}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151', fontWeight: 500 }}>{c.paymentMode || 'Cash'}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#DCFCE7', color: '#166534' }}>
                           {c.status}
@@ -303,7 +305,7 @@ export default function SalesReport({ onBack }) {
                   ))}
                   {data.customerSummary.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>No sales data found for this period.</td>
+                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>No sales data found for this period.</td>
                     </tr>
                   )}
                 </tbody>

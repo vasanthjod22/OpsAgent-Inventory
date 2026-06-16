@@ -289,10 +289,16 @@ router.post('/', auth, async (req, res) => {
     user_id: req.user.id, hsn, name, category,
     qty: Number(qty), unit,
     min: Number(min) || 0, max: Number(max) || 0,
-    rate: Number(req.body.rate) || 0,
+    rate: Number(req.body.rate) || Number(req.body.purchase_rate) || 0,
     gst: Number(req.body.gst) || 0,
     total_qty: req.body.total_qty !== undefined ? Number(req.body.total_qty) : Number(qty),
     cost_price: Number(req.body.cost_price) || 0,
+    selling_rate: Number(req.body.selling_rate) || 0,
+    cgst_percent: Number(req.body.cgst_percent) || 0,
+    sgst_percent: Number(req.body.sgst_percent) || 0,
+    supplier_name: req.body.supplier_name || '',
+    mrp: Number(req.body.mrp) || 0,
+    reorder_qty: Number(req.body.reorder_qty) || 0,
     date_added: req.body.date_added || today,
     restock_source: req.body.restock_source || 'manual',
     opening_stock: Number(qty)
@@ -301,8 +307,8 @@ router.post('/', auth, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   
-  await supabase.from('categories').insert([{ user_id: req.user.id, name: category }]).catch(() => {});
-  await supabase.from('units').insert([{ user_id: req.user.id, name: unit }]).catch(() => {});
+  await supabase.from('categories').insert([{ user_id: req.user.id, name: category }]);
+  await supabase.from('units').insert([{ user_id: req.user.id, name: unit }]);
   
   res.status(201).json(inserted);
 });
@@ -322,7 +328,7 @@ router.put('/:id', auth, async (req, res) => {
       'lead_time_days', 'location',
       'date_added', 'last_restocked',
       'restock_source', 'description',
-      'brand', 'hsn_code', 'cost_price'
+      'brand', 'hsn', 'cost_price'
     ]
 
     // Only update allowed fields
@@ -351,6 +357,11 @@ router.put('/:id', auth, async (req, res) => {
         updateData.gst / 2
     }
 
+    if (updateData.purchase_rate !== undefined) {
+      updateData.rate = updateData.purchase_rate;
+      delete updateData.purchase_rate;
+    }
+
     // updated_at removed because column does not exist in schema
     const { data, error } = await supabase
       .from('inventory')
@@ -376,10 +387,10 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     if (req.body.category) {
-      await supabase.from('categories').insert([{ user_id: req.user.id, name: req.body.category }]).catch(() => {});
+      await supabase.from('categories').insert([{ user_id: req.user.id, name: req.body.category }]);
     }
     if (req.body.unit) {
-      await supabase.from('units').insert([{ user_id: req.user.id, name: req.body.unit }]).catch(() => {});
+      await supabase.from('units').insert([{ user_id: req.user.id, name: req.body.unit }]);
     }
 
     res.json(data);

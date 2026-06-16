@@ -100,7 +100,7 @@ export const getDateRange = (preset) => {
       }
     case 'all':
       return { 
-        from: new Date('2000-01-01T00:00:00Z').toISOString(), 
+        from: new Date('2021-01-01T00:00:00Z').toISOString(), 
         to: new Date(today.getTime() + 86399999).toISOString() 
       }
     default:

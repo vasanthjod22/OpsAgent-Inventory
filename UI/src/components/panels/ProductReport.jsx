@@ -24,7 +24,7 @@ export default function ProductReport({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   
-  const [dateRange, setDateRange] = useState('month')
+  const [dateRange, setDateRange] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
   const [customTo, setCustomTo] = useState(null)
 

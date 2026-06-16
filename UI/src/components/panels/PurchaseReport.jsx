@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react'
 import {
   ArrowLeft, ShoppingCart, FileText, Clock, AlertCircle
@@ -24,7 +25,7 @@ export default function PurchaseReport({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   
-  const [dateRange, setDateRange] = useState('month')
+  const [dateRange, setDateRange] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
   const [customTo, setCustomTo] = useState(null)
 
@@ -34,6 +35,7 @@ export default function PurchaseReport({ onBack }) {
 
   const fetchData = async () => {
     let f, t;
+
     if (dateRange !== 'custom') {
       const range = getDateRange(dateRange)
       f = range.from
@@ -62,7 +64,7 @@ export default function PurchaseReport({ onBack }) {
     const headers = ['PO No', 'Supplier', 'Items', 'Value', 'Expected Date', 'Days Pending', 'Status']
     const rows = data.pendingOrders.map(p => [
       p.po_number, p.supplier_name, p.items?.length || 0, formatCurrency(p.grand_total),
-      p.expected_date ? new Date(p.expected_date).toLocaleDateString('en-IN') : '-',
+      p.expected_date ? formatDate(p.expected_date) : '-',
       p.daysPending, p.status
     ])
     exportToPDF('Pending Purchase Orders', headers, rows, 'Pending_POs')
@@ -75,7 +77,7 @@ export default function PurchaseReport({ onBack }) {
       
       const wsPending = XLSX.utils.json_to_sheet(data.pendingOrders.map(p => ({
         'PO No': p.po_number, Supplier: p.supplier_name, Items: p.items?.length || 0, 
-        Value: p.grand_total, ExpectedDate: p.expected_date ? new Date(p.expected_date).toLocaleDateString('en-IN') : '-',
+        Value: p.grand_total, ExpectedDate: p.expected_date ? formatDate(p.expected_date) : '-',
         DaysPending: p.daysPending, Status: p.status
       })))
       XLSX.utils.book_append_sheet(wb, wsPending, "Pending POs")
@@ -83,7 +85,7 @@ export default function PurchaseReport({ onBack }) {
       const wsSupplier = XLSX.utils.json_to_sheet(data.supplierSummary.map(s => ({
         Supplier: s.supplier, TotalPOs: s.totalPOs, TotalValue: s.totalValue, 
         AvgValue: s.avgValue, OnTimePct: `${s.onTimePct}%`, 
-        LastOrder: new Date(s.lastOrder).toLocaleDateString('en-IN')
+        LastOrder: formatDate(s.lastOrder)
       })))
       XLSX.utils.book_append_sheet(wb, wsSupplier, "Supplier Summary")
 
@@ -248,7 +250,7 @@ export default function PurchaseReport({ onBack }) {
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.supplier_name}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.items?.length || 0}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{formatCurrency(o.grand_total)}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.expected_date ? new Date(o.expected_date).toLocaleDateString('en-IN') : '-'}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.expected_date ? formatDate(o.expected_date) : '-'}</td>
                         <td style={{ padding: '16px 24px' }}>
                           <span style={{ fontSize: 13, fontWeight: 600, color: daysColor, background: daysBg, padding: '4px 8px', borderRadius: 4 }}>
                             {o.daysPending} days
@@ -290,7 +292,7 @@ export default function PurchaseReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{s.totalPOs}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{formatCurrency(s.totalValue)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(s.avgValue)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(s.lastOrder).toLocaleDateString('en-IN')}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(s.lastOrder)}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: s.onTimePct >= 80 ? '#2563EB' : s.onTimePct < 50 ? '#DC2626' : '#D97706' }}>
                           {s.onTimePct}%

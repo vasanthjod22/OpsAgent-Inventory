@@ -16,19 +16,26 @@ router.get('/', auth, async (req, res) => {
 router.get('/summary', auth, async (req, res) => {
   const [
     { data: finance, error: finErr },
-    { data: inventoryItems, error: invErr }
+    { data: inventoryItems, error: invErr },
+    { data: billsData, error: billsErr }
   ] = await Promise.all([
     supabase.from('finance').select('type, amount, category').eq('user_id', req.user.id),
-    supabase.from('inventory').select('qty, rate').eq('user_id', req.user.id)
+    supabase.from('inventory').select('qty, rate').eq('user_id', req.user.id),
+    supabase.from('bills').select('grand_total, amount_paid, payment_status').eq('user_id', req.user.id).in('payment_status', ['Paid', 'Partial'])
   ]);
   
   if (finErr) return res.status(500).json({ error: finErr.message });
   if (invErr) return res.status(500).json({ error: invErr.message });
 
-  const income = finance ? finance.filter(t => t.type === 'Income') : [];
   const expenses = finance ? finance.filter(t => t.type === 'Expense') : [];
 
-  const totalRevenue = Math.round(income.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
+  // Calculate revenue purely from bills
+  const totalRevenue = Math.round((billsData || []).reduce((s, b) => {
+    if (b.payment_status === 'Paid') return s + Number(b.grand_total || 0);
+    if (b.payment_status === 'Partial') return s + Number(b.amount_paid || 0);
+    return s;
+  }, 0));
+
   const manualExpenses = Math.round(expenses.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
   
   const inventoryValuation = Math.round((inventoryItems || []).reduce((s, item) => s + (Number(item.qty || 0) * Number(item.rate || 0)), 0));

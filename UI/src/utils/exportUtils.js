@@ -1,13 +1,13 @@
-import * as XLSX from 'xlsx'
+import { formatDate } from './dateUtils';
 import { saveAs } from 'file-saver'
-import jsPDF from 'jspdf'
 
 // Export to Excel
-export const exportToExcel = (
+export const exportToExcel = async (
   data, 
   filename, 
   sheetName = 'Report'
 ) => {
+  const XLSX = await import('xlsx')
   const ws = XLSX.utils.json_to_sheet(data)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
@@ -24,12 +24,13 @@ export const exportToExcel = (
 }
 
 // Export table to PDF
-export const exportToPDF = (
+export const exportToPDF = async (
   title,
   headers,
   rows,
   filename
 ) => {
+  const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF('landscape', 'mm', 'a4')
   const pageWidth = doc.internal.pageSize.getWidth()
 
@@ -42,7 +43,7 @@ export const exportToPDF = (
   doc.text(title, 14, 13)
   doc.setFontSize(9)
   doc.text(
-    `Generated: ${new Date().toLocaleDateString('en-IN')}`,
+    `Generated: ${formatDate(new Date())}`,
     pageWidth - 14, 13,
     { align: 'right' }
   )
@@ -84,6 +85,7 @@ export const exportToPDF = (
   // Footer
   const pages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= pages; i++) {
+
     doc.setPage(i)
     doc.setFillColor(15, 23, 42)
     doc.rect(0, 195, pageWidth, 10, 'F')
@@ -108,8 +110,4 @@ export const fmtCurrency = (n) =>
 
 // Format date
 export const fmtDate = (d) =>
-  new Date(d).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  })
+  formatDate(d)

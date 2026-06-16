@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   BarChart2, Calendar, Download, TrendingUp, AlertCircle,
@@ -6,9 +7,9 @@ import {
   Activity, Search, ArrowLeft, ArrowRight, DollarSign, ShoppingCart
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
+import { useAppStore } from '../../store/appStore'
 import FormattedAIResponse from '../ui/FormattedAIResponse'
-import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import SalesReport from './SalesReport'
 import FinanceReport from './FinanceReport'
@@ -23,7 +24,7 @@ const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => {
   if (!d) return '—'
   try {
-    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    return formatDate(d)
   } catch { return d }
 }
 const generateReportId = (type, period) => {
@@ -63,7 +64,8 @@ const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Ic
 /* ─── INVENTORY TAB LOGIC HAS BEEN MOVED INSIDE REPORTSPANEL ─── */
 
 /* ─── Main ReportsPanel ───────────────────────────────────────── */
-export default function ReportsPanel({ bills = [], quotations = [], inventory = [], grnHistory = [], customers = [], showToast, refreshData }) {
+export default function ReportsPanel({ showToast, refreshData }) {
+  const { bills = [], quotations = [], inventory = [], grnHistory = [], customers = [] } = useAppStore();
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('opsagent_reports_tab')
     if (saved) {
@@ -141,11 +143,14 @@ export default function ReportsPanel({ bills = [], quotations = [], inventory = 
 
   // Filter Data
   const fBills = useMemo(() => bills.filter(b => { const d = new Date(b.date); return d >= start && d <= end }), [bills, start, end])
+
   const fQuotes = useMemo(() => quotations.filter(q => { const d = new Date(q.date); return d >= start && d <= end }), [quotations, start, end])
   const fGrn = useMemo(() => grnHistory.filter(g => { const d = new Date(g.date); return d >= start && d <= end }), [grnHistory, start, end])
 
   /* ─── PDF EXPORT LOGIC ───────────────────────────────────────── */
   const exportPDF = async (type) => {
+    const { jsPDF } = await import('jspdf')
+    await import('jspdf-autotable')
     const rid = generateReportId(type, period)
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.width

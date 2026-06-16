@@ -18,7 +18,7 @@ class AnalyticsService {
       // 1. Fetch Paid/Partial Bills in date range
       const { data: bills, error: billsError } = await supabase
         .from('bills')
-        .select('id, grand_total, payment_status, date, created_at, items, customer_id, customer_name, payment_mode, payment_method')
+        .select('id, grand_total, payment_status, date, created_at, items, customer_name, payment_method')
         .eq('user_id', userId)
         .in('payment_status', ['Paid', 'Partial'])
         .gte('date', fromDate)
@@ -120,10 +120,13 @@ class AnalyticsService {
 
           const cid = bill.customer_id || bill.customer_name || 'Walk-in Customer';
           const cname = bill.customer_name || 'Walk-in Customer';
-          if (!customerMap[cid]) customerMap[cid] = { customer: cname, orders: 0, total: 0, lastOrder: billDateStr };
+          if (!customerMap[cid]) customerMap[cid] = { customer: cname, orders: 0, total: 0, lastOrder: billDateStr, paymentMode: pm };
           customerMap[cid].orders += 1;
           customerMap[cid].total += filteredBillRevenue;
-          if (billDateStr > customerMap[cid].lastOrder) customerMap[cid].lastOrder = billDateStr;
+          if (billDateStr >= customerMap[cid].lastOrder) {
+            customerMap[cid].lastOrder = billDateStr;
+            customerMap[cid].paymentMode = pm;
+          }
         }
       });
 

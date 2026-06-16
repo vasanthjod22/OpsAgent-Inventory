@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import jsPDF from 'jspdf'
+import { useQuery } from '@tanstack/react-query'
 import Swal from 'sweetalert2'
+import useMediaQuery from '../../hooks/useMediaQuery'
+import { Skeleton } from '../ui/Skeleton'
 import {
   Plus, Trash2, Download, Eye, X, Receipt, Search,
   CheckCircle, AlertTriangle, ChevronDown, Building2,
@@ -10,6 +12,7 @@ import { backendFetch } from '../../utils/backend'
 import AutocompleteInput from '../AutocompleteInput'
 import { BillProcessingModal } from '../ui/BillProcessingModal'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
+import { useAppStore } from '../../store/appStore'
 const todayISO = () => new Date().toISOString().split('T')[0]
 const fmtDate = (iso) => {
   if (!iso) return ''
@@ -47,7 +50,7 @@ const generateBillFilename = (customerName, billNumber, dateStr) => {
   return `${clean}_${yyyy}_${formattedDate}_${no}.pdf`
 }
 
-const UNIT_OPTIONS = ['Nos', 'Sqft', 'Sqmt', 'Kg', 'Gram', 'Metre', 'Litre', 'Set', 'Box', 'Bag', 'Ltrs', 'Rmt']
+let UNIT_OPTIONS = ['Nos', 'Sqft', 'Sqmt', 'Kg', 'Gram', 'Metre', 'Litre', 'Set', 'Box', 'Bag', 'Ltrs', 'Rmt']
 const GST_OPTIONS = [0, 5, 12, 18, 28]
 const STATUS_COLORS = { Paid: '#16A34A', Unpaid: '#DC2626', Partial: '#D97706' }
 const STATUS_BG = { Paid: '#F0FDF4', Unpaid: '#FEF2F2', Partial: '#FFFBEB' }
@@ -88,7 +91,8 @@ const calcTaxInclAmount = (quantity, rate, cgst, sgst) => {
 }
 
 /* ─── PDF Generator ───────────────────────────────────────── */
-const generateBillPDF = (bill, company) => {
+const generateBillPDF = async (bill, company) => {
+  const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
@@ -460,7 +464,8 @@ const generateBillPDF = (bill, company) => {
 }
 
 // ─── TRANSPORT PDF (Tax Invoice — Duplicate for Transporter) ───────────────
-const generateTransportPDF = (bill, company, transport) => {
+const generateTransportPDF = async (bill, company, transport) => {
+  const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const pw = doc.internal.pageSize.getWidth()
   const ph = doc.internal.pageSize.getHeight()
@@ -853,6 +858,7 @@ function StockModal({ items, inventory, onSkip, onConfirm }) {
 /* ─── Line Items Table ───────────────────────────────────── */
 function LineItemsTable({ items, setItems, inventory }) {
   const newRowRef = useRef(null)
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   const addItem = () => {
     const newItem = { ...makeItem(), sno: items.length + 1 }
@@ -903,7 +909,18 @@ function LineItemsTable({ items, setItems, inventory }) {
   const selectInventoryItem = (id, invItem) => {
     setItems(prev => (prev || []).map(item => {
       if (item.id !== id) return item
-      return { ...item, unit: invItem.unit || item.unit, hsnCode: invItem.hsn || item.hsnCode, inventoryId: invItem.id }
+      
+      const cgst = invItem.cgst_percent !== undefined && invItem.cgst_percent !== null ? invItem.cgst_percent : item.cgstPercent
+      const sgst = invItem.sgst_percent !== undefined && invItem.sgst_percent !== null ? invItem.sgst_percent : item.sgstPercent
+      
+      return { 
+        ...item, 
+        unit: invItem.unit || item.unit, 
+        hsnCode: invItem.hsn || item.hsnCode, 
+        cgstPercent: cgst,
+        sgstPercent: sgst,
+        inventoryId: invItem.id 
+      }
     }))
   }
 
@@ -939,6 +956,68 @@ function LineItemsTable({ items, setItems, inventory }) {
 
   return (
     <div>
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {items.map((item, idx) => {
+            const invItem = item.inventoryId ? inventory.find(i => i.id === item.inventoryId) : null
+            const overStock = invItem && Number(item.quantity) > invItem.qty
+            return (
+              <div key={item.id} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>Item {item.sno}</span>
+                  <button onClick={() => deleteItem(item.id)} style={{ background: 'none', border: 'none', color: items.length <= 1 ? '#CBD5E1' : '#EF4444', cursor: items.length <= 1 ? 'not-allowed' : 'pointer' }}><Trash2 size={16} /></button>
+                </div>
+                
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>Product Name</label>
+                  <AutocompleteInput
+                    inputRef={idx === items.length - 1 ? newRowRef : undefined}
+                    value={item.description}
+                    onChange={v => updateItem(item.id, 'description', v)}
+                    inventory={inventory}
+                    placeholder="Search or type product..."
+                    onSelect={inv => {
+                      updateItem(item.id, 'description', inv.name)
+                      selectInventoryItem(item.id, inv)
+                      setTimeout(() => {
+                        document.getElementById(`mob-qty-${item.id}`)?.focus()
+                      }, 50)
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>Qty</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input id={`mob-qty-${item.id}`} type="number" min="0" step="any" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} style={{ ...cellInp, flex: 1, border: overStock ? '1px solid #EF4444' : '1px solid #D1D5DB' }} placeholder="0" />
+                      <input list="unit-options" value={item.unit} onChange={e => {
+                        const val = e.target.value; updateItem(item.id, 'unit', val);
+                        if (val && !UNIT_OPTIONS.includes(val)) UNIT_OPTIONS.push(val);
+                      }} style={{ ...cellInp, width: '60px' }} />
+                    </div>
+                    {overStock && <div style={{ color: '#EF4444', fontSize: '10px', marginTop: '2px', fontWeight: 600 }}>Stock: {parseFloat(Number(invItem.qty).toFixed(4))}</div>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>Rate (₹)</label>
+                    <input type="number" min="0" step="0.01" value={item.rate} onChange={e => updateItem(item.id, 'rate', e.target.value)} style={cellInp} placeholder="0.00" />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid #F1F5F9', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>Tax Incl. Amount</span>
+                    <span style={{ fontSize: '10px', color: '#94A3B8' }}>{parseFloat(item.cgstPercent||0) + parseFloat(item.sgstPercent||0)}% GST</span>
+                  </div>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: item.taxInclAmount > 0 ? '#10B981' : '#94A3B8' }}>
+                    {item.taxInclAmount ? `₹${fmtINR(item.taxInclAmount)}` : '—'}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
       <div style={{ border: '1.5px solid #CBD5E1', borderRadius: '10px', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px', fontSize: '12px' }}>
@@ -982,9 +1061,6 @@ function LineItemsTable({ items, setItems, inventory }) {
                           placeholder="Search or type product..."
                           onSelect={inv => {
                             updateItem(item.id, 'description', inv.name)
-                            if (inv.rate !== undefined && inv.rate !== null && inv.rate !== '') {
-                              updateItem(item.id, 'rate', inv.rate)
-                            }
                             selectInventoryItem(item.id, inv)
                             setTimeout(() => {
                               document.getElementById(`qty-${item.id}`)?.focus()
@@ -1043,13 +1119,21 @@ function LineItemsTable({ items, setItems, inventory }) {
                       </td>
 
                       <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
-                        <select
-                          style={{ ...cellInp, textAlign: 'center', cursor: 'pointer', background: invItem ? '#F0FDF4' : '#F8FAFC', fontWeight: invItem ? 600 : 400 }}
+                        <input
+                          list="unit-options"
+                          style={{ ...cellInp, textAlign: 'center', background: invItem ? '#F0FDF4' : '#F8FAFC', fontWeight: invItem ? 600 : 400 }}
                           value={item.unit}
-                          onChange={e => updateItem(item.id, 'unit', e.target.value)}
-                        >
-                          {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateItem(item.id, 'unit', val);
+                            if (val && !UNIT_OPTIONS.includes(val)) UNIT_OPTIONS.push(val);
+                          }}
+                          onFocus={e => e.target.style.borderColor = '#93C5FD'}
+                          onBlur={e => e.target.style.borderColor = '#D1D5DB'}
+                        />
+                        <datalist id="unit-options">
+                          {UNIT_OPTIONS.map(u => <option key={u} value={u} />)}
+                        </datalist>
                       </td>
 
                       <td style={{ padding: '5px 5px', borderRight: '1px solid #E2E8F0', verticalAlign: 'top' }}>
@@ -1161,6 +1245,7 @@ function LineItemsTable({ items, setItems, inventory }) {
           </table>
         </div>
       </div>
+      )}
 
       <button onClick={addItem} style={{ marginTop: '12px', height: '38px', padding: '0 20px', borderRadius: '8px', background: 'white', color: '#2563EB', border: '1.5px dashed #93C5FD', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Plus size={15} /> Add Item
@@ -1170,9 +1255,10 @@ function LineItemsTable({ items, setItems, inventory }) {
 }
 
 /* ─── Bill History Table ─────────────────────────────────── */
-function BillHistory({ bills, setBills, inventory, setInventory, company, showToast, onEditBill, onGenerateTransport }) {
+function BillHistory({ bills, refetchBills, inventory, company, showToast, onGenerateTransport }) {
   const [search, setSearch] = useState('')
   const [editStatusId, setEditStatusId] = useState(null)
+  const isMobile = useMediaQuery('(max-width: 768px)')
   
   const [dateFilter, setDateFilter] = useState('all')
   const [customFrom, setCustomFrom] = useState('')
@@ -1210,17 +1296,18 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
   const pendingAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : b.grandTotal), 0)
 
   const updateStatus = async (id, status) => {
-    setBills(prev => (prev || []).map(b => b.id === id ? { ...b, paymentStatus: status } : b))
     setEditStatusId(null)
-    showToast?.(`Payment status updated to ${status}`, 'success')
+    showToast?.(`Updating payment status to ${status}...`, 'info')
     try {
       await backendFetch(`/bills/${id}/status`, { method: 'PATCH', body: JSON.stringify({ paymentStatus: status }) })
-    } catch(err) { console.error(err) }
+      refetchBills?.()
+      showToast?.(`Payment status updated`, 'success')
+    } catch(err) { console.error(err); showToast?.('Failed to update status', 'error') }
   }
 
   const deleteBill = async (id) => {
     Swal.fire({
-      title: 'Are you sure you want to delete this item?',
+      title: 'Are you sure you want to delete this bill?',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#EF4444',
@@ -1229,11 +1316,12 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
       cancelButtonText: '<span style="color: #0F172A; font-weight: 600;">Cancel</span>'
     }).then(async (result) => {
       if (result.isConfirmed) {
-        setBills(prev => prev.filter(b => b.id !== id))
-        showToast?.('Bill deleted', 'info')
+        showToast?.('Deleting bill...', 'info')
         try {
           await backendFetch(`/bills/${id}`, { method: 'DELETE' })
-        } catch(err) { console.error(err) }
+          refetchBills?.()
+          showToast?.('Bill deleted successfully', 'success')
+        } catch(err) { console.error(err); showToast?.('Failed to delete bill', 'error') }
       }
     })
   }
@@ -1285,6 +1373,64 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
         </div>
       </div>
 
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: '#F8FAFC' }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748B', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              {bills.length === 0 ? 'No bills yet. Generate your first bill!' : 'No bills match your search.'}
+            </div>
+          )}
+          {filtered.map(b => (
+            <div key={b.id} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{b.customerName}</div>
+                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{b.billNumber} &bull; {fmtDate(b.date)}</div>
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#16A34A' }}>₹{fmtINR(b.grandTotal)}</div>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFBFC', padding: '8px 12px', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Status:</span>
+                {editStatusId === b.id ? (
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {['Paid', 'Unpaid', 'Partial'].map(s => (
+                      <button key={s} onClick={() => updateStatus(b.id, s)}
+                        style={{ padding: '3px 8px', borderRadius: '6px', border: `1px solid ${STATUS_BORDER[s]}`, background: STATUS_BG[s], color: STATUS_COLORS[s], fontWeight: 700, fontSize: '11px', cursor: 'pointer' }}>
+                        {s}
+                      </button>
+                    ))}
+                    <button onClick={() => setEditStatusId(null)} style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', fontSize: '11px', cursor: 'pointer' }}>✕</button>
+                  </div>
+                ) : (
+                  <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '99px', background: STATUS_BG[b.paymentStatus], color: STATUS_COLORS[b.paymentStatus], fontSize: '11px', fontWeight: 700, border: `1px solid ${STATUS_BORDER[b.paymentStatus]}` }}>
+                    {b.paymentStatus}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
+                <button onClick={() => redownload(b)} title="Re-download PDF"
+                  style={{ height: '32px', padding: '0 12px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: '#1E293B', fontSize: '12px', fontWeight: 600 }}>
+                  <Download size={14} /> PDF
+                </button>
+                <button onClick={() => setEditStatusId(editStatusId === b.id ? null : b.id)} title="Change status"
+                  style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E293B' }}>
+                  <Edit2 size={14} />
+                </button>
+                <button onClick={() => deleteBill(b.id)} title="Delete"
+                  style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FECACA', background: '#FEF2F2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
+                  <Trash2 size={14} />
+                </button>
+                <button onClick={() => onGenerateTransport?.(b)} title="Generate Transport Bill"
+                  style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}>
+                  🚛
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
@@ -1356,6 +1502,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }
@@ -1364,6 +1511,7 @@ function BillHistory({ bills, setBills, inventory, setInventory, company, showTo
 function TransportBillHistory({ bills, company, showToast }) {
   const [search, setSearch] = useState('')
   const transportBills = (bills || []).filter(b => b.transportDetails != null)
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   const filtered = transportBills.filter(b =>
     !search || b.customerName?.toLowerCase().includes(search.toLowerCase()) || b.billNumber?.toLowerCase().includes(search.toLowerCase())
@@ -1392,6 +1540,39 @@ function TransportBillHistory({ bills, company, showToast }) {
         </div>
       </div>
 
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: '#F8FAFC' }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748B', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              {transportBills.length === 0 ? 'No transport bills yet. Generate one from the Bill History.' : 'No transport bills match your search.'}
+            </div>
+          )}
+          {filtered.map((b) => (
+            <div key={b.id} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{b.customerName}</div>
+                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{b.billNumber}</div>
+                </div>
+                <button onClick={() => redownload(b)} title="Download PDF"
+                  style={{ height: '32px', width: '32px', borderRadius: '8px', border: '1px solid #FDBA74', background: '#FFF7ED', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}>
+                  <Download size={14} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#FAFBFC', padding: '10px', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>Driver:</span>
+                  <span style={{ color: '#0F172A', fontWeight: 500 }}>{b.transportDetails?.driverName || '—'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>Vehicle:</span>
+                  <span style={{ color: '#0F172A', fontWeight: 500 }}>{b.transportDetails?.vehicleNumber || '—'}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
@@ -1426,24 +1607,48 @@ function TransportBillHistory({ bills, company, showToast }) {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }
 
 /* ─── Main BillingPanel ──────────────────────────────────── */
-function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate }) {
+function BillingPanelBase({ showToast, onNavigate }) {
+  const { inventory = [], setInventory } = useAppStore();
   const [activeTab, setActiveTab] = useState('Create Bill')
   const [transportModalBill, setTransportModalBill] = useState(null)
-  const [company, setCompany] = useState({})
-  const [bills, setBills] = useState([])
+  
+  // React Query Fetching
+  const { data: bills = [], isLoading: isBillsLoading, refetch: refetchBills } = useQuery({
+    queryKey: ['bills'],
+    queryFn: async () => {
+      const res = await backendFetch('/bills')
+      return res.bills || res || []
+    },
+    refetchInterval: 60000
+  })
+
+  const { data: company = {}, isLoading: isCompanyLoading } = useQuery({
+    queryKey: ['company'],
+    queryFn: async () => {
+      const res = await backendFetch('/company')
+      return res.company || res || {}
+    },
+    refetchInterval: 60000
+  })
+
+  const isLoading = isBillsLoading || isCompanyLoading
+
+  const setBills = (updater) => {
+    // Optimistic or manual cache updates can go here, but since we rely on DB,
+    // we just refetch after mutation. Or if local update is needed, handle appropriately.
+    // However, existing code uses `setBills` to eagerly update state before refetching.
+    // For now we'll rely on the parent or keep it local for immediate UI.
+  }
+
   const [editBillId, setEditBillId] = useState(null)
   const [showProcessing, setShowProcessing] = useState(false)
   const [billResult, setBillResult] = useState(null)
-
-  useEffect(() => {
-    backendFetch('/bills').then(setBills).catch(console.error)
-    backendFetch('/company').then(setCompany).catch(console.error)
-  }, [])
 
   const [billDate, setBillDate] = useState(todayISO())
   const billYear = billDate ? new Date(billDate).getFullYear() : new Date().getFullYear()
@@ -1739,7 +1944,13 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
       )}
 
       {/* Bill Form Card */}
-      {activeTab === 'Create Bill' && (
+      {isLoading ? (
+        <div style={{ padding: '24px', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+          <Skeleton className="h-10 w-1/3 mb-6" />
+          <Skeleton className="h-64 w-full mb-4" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : activeTab === 'Create Bill' && (
       <>
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         {/* Form Header */}
@@ -1910,33 +2121,22 @@ function BillingPanelBase({ inventory = [], setInventory, showToast, onNavigate 
           </div>
         </div>
       </div>
-
-      {/* Bill History */}
-      <BillHistory bills={bills} setBills={setBills} inventory={inventory} setInventory={setInventory} company={company} showToast={showToast} 
-        onEditBill={(b) => {
-          document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' })
-          setEditBillId(b.id)
-          setCustomerName(b.customerName || '')
-          setCustomerPhone(b.customerPhone || '')
-          setCustomerAddress(b.customerAddress || '')
-          setItems(b.items && b.items.length > 0 ? b.items : [makeItem()])
-          setDiscount(b.discount || '')
-          setPaymentStatus(b.paymentStatus || 'Unpaid')
-          setPaymentMethod(b.paymentMethod || 'Cash')
-          setAmountPaid(b.amountPaid || '')
-          setNotes(b.notes || '')
-          setIncludeTerms(b.includeTerms || false)
-          setTerms(b.terms || '')
-          setBillDate(b.date || todayISO())
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          showToast?.('Editing bill...', 'info')
-        }}
-        onGenerateTransport={(b) => setTransportModalBill(b)}
-        />
       </>
       )}
 
-      {activeTab === 'Transport Bills History' && (
+      {/* Bill History */}
+      {activeTab === 'Bill History' && (
+        <BillHistory 
+          bills={bills} 
+          refetchBills={refetchBills} 
+          inventory={inventory} 
+          company={company} 
+          showToast={showToast} 
+          onGenerateTransport={(b) => setTransportModalBill(b)}
+        />
+      )}
+
+      {activeTab === 'Transport Bills' && (
         <TransportBillHistory bills={bills} company={company} showToast={showToast} />
       )}
 

@@ -1,3 +1,4 @@
+const { formatDate } = require('../services/dateUtils');
 const express = require('express');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
@@ -64,7 +65,7 @@ router.get('/sales-trend', auth, async (req, res) => {
 
     const dataArray = Object.values(metrics.dateMap)
       .map(d => ({
-        date: new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }),
+        date: formatDate(d.date),
         sales: d.revenue,
         orders: d.orders,
         _sort: new Date(d.date).getTime()
@@ -149,6 +150,7 @@ router.post('/expenses', auth, async (req, res) => {
 
     // Log Activity
     const { ActivityService } = require('../services/activity.service');
+
     await ActivityService.log(req.user.id, ActivityService.templates.expenseAdded(title, amount));
 
     res.status(201).json({ success: true, data });

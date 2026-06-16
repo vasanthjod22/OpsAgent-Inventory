@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react'
 import {
   ArrowLeft, Download, FileText, Hash, Percent, Tag, FileDown
@@ -25,7 +26,7 @@ export default function BillingReport({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   
-  const [dateRange, setDateRange] = useState('month')
+  const [dateRange, setDateRange] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
   const [customTo, setCustomTo] = useState(null)
 
@@ -35,6 +36,7 @@ export default function BillingReport({ onBack }) {
 
   const fetchData = async () => {
     let f, t;
+
     if (dateRange !== 'custom') {
       const range = getDateRange(dateRange)
       f = range.from
@@ -62,7 +64,7 @@ export default function BillingReport({ onBack }) {
     if (!data) return
     const headers = ['Bill No', 'Customer', 'Date', 'Amount', 'Status']
     const rows = data.recentBills.map(b => [
-      b.bill_number, b.customer_name || 'Walk-in', new Date(b.created_at).toLocaleDateString('en-IN'), 
+      b.bill_number, b.customer_name || 'Walk-in', formatDate(b.created_at), 
       formatCurrency(b.grand_total), b.payment_status
     ])
     exportToPDF('Recent Bills', headers, rows, 'Recent_Bills')
@@ -75,14 +77,14 @@ export default function BillingReport({ onBack }) {
       
       const wsRecent = XLSX.utils.json_to_sheet(data.recentBills.map(b => ({
         BillNo: b.bill_number, Customer: b.customer_name || 'Walk-in', Phone: b.customer_phone,
-        Date: new Date(b.created_at).toLocaleDateString('en-IN'), Amount: b.grand_total, 
+        Date: formatDate(b.created_at), Amount: b.grand_total, 
         Discount: b.discount, Method: b.payment_method, Status: b.payment_status
       })))
       XLSX.utils.book_append_sheet(wb, wsRecent, "Recent Bills")
 
       const wsUnpaid = XLSX.utils.json_to_sheet(data.unpaidBills.map(b => ({
         BillNo: b.bill_number, Customer: b.customer_name || 'Walk-in', Amount: b.grand_total,
-        Created: new Date(b.created_at).toLocaleDateString('en-IN'), DaysPending: b.daysPending, Status: b.payment_status
+        Created: formatDate(b.created_at), DaysPending: b.daysPending, Status: b.payment_status
       })))
       XLSX.utils.book_append_sheet(wb, wsUnpaid, "Unpaid Bills")
 
@@ -146,10 +148,10 @@ export default function BillingReport({ onBack }) {
                   <Hash size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Average Bill Value</div>
+                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Bill Amount</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.avgBillValue)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalAmount)}</div>
             </div>
 
             <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
@@ -162,7 +164,11 @@ export default function BillingReport({ onBack }) {
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>CGST + SGST</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#2563EB' }}>{formatCurrency(data.kpis.totalGST)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#2563EB', marginBottom: 8 }}>{formatCurrency(data.kpis.totalGST)}</div>
+              <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748B', fontWeight: 500 }}>
+                <div style={{ background: '#F1F5F9', padding: '4px 8px', borderRadius: 4 }}>CGST: <span style={{ color: '#0F172A', fontWeight: 600 }}>{formatCurrency(data.kpis.cgst)}</span></div>
+                <div style={{ background: '#F1F5F9', padding: '4px 8px', borderRadius: 4 }}>SGST: <span style={{ color: '#0F172A', fontWeight: 600 }}>{formatCurrency(data.kpis.sgst)}</span></div>
+              </div>
             </div>
 
             <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
@@ -183,7 +189,7 @@ export default function BillingReport({ onBack }) {
             <div style={{ flex: '1 1 500px', background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
               <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Billing Trend</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={data.trend}>
+                <LineChart data={[...data.trend].reverse()}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="date" {...axisStyle} />
                   <YAxis yAxisId="left" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
@@ -191,7 +197,7 @@ export default function BillingReport({ onBack }) {
                   <Tooltip {...tooltipStyle} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: '#64748B' }} />
                   <Line yAxisId="left" name="Amount" type="monotone" dataKey="amount" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
-                  <Line yAxisId="right" name="Bill Count" type="monotone" dataKey="count" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line yAxisId="right" name="Bill Count" type="monotone" dataKey="count" stroke="#7C3AED" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -237,7 +243,7 @@ export default function BillingReport({ onBack }) {
                       <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#2563EB' }}>{b.bill_number}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#0F172A' }}>{b.customer_name || 'Walk-in'}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(b.created_at).toLocaleDateString('en-IN')}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(b.created_at)}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{b.items?.length || 0}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{formatCurrency(b.grand_total)}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(b.discount)}</td>
@@ -292,7 +298,7 @@ export default function BillingReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#2563EB' }}>{b.bill_number}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#0F172A' }}>{b.customer_name || 'Walk-in'}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#DC2626' }}>{formatCurrency(b.grand_total)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(b.created_at).toLocaleDateString('en-IN')}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(b.created_at)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: b.daysPending > 7 ? '#DC2626' : '#D97706', fontWeight: 600 }}>
                         {b.daysPending} days
                       </td>

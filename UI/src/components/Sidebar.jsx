@@ -68,7 +68,6 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
   const handleAnimationComplete = () => {
     localStorage.removeItem('opsagent_auth')
     localStorage.removeItem('opsagent_token')
-    window.location.hash = ''
     if (onLogout) onLogout()
     window.location.href = '/'
   }

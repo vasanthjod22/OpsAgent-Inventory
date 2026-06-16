@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Save, Database, Trash2, FileCode2, Building2, Image, X } from 'lucide-react'
+import { Save, Database, Trash2, FileCode2, Building2, Image, X, Moon, Sun } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
+import { useAppStore } from '../../store/appStore'
 
 export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
+  const { theme, setTheme } = useAppStore()
   const [company, setCompany] = useState({})
   const [logoPreview, setLogoPreview] = useState(null)
   const logoInputRef = useRef(null)
@@ -190,6 +192,41 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
         </div>
       </div>
 
+
+      {/* Theme Settings */}
+      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Moon size={16} color="#7C3AED" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Appearance</h3>
+            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Customize the look and feel of your dashboard.</p>
+          </div>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #E2E8F0', borderRadius: '8px', background: '#F8FAFC' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Dark Mode</p>
+              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Switch to a dark theme for low-light environments.</p>
+            </div>
+            <div style={{ display: 'flex', background: '#E2E8F0', borderRadius: '8px', padding: '4px' }}>
+              <button
+                onClick={() => setTheme('light')}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '6px', border: 'none', background: theme === 'light' ? 'white' : 'transparent', color: theme === 'light' ? '#0F172A' : '#64748B', fontSize: '13px', fontWeight: 600, cursor: 'pointer', boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                <Sun size={14} /> Light
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '6px', border: 'none', background: theme === 'dark' ? '#1E293B' : 'transparent', color: theme === 'dark' ? 'white' : '#64748B', fontSize: '13px', fontWeight: 600, cursor: 'pointer', boxShadow: theme === 'dark' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                <Moon size={14} /> Dark
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* AI Integrations */}
       <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>

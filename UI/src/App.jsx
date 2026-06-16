@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { useLocation, useNavigate, Navigate, Routes, Route } from 'react-router-dom'
 import { CheckCircle, X, AlertTriangle, Info, AlertCircle } from 'lucide-react'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
@@ -13,9 +14,11 @@ import PurchaseOrdersPanel from './components/panels/PurchaseOrdersPanel'
 import CustomersPanel from './components/panels/CustomersPanel'
 import ReportsPanel from './components/panels/ReportsPanel'
 import AuthPage from './components/AuthPage'
+import FloatingAIChat from './components/ui/FloatingAIChat'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
 import { backendFetch } from './utils/backend'
+import { useAppStore } from './store/appStore'
 
 const panels = {
   customers: CustomersPanel,
@@ -46,8 +49,10 @@ export default function App() {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
+  const navigate = useNavigate()
+
   const handleAuthSuccess = (user) => {
-    window.location.hash = 'dashboard'
+    navigate('/dashboard')
     setDashboardVisible(true)
     // Small delay so the slide-in class is applied before auth state flips
     setTimeout(() => {
@@ -128,41 +133,29 @@ export default function App() {
 
 /* ─── Main Dashboard ────────────────────────────────────────────────────── */
 function MainDashboard({ currentUser, onLogout, showToast }) {
-  // Sync active nav with URL hash to support the browser Back button
-  const [activeNav, setActiveNavState] = useState(() => {
-    const hash = window.location.hash.replace('#', '').split('?')[0]
-    return panels[hash] ? hash : 'dashboard'
-  })
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Sync active nav with URL path
+  const activeNav = location.pathname === '/' ? 'dashboard' : location.pathname.replace('/', '').split('?')[0]
 
   const setActiveNav = useCallback((nav) => {
-    window.location.hash = nav
-    setActiveNavState(nav.split('?')[0])
-  }, [])
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').split('?')[0]
-      if (panels[hash]) {
-        setActiveNavState(hash)
-      } else if (!hash) {
-        setActiveNavState('dashboard')
-      }
-    }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [])
+    navigate(`/${nav}`)
+  }, [navigate])
 
   // Global Data State
-  const [financeSummary, setFinanceSummary] = useState(null)
-  const [transactions, setTransactions] = useState([])
-  const [inventory, setInventory]       = useState([])
-  const [grnHistory, setGrnHistory]     = useState([])
-  const [quotations, setQuotations]     = useState([])
-  const [breakdownQuotations, setBreakdownQuotations] = useState([])
-  const [finalizedQuotations, setFinalizedQuotations] = useState([])
-  const [bills, setBills]               = useState([])
-  const [customers, setCustomers]       = useState([])
-  const [purchaseOrders, setPurchaseOrders] = useState([])
+  const {
+    setFinanceSummary,
+    setTransactions,
+    setInventory,
+    setGrnHistory,
+    setQuotations,
+    setBreakdownQuotations,
+    setFinalizedQuotations,
+    setBills,
+    setCustomers,
+    setPurchaseOrders
+  } = useAppStore();
   
   // Persisted chat history
   const [chatMessages, setChatMessages] = useLocalStorage(STORAGE_KEYS.CHAT_MESSAGES, [])
@@ -217,30 +210,27 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
 
         <main id="main-scroll-area" className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-main)' }}>
           <div key={activeNav} className={`${activeNav === 'settings' ? 'w-full h-full' : 'max-w-7xl mx-auto p-6'} animate-fadein`}>
-              <ActivePanel
-              financeSummary={financeSummary}
-              setFinanceSummary={setFinanceSummary}
-              transactions={transactions}
-              setTransactions={setTransactions}
-              inventory={inventory}
-              setInventory={setInventory}
-              grnHistory={grnHistory}
-              setGrnHistory={setGrnHistory}
-              quotations={quotations}
-              breakdownQuotations={breakdownQuotations}
-              finalizedQuotations={finalizedQuotations}
-              bills={bills}
-              customers={customers}
-              setCustomers={setCustomers}
-              purchaseOrders={purchaseOrders}
-              chatMessages={chatMessages}
-              setChatMessages={setChatMessages}
-              onClearAll={handleClearAll}
-              onLoadDemo={handleLoadDemo}
-              showToast={showToast}
-              onNavigate={setActiveNav}
-              refreshData={loadData}
-            />
+            <Routes>
+              {Object.entries(panels).map(([path, PanelComponent]) => (
+                <Route
+                  key={path}
+                  path={`/${path}/*`}
+                  element={
+                    <PanelComponent
+                      chatMessages={chatMessages}
+                      setChatMessages={setChatMessages}
+                      onClearAll={handleClearAll}
+                      onLoadDemo={handleLoadDemo}
+                      showToast={showToast}
+                      onNavigate={setActiveNav}
+                      refreshData={loadData}
+                    />
+                  }
+                />
+              ))}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </div>
         </main>
       </div>
@@ -249,6 +239,9 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-white flex justify-around p-2 pb-safe">
         <Sidebar mobile active={activeNav} onNavigate={setActiveNav} currentUser={currentUser} onLogout={onLogout} />
       </div>
+
+      {/* Floating AI Chat - appears on ALL pages */}
+      <FloatingAIChat currentPanel={activeNav} />
     </div>
   )
 }

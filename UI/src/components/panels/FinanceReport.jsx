@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft, Download, TrendingUp, TrendingDown,
@@ -25,7 +26,7 @@ const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-
 export default function FinanceReport({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
-  const [dateRange, setDateRange] = useState('year')
+  const [dateRange, setDateRange] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
   const [customTo, setCustomTo] = useState(null)
   
@@ -44,6 +45,7 @@ export default function FinanceReport({ onBack }) {
 
   const fetchData = async () => {
     let from, to;
+
 
     if (dateRange !== 'custom') {
       const range = getDateRange(dateRange)
@@ -91,7 +93,7 @@ export default function FinanceReport({ onBack }) {
     const headers = ['Customer', 'Phone', 'Bills', 'Total Due', 'Oldest Bill', 'Days Overdue']
     const rows = data.outstanding.map(o => [
       o.customer, o.phone, o.bills, formatCurrency(o.totalDue), 
-      new Date(o.oldestBill).toLocaleDateString('en-IN'), o.daysOverdue
+      formatDate(o.oldestBill), o.daysOverdue
     ])
     exportToPDF('Finance Report - ' + titleDate, headers, rows, `Finance_Report_${titleDate}`)
   }
@@ -336,7 +338,7 @@ export default function FinanceReport({ onBack }) {
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.phone || '-'}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.bills}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#DC2626' }}>{formatCurrency(o.totalDue)}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{new Date(o.oldestBill).toLocaleDateString('en-IN')}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(o.oldestBill)}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: o.daysOverdue > 30 ? '#DC2626' : '#D97706' }}>{o.daysOverdue} days</td>
                       </tr>
                     )

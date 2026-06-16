@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.0",
     "date-fns": "^4.4.0",
     "file-saver": "^2.0.5",
     "jspdf": "^4.2.1",
@@ -17,9 +18,11 @@
     "react": "^18.2.0",
     "react-datepicker": "^9.1.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.17.0",
     "recharts": "^3.8.1",
     "sweetalert2": "^11.26.25",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

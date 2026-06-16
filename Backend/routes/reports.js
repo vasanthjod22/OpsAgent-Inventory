@@ -1,3 +1,4 @@
+const { formatDate } = require('../services/dateUtils');
 const express = require('express');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
@@ -205,15 +206,16 @@ router.get('/sales', auth, async (req, res) => {
   try {
     const { from, to, category: reqCategory } = req.query;
 
-    const fromDate = from ? new Date(from).toISOString().substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
-    const toDate = to ? new Date(to).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10);
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString().substring(0, 10);
+    const fromDate = safeDate(from, () => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10));
+    const toDate = safeDate(to, () => new Date().toISOString().substring(0, 10));
 
     const { AnalyticsService } = require('../services/analytics.service');
     const metrics = await AnalyticsService.getCoreMetrics(req.user.id, fromDate, toDate, reqCategory);
 
     const trend = Object.values(metrics.dateMap).sort((a, b) => new Date(a.date) - new Date(b.date)).map(d => ({
       ...d,
-      date: new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+      date: formatDate(d.date)
     }));
 
     const byCategory = Object.values(metrics.categoryMap).sort((a, b) => b.revenue - a.revenue);
@@ -223,7 +225,7 @@ router.get('/sales', auth, async (req, res) => {
     const customerSummary = Object.values(metrics.customerMap).map(c => ({
       ...c,
       avgOrder: c.total / c.orders,
-      lastOrder: new Date(c.lastOrder).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      lastOrder: formatDate(c.lastOrder),
       status: 'Paid'
     })).sort((a, b) => b.total - a.total).slice(0, 50);
 
@@ -250,8 +252,9 @@ router.get('/sales', auth, async (req, res) => {
 router.get('/finance', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
-    const fromDate = from || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
-    const toDate = to || new Date().toISOString().split('T')[0];
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString().split('T')[0];
+    const fromDate = safeDate(from, () => new Date(2021, 0, 1).toISOString().split('T')[0]);
+    const toDate = safeDate(to, () => new Date().toISOString().split('T')[0]);
 
     const { AnalyticsService } = require('../services/analytics.service');
     const metrics = await AnalyticsService.getCoreMetrics(req.user.id, fromDate, toDate);
@@ -326,13 +329,15 @@ router.get('/inventory', auth, async (req, res) => {
     const { from, to } = req.query;
     const userId = req.user.id;
 
-    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    const toDate = to || new Date().toISOString().split('T')[0];
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString().split('T')[0];
+    const fromDate = safeDate(from, () => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+    const toDate = safeDate(to, () => new Date().toISOString().split('T')[0]);
 
     const ninetyDaysAgo = new Date(toDate);
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const { AnalyticsService } = require('../services/analytics.service');
+
     
     // Get metrics for dead stock (last 90 days)
     const deadStockMetrics = await AnalyticsService.getCoreMetrics(userId, ninetyDaysAgo.toISOString().split('T')[0], toDate);
@@ -396,7 +401,14 @@ router.get('/inventory', auth, async (req, res) => {
       categoryValue: Object.values(catMap).sort((a,b) => b.value - a.value),
       fastMoving,
       slowMoving,
-      deadStock: deadStock.slice(0, 20)
+      deadStockItems: deadStock,
+      lowStockItems: items.map(i => ({
+        ...i,
+        currentQty: (Number(i.opening_stock) || 0) + (Number(i.stock_in) || 0) - (Number(i.stock_out) || 0) - (Number(i.damaged_qty) || 0)
+      })).filter(i => {
+        const qtyToUse = i.currentQty !== undefined && i.currentQty !== 0 ? i.currentQty : (Number(i.qty) || 0);
+        return qtyToUse <= (Number(i.min) || 0);
+      })
     });
   } catch (err) {
     console.error('Inventory Report error:', err);
@@ -410,10 +422,9 @@ router.get('/purchase', auth, async (req, res) => {
     const { from, to } = req.query;
     const userId = req.user.id;
 
-    const fromDate = from || new Date(
-      new Date().getFullYear(), 0, 1
-    ).toISOString();
-    const toDate = to || new Date().toISOString();
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString();
+    const fromDate = safeDate(from, () => new Date(new Date().getFullYear(), 0, 1).toISOString());
+    const toDate = safeDate(to, () => new Date().toISOString());
 
     const { data: pos } = await supabase
       .from('purchase_orders')
@@ -442,8 +453,7 @@ router.get('/purchase', auth, async (req, res) => {
     // Monthly trend
     const monthlyMap = {};
     pos?.forEach(p => {
-      const month = new Date(p.created_at)
-        .toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      const month = (function(d){ const dt = new Date(d); return formatDate(new Date(dt.getFullYear(), dt.getMonth(), 1)); })();
       if (!monthlyMap[month]) {
         monthlyMap[month] = { month, value: 0, count: 0 };
       }
@@ -517,8 +527,9 @@ router.get('/customers', auth, async (req, res) => {
     const { from, to } = req.query;
     const userId = req.user.id;
 
-    const fromDate = from || new Date(new Date().getFullYear(), 0, 1).toISOString();
-    const toDate = to || new Date().toISOString();
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString();
+    const fromDate = safeDate(from, () => new Date(new Date().getFullYear(), 0, 1).toISOString());
+    const toDate = safeDate(to, () => new Date().toISOString());
 
     // All bills to calculate true customer stats
     const { data: bills } = await supabase
@@ -576,30 +587,44 @@ router.get('/customers', auth, async (req, res) => {
 
     // Monthly new customers trend
     const monthlyMap = {};
-    const months = 6;
-    for (let i = months-1; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const key = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-      monthlyMap[key] = { month: key, newCustomers: 0, existingCustomers: 0, orders: 0, _customersThisMonth: new Set() };
+    const formatMonthYear = (d) => {
+      const mNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${mNames[d.getMonth()]} ${d.getFullYear().toString().substr(-2)}`;
+    };
+    let current = new Date(fromDate);
+    current.setDate(1);
+    const end = new Date(toDate);
+    end.setDate(1);
+    let loops = 0;
+    while (current <= end && loops < 120) {
+      const key = formatMonthYear(current);
+      if (!monthlyMap[key]) monthlyMap[key] = { month: key, newCustomers: 0, existingCustomers: 0, orders: 0, _customersThisMonth: new Set(), _sort: current.getTime() };
+      current.setMonth(current.getMonth() + 1);
+      loops++;
     }
 
     bills?.forEach(b => {
-      const key = new Date(b.created_at).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-      if (monthlyMap[key]) {
-        monthlyMap[key].orders++;
-        monthlyMap[key]._customersThisMonth.add(b.customer_name || 'Walk-in Customer');
-      }
+      const d = new Date(b.created_at);
+      const key = formatMonthYear(d);
+      if (!monthlyMap[key]) monthlyMap[key] = { month: key, newCustomers: 0, existingCustomers: 0, orders: 0, _customersThisMonth: new Set(), _sort: new Date(d.getFullYear(), d.getMonth(), 1).getTime() };
+      monthlyMap[key].orders++;
+      monthlyMap[key]._customersThisMonth.add(b.customer_name || 'Walk-in Customer');
     });
 
     customerStats.forEach(c => {
-      const key = new Date(c.firstOrder).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      const d = new Date(c.firstOrder);
+      const key = formatMonthYear(d);
       if (monthlyMap[key]) monthlyMap[key].newCustomers++;
     });
 
     Object.values(monthlyMap).forEach(m => {
-      m.existingCustomers = Math.max(0, m._customersThisMonth.size - m.newCustomers);
+      if (m._customersThisMonth) m.existingCustomers = Math.max(0, m._customersThisMonth.size - m.newCustomers);
       delete m._customersThisMonth;
+    });
+
+    const monthlyTrend = Object.values(monthlyMap).sort((a, b) => a._sort - b._sort).map(m => {
+      delete m._sort;
+      return m;
     });
 
     // Outstanding
@@ -642,7 +667,7 @@ router.get('/customers', auth, async (req, res) => {
         todayNewCustomersCount
       },
       topCustomers,
-      monthlyTrend: Object.values(monthlyMap),
+      monthlyTrend,
       customerHistory: customerStats,
       outstanding
     });
@@ -658,8 +683,9 @@ router.get('/products', auth, async (req, res) => {
     const { from, to } = req.query;
     const userId = req.user.id;
 
-    const fromDate = from || new Date(new Date().getFullYear(), 0, 1).toISOString();
-    const toDate = to || new Date().toISOString();
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString();
+    const fromDate = safeDate(from, () => new Date(new Date().getFullYear(), 0, 1).toISOString());
+    const toDate = safeDate(to, () => new Date().toISOString());
 
     // All inventory
     const { data: inventory } = await supabase
@@ -748,11 +774,9 @@ router.get('/billing', auth, async (req, res) => {
     const { from, to } = req.query;
     const userId = req.user.id;
 
-    const fromDate = from || new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(), 1
-    ).toISOString();
-    const toDate = to || new Date().toISOString();
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString();
+    const fromDate = safeDate(from, () => new Date(2021, new Date().getMonth(), 1).toISOString());
+    const toDate = safeDate(to, () => new Date().toISOString());
 
     const { data: bills } = await supabase
       .from('bills')
@@ -780,9 +804,7 @@ router.get('/billing', auth, async (req, res) => {
     // Daily trend
     const dailyMap = {};
     bills?.forEach(b => {
-      const date = new Date(b.created_at).toLocaleDateString('en-IN', {
-        day: '2-digit', month: 'short', year: '2-digit'
-      });
+      const date = formatDate(b.created_at);
       if (!dailyMap[date]) {
         dailyMap[date] = { date, count: 0, amount: 0 };
       }
@@ -811,8 +833,11 @@ router.get('/billing', auth, async (req, res) => {
       success: true,
       kpis: {
         totalBills,
+        totalAmount,
         avgBillValue: totalBills > 0 ? totalAmount / totalBills : 0,
         totalGST,
+        cgst: totalGST / 2,
+        sgst: totalGST / 2,
         totalDiscount
       },
       trend: Object.values(dailyMap),
@@ -832,8 +857,9 @@ router.get('/demand', auth, async (req, res) => {
     const { from, to } = req.query;
     const userId = req.user.id;
 
-    const fromDate = from || new Date(new Date().getFullYear(), 0, 1).toISOString();
-    const toDate = to || new Date().toISOString();
+    const safeDate = (val, defaultFn) => (!val || val === 'undefined') ? defaultFn() : new Date(val).toISOString();
+    const fromDate = safeDate(from, () => new Date(new Date().getFullYear(), 0, 1).toISOString());
+    const toDate = safeDate(to, () => new Date().toISOString());
 
     // Current period bills
     const { data: bills } = await supabase
@@ -881,15 +907,21 @@ router.get('/demand', auth, async (req, res) => {
     // Monthly trend (6 months)
     const monthlyMap = {};
     const months = 6;
+    
+    const formatMonthYear = (d) => {
+      const mNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${mNames[d.getMonth()]} ${d.getFullYear()}`;
+    };
+
     for (let i = months - 1; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
-      const key = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      const key = formatMonthYear(d);
       monthlyMap[key] = { month: key, units: 0 };
     }
 
     bills?.forEach(b => {
-      const key = new Date(b.created_at).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      const key = formatMonthYear(new Date(b.created_at));
       if (monthlyMap[key]) {
         (b.items || []).forEach(item => {
           monthlyMap[key].units += Number(item.quantity) || 0;
@@ -932,45 +964,6 @@ router.get('/demand', auth, async (req, res) => {
   }
 });
 
-// GET /api/reports/sales
-router.get('/sales', auth, async (req, res) => {
-  try {
-    const { from, to, category } = req.query;
-    const userId = req.user.id;
-    const { AnalyticsService } = require('../services/analytics.service');
 
-    const fromDate = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    const toDate = to || new Date().toISOString();
-
-    const metrics = await AnalyticsService.getCoreMetrics(userId, fromDate, toDate, category);
-
-    res.json({
-      success: true,
-      kpis: {
-        totalSales: metrics.totalRevenue,
-        totalOrders: metrics.totalOrders,
-        avgOrderValue: metrics.avgOrderValue,
-        totalProfit: metrics.grossProfit
-      },
-      trend: Object.values(metrics.dateMap).sort((a,b) => new Date(a.date) - new Date(b.date)),
-      byCategory: Object.values(metrics.categoryMap).sort((a,b) => b.revenue - a.revenue),
-      topProducts: Object.values(metrics.productMap).sort((a,b) => b.revenue - a.revenue).slice(0, 10),
-      paymentMethods: Object.values(metrics.paymentMap).sort((a,b) => b.value - a.value),
-      customerSummary: Object.values(metrics.customerMap)
-        .map(c => ({
-          customer: c.customer,
-          orders: c.orders,
-          total: c.total,
-          avgOrder: c.orders > 0 ? c.total / c.orders : 0,
-          lastOrder: c.lastOrder,
-          status: 'Active'
-        }))
-        .sort((a,b) => b.total - a.total)
-    });
-  } catch (err) {
-    console.error('Sales Report error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 module.exports = router;

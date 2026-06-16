@@ -128,10 +128,15 @@ router.get('/', auth, async (req, res) => {
     ]);
 
     // Calculate Finance Summary
-    const income = finance ? finance.filter(t => t.type === 'Income') : [];
     const expenses = finance ? finance.filter(t => t.type === 'Expense') : [];
 
-    const totalRevenue = income.reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+    // Calculate revenue purely from bills
+    const totalRevenue = Math.round((bills || []).reduce((s, b) => {
+      if (b.payment_status === 'Paid') return s + Number(b.grand_total || 0);
+      if (b.payment_status === 'Partial') return s + Number(b.amount_paid || 0);
+      return s;
+    }, 0));
+
     const manualExpenses = Math.round(expenses.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
 
     const inventoryValuation = Math.round((inventory || []).reduce((s, item) => s + (Number(item.qty || 0) * Number(item.rate || 0)), 0));

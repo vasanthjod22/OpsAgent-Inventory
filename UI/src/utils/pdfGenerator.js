@@ -1,6 +1,9 @@
-import jsPDF from 'jspdf'
+import { formatDate } from './dateUtils';
 
-export const generateBillPDF = (bill, company = {}) => {
+
+
+export const generateBillPDF = async (bill, company = {}) => {
+  const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF()
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
@@ -12,7 +15,7 @@ export const generateBillPDF = (bill, company = {}) => {
   doc.text(`Company: ${company.name || 'Your Company'}`, 14, 30)
   doc.text(`Bill No: ${bill.bill_number}`, 14, 40)
   doc.text(`Customer: ${bill.customer_name || 'Walk-in'}`, 14, 48)
-  doc.text(`Date: ${new Date(bill.created_at).toLocaleDateString('en-IN')}`, 14, 56)
+  doc.text(`Date: ${formatDate(bill.created_at)}`, 14, 56)
 
   let y = 70
   doc.setFont('helvetica', 'bold')

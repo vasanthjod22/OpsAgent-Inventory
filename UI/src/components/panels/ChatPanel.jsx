@@ -1,5 +1,5 @@
+import { formatDate } from '../../utils/dateUtils';
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { jsPDF } from 'jspdf'
 import { 
   TrendingUp, DollarSign, FileText, Users, AlertTriangle, 
   ShoppingCart, Package, UserCheck, Sparkles, Send, 
@@ -19,9 +19,7 @@ const DATE_PRESETS = [
 ]
 
 const formatLabel = (from, to) => {
-  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric'
-  })
+  const fmt = (d) => formatDate(d)
   return `${fmt(from)} – ${fmt(to)}`
 }
 
@@ -273,6 +271,7 @@ export default function ChatPanel({ onNavigate }) {
 
   const handleCustomDateChange = (newFrom, newTo) => {
     if (!newFrom || !newTo) return;
+
     setDateRange(prev => ({
       ...prev,
       preset: 'custom',
@@ -426,7 +425,8 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
 
   // ─── UTILS ───
 
-  const exportMonthlyReportPDF = (reportText, dateLabel) => {
+  const exportMonthlyReportPDF = async (reportText, dateLabel) => {
+    const { jsPDF } = await import('jspdf')
     const doc = new jsPDF('portrait', 'mm', 'a4')
     const pageWidth = doc.internal.pageSize.getWidth()
 
