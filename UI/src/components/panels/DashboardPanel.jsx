@@ -327,6 +327,33 @@ export default function DashboardPanel({ onNavigate }) {
       </div>
     ) : (
       <>
+      {/* ── DAILY CASH REGISTER SUMMARY ── */}
+      {kpis && (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px', marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ background: 'rgba(56, 189, 248, 0.1)', padding: 12, borderRadius: 10 }}><MoneyIcon size={24} color="#0284C7" /></div>
+            <div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Daily Cash Register</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Today's Summary</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total Sales</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#16A34A' }}>{formatCurrency(kpis.todaySales)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Cash Received</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#D97706' }}>{formatCurrency(kpis.todayPaymentMap?.['Cash']?.value || 0)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>UPI / Online</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#0284C7' }}>{formatCurrency((kpis.todayPaymentMap?.['UPI']?.value || 0) + (kpis.todayPaymentMap?.['Bank']?.value || 0) + (kpis.todayPaymentMap?.['Card']?.value || 0))}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {renderKPIs()}
 
       {/* ── CHARTS ROW 1 ── */}
