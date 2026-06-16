@@ -46,7 +46,8 @@ router.get('/kpis', auth, async (req, res) => {
       customerDue: outstanding.totalOutstanding,
       totalCustomers: customerMetrics.totalCustomers,
       newCustomersThisWeek: customerMetrics.newCustomers,
-      totalSalesAllTime
+      totalSalesAllTime,
+      todayPaymentMap: todayMetrics.paymentMap
     });
   } catch (err) {
     console.error('Dashboard KPIs Error:', err);
