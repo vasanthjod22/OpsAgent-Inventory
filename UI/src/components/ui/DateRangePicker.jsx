@@ -173,13 +173,13 @@ const DateRangePicker = ({
           alignItems: 'center',
           gap: 8,
           padding: '8px 12px',
-          background: '#F8FAFC',
+          background: 'var(--bg-main)',
           borderRadius: 8,
-          border: '1px solid #E2E8F0'
+          border: '1px solid var(--border)'
         }}>
           <span style={{
             fontSize: 12,
-            color: '#64748B'
+            color: 'var(--text-muted)'
           }}>
             From
           </span>
@@ -200,7 +200,7 @@ const DateRangePicker = ({
                 height: 32,
                 padding: '0 8px',
                 borderRadius: 6,
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border)',
                 fontSize: 12,
                 color: '#374151',
                 cursor: 'pointer'
@@ -209,7 +209,7 @@ const DateRangePicker = ({
           />
           <span style={{
             fontSize: 12,
-            color: '#64748B'
+            color: 'var(--text-muted)'
           }}>
             To
           </span>
@@ -231,7 +231,7 @@ const DateRangePicker = ({
                 height: 32,
                 padding: '0 8px',
                 borderRadius: 6,
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border)',
                 fontSize: 12,
                 color: '#374151',
                 cursor: 'pointer'

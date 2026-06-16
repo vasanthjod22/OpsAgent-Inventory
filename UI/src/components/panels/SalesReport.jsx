@@ -17,14 +17,14 @@ const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke:
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false };
 const tooltipStyle = {
   contentStyle: {
-    background: 'white',
-    border: '1px solid #E2E8F0',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
     borderRadius: 8,
-    color: '#0F172A',
+    color: 'var(--text-primary)',
     fontSize: 12,
     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
   },
-  itemStyle: { color: '#0F172A', fontWeight: 600 }
+  itemStyle: { color: 'var(--text-primary)', fontWeight: 600 }
 };
 
 const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`;
@@ -105,20 +105,20 @@ export default function SalesReport({ onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button 
             onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#475569', transition: 'all 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', transition: 'all 0.2s' }}
             onMouseOver={e => { e.currentTarget.style.borderColor = '#94A3B8'; e.currentTarget.style.color = '#0F172A'; }}
             onMouseOut={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; }}
           >
             <ArrowLeft size={16} /> Back to Reports
           </button>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Sales Report</h2>
+          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Sales Report</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <select 
             value={category} 
             onChange={(e) => setCategory(e.target.value)}
-            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, outline: 'none', background: 'white', color: '#0F172A', fontWeight: 500, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, outline: 'none', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 500, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
           >
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -141,7 +141,7 @@ export default function SalesReport({ onBack }) {
       </div>
 
       {loading ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#64748B' }}>
+        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>
           <RefreshCw className="spin" size={24} style={{ marginBottom: 12, color: '#38BDF8' }} />
           <div>Generating Report...</div>
         </div>
@@ -152,44 +152,44 @@ export default function SalesReport({ onBack }) {
           
           {/* ── KPI CARDS ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38BDF8' }}>
                   <TrendingUp size={20} />
                 </div>
-                <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Sales</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Sales</div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalSales)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalSales)}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8B5CF6' }}>
                   <ShoppingCart size={20} />
                 </div>
-                <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Orders</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Orders</div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{data.kpis.totalOrders}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{data.kpis.totalOrders}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B' }}>
                   <Activity size={20} />
                 </div>
-                <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Order Value</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Order Value</div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.avgOrderValue)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.avgOrderValue)}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
                   <DollarSign size={20} />
                 </div>
-                <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit (Est)</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit (Est)</div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalProfit)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalProfit)}</div>
             </div>
           </div>
 
@@ -197,8 +197,8 @@ export default function SalesReport({ onBack }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
             
             {/* Sales Trend (Full Width) */}
-            <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Sales Trend</h3>
+            <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Sales Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={data.trend}>
                   <CartesianGrid {...gridStyle} />
@@ -212,8 +212,8 @@ export default function SalesReport({ onBack }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
               {/* Sales by Category */}
-              <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-                <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Sales by Category</h3>
+              <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+                <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Sales by Category</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={data.byCategory}>
                     <CartesianGrid {...gridStyle} />
@@ -228,8 +228,8 @@ export default function SalesReport({ onBack }) {
               </div>
 
               {/* Top Products */}
-              <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-                <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Top Selling Products</h3>
+              <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+                <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Top Selling Products</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={data.topProducts} layout="vertical" margin={{ left: 0, right: 20 }}>
                     <CartesianGrid {...gridStyle} horizontal={false}/>
@@ -244,8 +244,8 @@ export default function SalesReport({ onBack }) {
               </div>
 
               {/* Payment Methods */}
-              <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-                <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Payment Methods</h3>
+              <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+                <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Payment Methods</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
@@ -270,13 +270,13 @@ export default function SalesReport({ onBack }) {
           </div>
 
           {/* ── TABLE ── */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Customer Sales Summary</h3>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Customer Sales Summary</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table id="sales_report_table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <tr>
                     <th style={{ padding: '16px 24px', fontWeight: 600 }}>Customer</th>
                     <th style={{ padding: '16px 24px', fontWeight: 600 }}>Orders</th>
@@ -290,11 +290,11 @@ export default function SalesReport({ onBack }) {
                 <tbody>
                   {data.customerSummary.map((c, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#0F172A', fontWeight: 500 }}>{c.customer}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>{c.customer}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{c.orders}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#0F172A', fontWeight: 600 }}>{formatCurrency(c.total)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(c.avgOrder)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{c.lastOrder}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>{formatCurrency(c.total)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(c.avgOrder)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{c.lastOrder}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151', fontWeight: 500 }}>{c.paymentMode || 'Cash'}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#DCFCE7', color: '#166534' }}>
@@ -305,7 +305,7 @@ export default function SalesReport({ onBack }) {
                   ))}
                   {data.customerSummary.length === 0 && (
                     <tr>
-                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>No sales data found for this period.</td>
+                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No sales data found for this period.</td>
                     </tr>
                   )}
                 </tbody>

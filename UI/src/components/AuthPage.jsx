@@ -54,10 +54,10 @@ function HardwareLoadingScreen({ label = 'Processing...' }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '8px 0' }}>
       <HardwareSpinner size={56} />
-      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{label}</div>
+      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
       <div style={{
-        fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px',
-        background: '#F8FAFC', padding: '6px 14px', borderRadius: '99px', border: '1px solid #E2E8F0'
+        fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px',
+        background: 'var(--bg-main)', padding: '6px 14px', borderRadius: '99px', border: '1px solid var(--border)'
       }}>
         <span>{steps[activeStep].icon}</span>
         <span style={{ transition: 'opacity 0.3s' }}>{steps[activeStep].text}</span>
@@ -188,7 +188,7 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
 
         {/* Logo */}
         <div style={{ position: 'absolute', top: '40px', left: '60px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '32px', height: '32px', background: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '32px', height: '32px', background: 'var(--bg-card)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: '12px', height: '12px', background: '#2563EB', borderRadius: '4px' }} />
           </div>
           <span style={{ color: 'white', fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>OpsAgent</span>
@@ -257,7 +257,7 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
         {/* Bottom trust badges (default only) */}
         {leftPanel.mode === 'default' && (
           <div style={{ position: 'absolute', bottom: '40px', left: '60px' }}>
-            <p style={{ color: '#475569', fontSize: '12px', marginBottom: '12px' }}>Trusted by small businesses across India</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>Trusted by small businesses across India</p>
             <div style={{ display: 'flex', gap: '8px' }}>
               {['KC','LB','GT'].map(initials => (
                 <div key={initials} style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: '11px', fontWeight: 600 }}>{initials}</div>
@@ -268,14 +268,14 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
       </div>
 
       {/* ── Right Form Panel ── */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#F8FAFC' }}>
-        <div style={{ maxWidth: '480px', width: '100%', background: 'white', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid #E2E8F0', position: 'relative', transition: 'box-shadow 0.4s ease' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-main)' }}>
+        <div style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-card)', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid var(--border)', position: 'relative', transition: 'box-shadow 0.4s ease' }}>
           {/* Mobile Logo */}
           <div className="md:hidden flex items-center justify-center gap-2 mb-8">
             <div style={{ width: '28px', height: '28px', background: '#2563EB', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: '10px', height: '10px', background: 'white', borderRadius: '3px' }} />
+              <div style={{ width: '10px', height: '10px', background: 'var(--bg-card)', borderRadius: '3px' }} />
             </div>
-            <span style={{ color: '#0F172A', fontSize: '20px', fontWeight: 700 }}>OpsAgent</span>
+            <span style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700 }}>OpsAgent</span>
           </div>
 
           {view === 'login' && <LoginForm onAuthSuccess={handleAuthSuccess} onSwitch={() => setView('signup')} onForgot={() => setView('forgot')} onPanelChange={setPanel} showToast={showToast} />}
@@ -375,8 +375,8 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <AnimatedCheckmark size={80} color="#16A34A" />
         </div>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>Login Successful!</h2>
-        <p style={{ fontSize: '16px', color: '#64748B', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Login Successful!</h2>
+        <p style={{ fontSize: '16px', color: 'var(--text-muted)', marginBottom: '24px' }}>
           Welcome back, {loggedInUser?.fullName?.split(' ')[0] || 'there'}!
         </p>
         <div style={{ marginBottom: '8px' }}>
@@ -389,11 +389,11 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
 
   return (
     <form onSubmit={handleSubmit} className={shake ? 'animate-shake' : ''}>
-      <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Welcome back</h2>
-      <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '24px' }}>Sign in to your OpsAgent account</p>
+      <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Welcome back</h2>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Sign in to your OpsAgent account</p>
 
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#0F172A', marginBottom: '6px' }}>Username or Email</label>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Username or Email</label>
         <div style={{ position: 'relative' }}>
           <User size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
@@ -409,7 +409,7 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
 
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <label style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>Password</label>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Password</label>
           <button type="button" onClick={onForgot} style={{ fontSize: '12px', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Forgot password?</button>
         </div>
         <div style={{ position: 'relative' }}>
@@ -432,7 +432,7 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
         <input type="checkbox" id="remember" style={{ accentColor: '#2563EB', width: '14px', height: '14px' }} />
-        <label htmlFor="remember" style={{ fontSize: '13px', color: '#475569', cursor: 'pointer' }}>Remember me for 30 days</label>
+        <label htmlFor="remember" style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>Remember me for 30 days</label>
       </div>
 
       {/* Sign In Button */}
@@ -483,12 +483,12 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
         type="button" onClick={handleDemo}
         disabled={phase !== 'idle'}
         className="btn-press"
-        style={{ width: '100%', height: '44px', background: 'white', color: '#0F172A', borderRadius: '8px', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: phase !== 'idle' ? 'not-allowed' : 'pointer', marginBottom: '24px', fontFamily: "'Inter', sans-serif" }}
+        style={{ width: '100%', height: '44px', background: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '8px', border: '1px solid var(--border)', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: phase !== 'idle' ? 'not-allowed' : 'pointer', marginBottom: '24px', fontFamily: "'Inter', sans-serif" }}
       >
         <Zap size={16} color="#F59E0B" /> Try Demo Account
       </button>
 
-      <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748B' }}>
+      <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
         Don't have an account?{' '}
         <button type="button" onClick={onSwitch} style={{ color: '#2563EB', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Sign up</button>
       </p>
@@ -593,28 +593,28 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
         <Confetti active={showConfetti} />
 
         <div className="animate-scaleBounce" style={{ fontSize: '52px', marginBottom: '16px', display: 'inline-block' }}>🎉</div>
-        <h2 className="animate-fadeUp" style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '8px', animationDelay: '0.1s', opacity: 0 }}>
+        <h2 className="animate-fadeUp" style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', animationDelay: '0.1s', opacity: 0 }}>
           Welcome to OpsAgent!
         </h2>
-        <p className="animate-fadeUp" style={{ fontSize: '14px', color: '#64748B', marginBottom: '20px', animationDelay: '0.15s', opacity: 0 }}>
+        <p className="animate-fadeUp" style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px', animationDelay: '0.15s', opacity: 0 }}>
           Your account has been created successfully
         </p>
 
         {/* User info card */}
         {newUser && (
-          <div className="animate-fadeUp" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', textAlign: 'left', animationDelay: '0.2s', opacity: 0 }}>
+          <div className="animate-fadeUp" style={{ background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', textAlign: 'left', animationDelay: '0.2s', opacity: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <User size={14} color="#64748B" />
-              <span style={{ fontSize: '13px', color: '#0F172A', fontWeight: 500 }}>{newUser.fullName}</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>{newUser.fullName}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: newUser.company ? '8px' : 0 }}>
-              <span style={{ fontSize: '14px', color: '#64748B', lineHeight: 1 }}>@</span>
-              <span style={{ fontSize: '13px', color: '#64748B' }}>{newUser.username}</span>
+              <span style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1 }}>@</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{newUser.username}</span>
             </div>
             {newUser.company && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Building size={14} color="#64748B" />
-                <span style={{ fontSize: '13px', color: '#64748B' }}>{newUser.company}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{newUser.company}</span>
               </div>
             )}
           </div>
@@ -637,7 +637,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
               }}
             >
               <CheckCircle2 size={16} color="#16A34A" />
-              <span style={{ fontSize: '13px', color: '#475569', fontWeight: 500 }}>{step}</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{step}</span>
             </div>
           ))}
         </div>
@@ -647,8 +647,8 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Create your account</h2>
-      <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '20px' }}>Start managing your business with AI</p>
+      <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Create your account</h2>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>Start managing your business with AI</p>
 
       {[
         { field: 'fullName', label: 'Full Name', Icon: User, placeholder: 'Your full name', type: 'text' },
@@ -657,7 +657,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
         { field: 'company', label: 'Company Name', Icon: Building, placeholder: 'Your company name', type: 'text', optional: true },
       ].map(({ field, label, Icon, placeholder, type, optional }) => (
         <div key={field} style={{ marginBottom: '14px' }}>
-          <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, color: '#0F172A', marginBottom: '5px' }}>
+          <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '5px' }}>
             <span>{label}</span>
             {optional && <span style={{ color: '#94A3B8', fontWeight: 400, fontSize: '12px' }}>Optional</span>}
           </label>
@@ -685,7 +685,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
 
       {/* Password */}
       <div style={{ marginBottom: '14px' }}>
-        <label style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', display: 'block', marginBottom: '5px' }}>Password</label>
+        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '5px' }}>Password</label>
         <div style={{ position: 'relative' }}>
           <Lock size={15} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
@@ -726,7 +726,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
 
       {/* Confirm Password */}
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', display: 'block', marginBottom: '5px' }}>Confirm Password</label>
+        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '5px' }}>Confirm Password</label>
         <div style={{ position: 'relative' }}>
           <Lock size={15} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
@@ -749,7 +749,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '20px' }}>
         <input type="checkbox" id="terms" required style={{ accentColor: '#2563EB', width: '14px', height: '14px', marginTop: '2px' }} />
-        <label htmlFor="terms" style={{ fontSize: '13px', color: '#475569', lineHeight: 1.4 }}>
+        <label htmlFor="terms" style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
           I agree to the <a href="#" style={{ color: '#2563EB', textDecoration: 'none' }}>Terms of Service</a> and <a href="#" style={{ color: '#2563EB', textDecoration: 'none' }}>Privacy Policy</a>
         </label>
       </div>
@@ -775,7 +775,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
         ) : 'Create Account'}
       </button>
 
-      <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748B' }}>
+      <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
         Already have an account?{' '}
         <button type="button" onClick={onSwitch} style={{ color: '#2563EB', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
       </p>
@@ -806,8 +806,8 @@ function ForgotStep1({ onNext, onBack }) {
           <ShieldCheck size={26} color="#2563EB" />
         </div>
       </div>
-      <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '4px', textAlign: 'center' }}>Forgot your password?</h2>
-      <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '28px', textAlign: 'center' }}>Enter your username and we'll help you reset it</p>
+      <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', textAlign: 'center' }}>Forgot your password?</h2>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px', textAlign: 'center' }}>Enter your username and we'll help you reset it</p>
 
       <div style={{ position: 'relative', marginBottom: '20px' }}>
         <User size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -825,7 +825,7 @@ function ForgotStep1({ onNext, onBack }) {
         Send Reset Code
       </button>
       <div style={{ textAlign: 'center' }}>
-        <button onClick={onBack} style={{ color: '#64748B', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer' }}>← Back to Login</button>
+        <button onClick={onBack} style={{ color: 'var(--text-muted)', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer' }}>← Back to Login</button>
       </div>
     </div>
   )
@@ -878,8 +878,8 @@ function ForgotStep2({ onNext, onBack }) {
 
   return (
     <div className="animate-fadein">
-      <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '4px', textAlign: 'center' }}>Enter reset code</h2>
-      <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '28px', textAlign: 'center' }}>We generated a 6-digit code for you</p>
+      <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', textAlign: 'center' }}>Enter reset code</h2>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px', textAlign: 'center' }}>We generated a 6-digit code for you</p>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
         {code.map((d, i) => (
@@ -908,7 +908,7 @@ function ForgotStep2({ onNext, onBack }) {
         Verify Code
       </button>
       <div style={{ textAlign: 'center' }}>
-        <button onClick={onBack} style={{ color: '#64748B', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer' }}>← Back to Login</button>
+        <button onClick={onBack} style={{ color: 'var(--text-muted)', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer' }}>← Back to Login</button>
       </div>
     </div>
   )
@@ -947,7 +947,7 @@ function ForgotStep3({ onResetSuccess, onBack, showToast }) {
           <AnimatedCheckmark size={80} color="#16A34A" />
         </div>
         <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#16A34A', marginBottom: '8px' }}>Password Reset!</h2>
-        <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '28px' }}>Your password has been updated successfully</p>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px' }}>Your password has been updated successfully</p>
 
         {/* Countdown */}
         <div style={{ marginBottom: '20px' }}>
@@ -955,7 +955,7 @@ function ForgotStep3({ onResetSuccess, onBack, showToast }) {
             key={countdown}
             style={{
               display: 'inline-block',
-              fontSize: '14px', color: '#64748B', fontWeight: 500,
+              fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500,
               animation: 'countPop 0.4s ease forwards',
             }}
           >
@@ -970,8 +970,8 @@ function ForgotStep3({ onResetSuccess, onBack, showToast }) {
 
   return (
     <div className="animate-fadein">
-      <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '4px', textAlign: 'center' }}>Set new password</h2>
-      <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '28px', textAlign: 'center' }}>Choose a strong password</p>
+      <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', textAlign: 'center' }}>Set new password</h2>
+      <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px', textAlign: 'center' }}>Choose a strong password</p>
 
       <div style={{ position: 'relative', marginBottom: '14px' }}>
         <Lock size={15} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -990,7 +990,7 @@ function ForgotStep3({ onResetSuccess, onBack, showToast }) {
         Reset Password
       </button>
       <div style={{ textAlign: 'center' }}>
-        <button onClick={onBack} style={{ color: '#64748B', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer' }}>← Cancel</button>
+        <button onClick={onBack} style={{ color: 'var(--text-muted)', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer' }}>← Cancel</button>
       </div>
     </div>
   )

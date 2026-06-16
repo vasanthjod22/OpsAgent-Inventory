@@ -15,8 +15,8 @@ const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false }
 const tooltipStyle = {
-  contentStyle: { background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, color: '#0F172A', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' },
-  itemStyle: { color: '#0F172A', fontWeight: 600 }
+  contentStyle: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' },
+  itemStyle: { color: 'var(--text-primary)', fontWeight: 600 }
 }
 
 const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`
@@ -64,8 +64,8 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
   if (totalItems === 0) return null
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderTop: '1px solid #E2E8F0' }}>
-      <span style={{ fontSize: 13, color: '#0F172A' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
+      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
         Showing {startItem}–{endItem} of <strong>{totalItems}</strong> {itemName}
       </span>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -73,7 +73,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
         <PageBtn onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>‹</PageBtn>
         {getPageNumbers().map((page, i) => (
           page === '...' ? (
-            <span key={i} style={{ padding: '0 8px', color: '#1E293B' }}>...</span>
+            <span key={i} style={{ padding: '0 8px', color: 'var(--text-primary)' }}>...</span>
           ) : (
             <PageBtn key={i} active={page === currentPage} onClick={() => onPageChange(page)}>{page}</PageBtn>
           )
@@ -196,11 +196,11 @@ export default function InventoryReport({ onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button 
             onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#475569', transition: 'all 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', transition: 'all 0.2s' }}
           >
             <ArrowLeft size={16} /> Back to Reports
           </button>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Inventory Report</h2>
+          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Inventory Report</h2>
         </div>
       </div>
 
@@ -209,28 +209,28 @@ export default function InventoryReport({ onBack }) {
       </div>
 
       {loading || !data ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#64748B' }}>Loading...</div>
+        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           
           {/* ── KPI CARDS ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
                   <Package size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Inventory Value</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Inventory Value</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Current stock value</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalValue)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalValue)}</div>
             </div>
 
             <div 
               onClick={scrollToLowStock}
-              style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}
             >
@@ -239,7 +239,7 @@ export default function InventoryReport({ onBack }) {
                   <AlertTriangle size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Low Stock Items</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Low Stock Items</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Below reorder level</div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function InventoryReport({ onBack }) {
                 sessionStorage.setItem('inventory_filter', 'out')
                 window.location.hash = 'inventory'
               }}
-              style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}
             >
@@ -260,7 +260,7 @@ export default function InventoryReport({ onBack }) {
                   <XCircle size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Out of Stock Items</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Out of Stock Items</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Zero quantity items</div>
                 </div>
               </div>
@@ -269,26 +269,26 @@ export default function InventoryReport({ onBack }) {
 
             <div 
               onClick={scrollToDeadStock}
-              style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
                   <Archive size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Dead Stock Items</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Dead Stock Items</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>No movement in 90 days</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#64748B' }}>{data.kpis.deadStockCount}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-muted)' }}>{data.kpis.deadStockCount}</div>
             </div>
           </div>
 
           {/* ── CHARTS ── */}
-          <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Inventory Value by Category</h3>
+          <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Inventory Value by Category</h3>
             {data.categoryValue && data.categoryValue.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={data.categoryValue}>
@@ -304,7 +304,7 @@ export default function InventoryReport({ onBack }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, background: '#F8FAFC', borderRadius: 8, border: '1px dashed #E2E8F0' }}>
+              <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, background: 'var(--bg-main)', borderRadius: 8, border: '1px dashed #E2E8F0' }}>
                 No category data available
               </div>
             )}
@@ -325,8 +325,8 @@ export default function InventoryReport({ onBack }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-            <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Fast Moving Products</h3>
+            <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Fast Moving Products</h3>
               {data.fastMoving && data.fastMoving.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={data.fastMoving} layout="vertical" margin={{ left: 0, right: 30 }}>
@@ -340,14 +340,14 @@ export default function InventoryReport({ onBack }) {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, background: '#F8FAFC', borderRadius: 8, border: '1px dashed #E2E8F0' }}>
+                <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, background: 'var(--bg-main)', borderRadius: 8, border: '1px dashed #E2E8F0' }}>
                   No fast moving products found
                 </div>
               )}
             </div>
 
-            <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Slow Moving Products</h3>
+            <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Slow Moving Products</h3>
               {data.slowMoving && data.slowMoving.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={data.slowMoving} layout="vertical" margin={{ left: 0, right: 30 }}>
@@ -361,7 +361,7 @@ export default function InventoryReport({ onBack }) {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, background: '#F8FAFC', borderRadius: 8, border: '1px dashed #E2E8F0' }}>
+                <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, background: 'var(--bg-main)', borderRadius: 8, border: '1px dashed #E2E8F0' }}>
                   No slow moving products found
                 </div>
               )}
@@ -369,13 +369,13 @@ export default function InventoryReport({ onBack }) {
           </div>
 
           {/* ── LOW STOCK TABLE ── */}
-          <div ref={lowStockRef} style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Low Stock Products</h3>
+          <div ref={lowStockRef} style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Low Stock Products</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   <tr>
                     <th style={{ padding: '16px 24px' }}>HSN</th>
                     <th style={{ padding: '16px 24px' }}>Product</th>
@@ -390,12 +390,12 @@ export default function InventoryReport({ onBack }) {
                 <tbody>
                   {paginatedLowStock.map((o, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.hsn || '-'}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{o.name}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{o.hsn || '-'}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{o.name}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.category || 'Steel Bars'}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 700, color: '#D97706' }}>{formatQty(o.qty)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatQty(o.min)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(o.qty * o.rate)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatQty(o.min)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(o.qty * o.rate)}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '4px 8px', borderRadius: 4 }}>
                           Low Stock
@@ -409,7 +409,7 @@ export default function InventoryReport({ onBack }) {
                     </tr>
                   ))}
                   {lowStockItems.length === 0 && (
-                    <tr><td colSpan="8" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No low stock items!</td></tr>
+                    <tr><td colSpan="8" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No low stock items!</td></tr>
                   )}
                 </tbody>
               </table>
@@ -427,13 +427,13 @@ export default function InventoryReport({ onBack }) {
           </div>
 
           {/* ── DEAD STOCK TABLE ── */}
-          <div ref={deadStockRef} style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Dead Stock Products (90+ Days Idle)</h3>
+          <div ref={deadStockRef} style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Dead Stock Products (90+ Days Idle)</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   <tr>
                     <th style={{ padding: '16px 24px' }}>HSN</th>
                     <th style={{ padding: '16px 24px' }}>Product</th>
@@ -446,18 +446,18 @@ export default function InventoryReport({ onBack }) {
                 </thead>
                 <tbody>
                   {paginatedDeadStock.map((o, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #F1F5F9', background: '#F8FAFC' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.hsn || '-'}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{o.name}</td>
+                    <tr key={i} style={{ borderBottom: '1px solid #F1F5F9', background: 'var(--bg-main)' }}>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{o.hsn || '-'}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{o.name}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.category || 'Steel Bars'}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 700, color: '#64748B' }}>{formatQty(o.qty)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 700, color: 'var(--text-muted)' }}>{formatQty(o.qty)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#DC2626' }}>{formatCurrency(o.valueLocked)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(o.last_restocked || o.created_at || new Date())}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#64748B' }}>{o.daysIdle} days</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatDate(o.last_restocked || o.created_at || new Date())}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }}>{o.daysIdle} days</td>
                     </tr>
                   ))}
                   {deadStockItems.length === 0 && (
-                    <tr><td colSpan="7" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No dead stock items!</td></tr>
+                    <tr><td colSpan="7" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No dead stock items!</td></tr>
                   )}
                 </tbody>
               </table>

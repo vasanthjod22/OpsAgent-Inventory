@@ -53,7 +53,7 @@ export default function ImportModal({ onClose, fetchInventory, showToast }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 600, padding: 24 }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 600, padding: 24 }}>
         <h3 style={{marginTop:0}}>Import Inventory</h3>
         <button onClick={downloadTemplate} style={{marginBottom: 16}}>Download Template</button>
         <div style={{ border: '2px dashed #ccc', padding: 32, textAlign: 'center', cursor: 'pointer' }} onClick={() => internalRef.current?.click()}>

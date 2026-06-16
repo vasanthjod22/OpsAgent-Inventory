@@ -219,7 +219,7 @@ export default function DashboardPanel({ onNavigate }) {
               key={i} 
               onClick={item.onClick}
               style={{ 
-                background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20, 
+                background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, 
                 cursor: item.onClick ? 'pointer' : 'default', transition: 'all 0.2s',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
               }}
@@ -228,10 +228,10 @@ export default function DashboardPanel({ onNavigate }) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 500, marginBottom: 4 }}>{item.title}</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 4 }}>{item.title}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     {item.val}
-                    {item.valSub && <span style={{ fontSize: 14, color: '#64748B', fontWeight: 500 }}>{item.valSub}</span>}
+                    {item.valSub && <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>{item.valSub}</span>}
                   </div>
                 </div>
                 <div style={{ background: `${item.color}15`, width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color }}>
@@ -263,7 +263,7 @@ export default function DashboardPanel({ onNavigate }) {
   // ─── MAIN RENDER ──────────────────────────────────────────────
 
   return (
-    <div style={{ padding: 24, background: '#F8FAFC', minHeight: '100%' }}>
+    <div style={{ padding: 24, background: 'var(--bg-main)', minHeight: '100%' }}>
       
       {/* ── QUICK ACTIONS ── */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
@@ -279,7 +279,7 @@ export default function DashboardPanel({ onNavigate }) {
             key={i} onClick={btn.onClick}
             style={{ 
               display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 16px', 
-              background: 'white', border: '1px solid #2563EB', borderRadius: 8, color: '#2563EB',
+              background: 'var(--bg-card)', border: '1px solid #2563EB', borderRadius: 8, color: '#2563EB',
               fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
               transition: 'all 0.2s'
             }}
@@ -333,9 +333,9 @@ export default function DashboardPanel({ onNavigate }) {
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 24 }}>
         
         {/* Sales Trend */}
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Sales Trend</h3>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Sales Trend</h3>
             <DateRangePicker 
               value={trendFilter} onChange={setTrendFilter}
               customFrom={trendCustomFrom} customTo={trendCustomTo}
@@ -357,13 +357,13 @@ export default function DashboardPanel({ onNavigate }) {
         </div>
 
         {/* Category Sales */}
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, position: 'relative' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Revenue by Category</h3>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Revenue by Category</h3>
             <select 
               value={categoryFilter} 
               onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '12px', outline: 'none', background: 'white' }}
+              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px', outline: 'none', background: 'var(--bg-card)' }}
             >
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -383,8 +383,8 @@ export default function DashboardPanel({ onNavigate }) {
       </div>
 
       {/* ── TOP PRODUCTS ── */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Top 5 Selling Products {categoryFilter !== 'All Categories' ? `(${categoryFilter})` : ''}</h3>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 24 }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Top 5 Selling Products {categoryFilter !== 'All Categories' ? `(${categoryFilter})` : ''}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
             <CartesianGrid {...gridStyle} horizontal={false}/>
@@ -402,19 +402,19 @@ export default function DashboardPanel({ onNavigate }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         
         {/* Low Stock */}
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A' }}>Low Stock Alerts</h3>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Low Stock Alerts</h3>
             <button onClick={() => { sessionStorage.setItem('inventory_filter', 'low'); onNavigate('inventory') }} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
               View All <ArrowRight size={14} />
             </button>
           </div>
           {lowStockList.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#64748B', fontSize: 14 }}>All stock levels are healthy!</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>All stock levels are healthy!</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   <tr>
                     <th style={{ padding: '12px 20px', fontWeight: 600 }}>Product</th>
                     <th style={{ padding: '12px 20px', fontWeight: 600 }}>Current Qty</th>
@@ -428,9 +428,9 @@ export default function DashboardPanel({ onNavigate }) {
                     const status = getLowStockStatus(displayQty, item.min)
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#0F172A', fontWeight: 500 }}>{item.name}</td>
+                        <td style={{ padding: '14px 20px', fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>{item.name}</td>
                         <td style={{ padding: '14px 20px', fontSize: 14, color: '#374151' }}>{displayQty} {item.unit}</td>
-                        <td style={{ padding: '14px 20px', fontSize: 14, color: '#64748B' }}>{item.min} {item.unit}</td>
+                        <td style={{ padding: '14px 20px', fontSize: 14, color: 'var(--text-muted)' }}>{item.min} {item.unit}</td>
                         <td style={{ padding: '14px 20px' }}>
                           <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: status.bg, color: status.color }}>
                             {status.label}
@@ -446,14 +446,14 @@ export default function DashboardPanel({ onNavigate }) {
         </div>
 
         {/* Recent Activity */}
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A' }}>Recent Activity</h3>
-            <button onClick={() => fetchActivities()} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Recent Activity</h3>
+            <button onClick={() => fetchActivities()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><RefreshCw size={14} /></button>
           </div>
           <div style={{ padding: '20px', flex: 1, overflowY: 'auto', maxHeight: 400 }}>
             {activities.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#64748B', marginTop: 40 }}>No recent activity</div>
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>No recent activity</div>
             ) : (
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: 20, top: 20, bottom: 20, width: 2, background: '#E2E8F0' }} />
@@ -463,8 +463,8 @@ export default function DashboardPanel({ onNavigate }) {
                       {act.icon}
                     </div>
                     <div style={{ paddingTop: 4 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{act.title}</div>
-                      <div style={{ fontSize: 13, color: '#475569', margin: '4px 0' }}>{act.description}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{act.title}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0' }}>{act.description}</div>
                       <div style={{ fontSize: 11, color: '#94A3B8' }}>{timeAgo(act.created_at)}</div>
                     </div>
                   </div>
@@ -478,46 +478,46 @@ export default function DashboardPanel({ onNavigate }) {
       {/* ── EXPENSE MODAL ── */}
       {showExpenseModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: 'white', borderRadius: 12, width: 450, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: 450, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Record Expense</h3>
-              <button onClick={() => setShowExpenseModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={20}/></button>
+              <button onClick={() => setShowExpenseModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
             </div>
             <form onSubmit={handleExpenseSave} style={{ padding: 20 }}>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Expense Title *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Expense Title *</label>
                 <input required value={expenseForm.title} onChange={e => setExpenseForm({...expenseForm, title: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} placeholder="e.g. Office Supplies" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Amount *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Amount *</label>
                   <input required type="number" min="0" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} placeholder="0.00" />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Category</label>
-                  <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'white' }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Category</label>
+                  <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'var(--bg-card)' }}>
                     {['General', 'Fuel', 'Labour', 'Rent', 'Maintenance', 'Utilities', 'Other'].map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Payment Method</label>
-                  <select value={expenseForm.payment_method} onChange={e => setExpenseForm({...expenseForm, payment_method: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'white' }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Payment Method</label>
+                  <select value={expenseForm.payment_method} onChange={e => setExpenseForm({...expenseForm, payment_method: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'var(--bg-card)' }}>
                     {['Cash', 'Bank', 'UPI'].map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Date</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Date</label>
                   <input required type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} />
                 </div>
               </div>
               <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Notes</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Notes</label>
                 <textarea value={expenseForm.notes} onChange={e => setExpenseForm({...expenseForm, notes: e.target.value})} style={{ width: '100%', height: 60, borderRadius: 6, border: '1px solid #CBD5E1', padding: '8px 12px', fontSize: 14, fontFamily: 'inherit', resize: 'none' }} placeholder="Optional notes..." />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
                 <button type="submit" style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#2563EB', color: 'white', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Save Expense</button>
               </div>
             </form>

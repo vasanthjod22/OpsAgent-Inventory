@@ -38,31 +38,7 @@ html.dark {
   --shadow-dropdown: 0 10px 40px rgba(0,0,0,0.5);
 }
 
-/* Dark Mode Overrides for hardcoded inline styles */
-html.dark [style*="background: white"],
-html.dark [style*="background: 'white'"],
-html.dark [style*="background-color: white"],
-html.dark [style*="background:#FFF"],
-html.dark [style*="background: #FFFFFF"] {
-  background: var(--bg-card) !important;
-}
-
-html.dark [style*="color: #0F172A"] { color: var(--text-primary) !important; }
-html.dark [style*="color: #334155"] { color: var(--text-secondary) !important; }
-html.dark [style*="color: #64748B"],
-html.dark [style*="color: #475569"] { color: var(--text-muted) !important; }
-
-html.dark [style*="border: 1px solid #E2E8F0"],
-html.dark [style*="border: '1px solid #E2E8F0'"],
-html.dark [style*="borderBottom: 1px solid #E2E8F0"],
-html.dark [style*="border-bottom: 1px solid #E2E8F0"] {
-  border-color: var(--border) !important;
-}
-
-html.dark [style*="background: #F8FAFC"],
-html.dark [style*="background: #F1F5F9"] {
-  background: var(--bg-main) !important;
-}
+/* Removed hacky substring overrides */
 
 html.dark [style*="background: #EFF6FF"] { background: rgba(37, 99, 235, 0.15) !important; }
 html.dark [style*="background: #FEF2F2"] { background: rgba(220, 38, 38, 0.15) !important; }

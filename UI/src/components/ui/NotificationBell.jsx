@@ -117,7 +117,7 @@ const NotificationBell = ({ token }) => {
           width: 40,
           height: 40,
           borderRadius: 10,
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border)',
           background: open ? '#F8FAFC' : 'white',
           cursor: 'pointer',
           display: 'flex',
@@ -161,9 +161,9 @@ const NotificationBell = ({ token }) => {
           right: 0,
           width: 380,
           maxHeight: 520,
-          background: 'white',
+          background: 'var(--bg-card)',
           borderRadius: 16,
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border)',
           boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
           overflow: 'hidden',
           zIndex: 1000,
@@ -181,11 +181,11 @@ const NotificationBell = ({ token }) => {
             alignItems: 'center'
           }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#0F172A' }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
                 Notifications
               </h3>
               {unreadCount > 0 && (
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748B' }}>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
                   {unreadCount} unread
                 </p>
               )}
@@ -253,12 +253,12 @@ const NotificationBell = ({ token }) => {
                       <div style={{
                         fontSize: 13,
                         fontWeight: notif.read ? 400 : 600,
-                        color: '#0F172A',
+                        color: 'var(--text-primary)',
                         marginBottom: 3
                       }}>
                         {notif.title}
                       </div>
-                      <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                         {notif.message}
                       </div>
                       <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>

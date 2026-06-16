@@ -41,8 +41,8 @@ const StatCard = ({ icon: Icon, label, value, color, bg, subtext }) => (
       <Icon size={20} color={color} />
     </div>
     <div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontWeight: 600 }}>{label}</div>
       {subtext && <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{subtext}</div>}
     </div>
   </div>
@@ -51,8 +51,8 @@ const StatCard = ({ icon: Icon, label, value, color, bg, subtext }) => (
 const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Icon }) => {
   const styles = {
     primary: { background: '#2563EB', color: 'white', border: 'none' },
-    secondary: { background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0' },
-    ghost: { background: 'transparent', color: '#64748B', border: '1px solid #E2E8F0' },
+    secondary: { background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' },
+    ghost: { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)' },
   }
   return (
     <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: small ? '5px 12px' : '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: small ? 12 : 13, fontWeight: 600, fontFamily: "'Inter', sans-serif", transition: 'all 0.15s', ...styles[variant] }} onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
@@ -418,7 +418,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
         </button>
       </div>
       {insight && <div style={{ padding: '16px 20px' }}><FormattedAIResponse text={insight} /></div>}
-      {!insight && !insightLoading && <div style={{ padding: '16px 20px', color: '#64748B', fontSize: 13 }}>Click "Generate Insights" to get AI analysis of this report data.</div>}
+      {!insight && !insightLoading && <div style={{ padding: '16px 20px', color: 'var(--text-muted)', fontSize: 13 }}>Click "Generate Insights" to get AI analysis of this report data.</div>}
       <div style={{ borderTop: '1px solid #BFDBFE', padding: '16px 20px', background: 'rgba(255,255,255,0.5)' }}>
         {chatHistory.length > 0 && (
           <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -431,7 +431,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
             ))}
             {chatLoading && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div style={{ padding: '10px 16px', borderRadius: '12px 12px 12px 4px', background: 'white', border: '1px solid #E2E8F0', display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ padding: '10px 16px', borderRadius: '12px 12px 12px 4px', background: 'var(--bg-card)', border: '1px solid var(--border)', display: 'flex', gap: 4, alignItems: 'center' }}>
                   {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#94A3B8', animation: `dotBounce 1.2s ease ${i * 0.2}s infinite` }}/>)}
                 </div>
               </div>
@@ -439,14 +439,14 @@ export default function ReportsPanel({ showToast, refreshData }) {
           </div>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
-          <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion() } }} placeholder={`Ask about this ${activeTab} data... (e.g. "Who owes the most?")`} disabled={chatLoading} style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 10, border: '1px solid #BFDBFE', fontSize: 13, background: 'white', color: '#0F172A', outline: 'none' }} />
+          <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion() } }} placeholder={`Ask about this ${activeTab} data... (e.g. "Who owes the most?")`} disabled={chatLoading} style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 10, border: '1px solid #BFDBFE', fontSize: 13, background: 'var(--bg-card)', color: 'var(--text-primary)', outline: 'none' }} />
           <button onClick={askQuestion} disabled={!question.trim() || chatLoading} style={{ width: 40, height: 40, borderRadius: 10, border: 'none', background: !question.trim() || chatLoading ? '#E2E8F0' : '#2563EB', color: !question.trim() || chatLoading ? '#94A3B8' : 'white', cursor: !question.trim() || chatLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}>➤</button>
-          {chatHistory.length > 0 && <button onClick={() => setChatHistory([])} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E2E8F0', background: 'white', color: '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }} title="Clear chat">🗑</button>}
+          {chatHistory.length > 0 && <button onClick={() => setChatHistory([])} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }} title="Clear chat">🗑</button>}
         </div>
         {chatHistory.length === 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
             {getSuggestedQuestions(activeTab).map(q => (
-              <button key={q} onClick={() => { setQuestion(q); setTimeout(askQuestion, 100) }} style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid #BFDBFE', background: 'white', color: '#2563EB', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s ease' }}>{q}</button>
+              <button key={q} onClick={() => { setQuestion(q); setTimeout(askQuestion, 100) }} style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid #BFDBFE', background: 'var(--bg-card)', color: '#2563EB', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s ease' }}>{q}</button>
             ))}
           </div>
         )}
@@ -510,15 +510,15 @@ export default function ReportsPanel({ showToast, refreshData }) {
         </div>
 
         {/* ── FILTER BAR ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '16px 20px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</span>
-            <select value={category} onChange={e => setCategory(e.target.value)} style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', background: 'white', minWidth: 150, cursor: 'pointer' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</span>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: '#374151', background: 'var(--bg-card)', minWidth: 150, cursor: 'pointer' }}>
               <option value="all">All Categories</option>
               {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
-          <button onClick={fetchData} disabled={loading} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>🔄 Refresh</button>
+          <button onClick={fetchData} disabled={loading} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>🔄 Refresh</button>
         </div>
 
         {/* ── LOADING/ERROR STATES ── */}
@@ -545,7 +545,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                   <div style={{ fontSize: 22, marginBottom: 8 }}>{card.icon}</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: card.color, marginBottom: 4 }}>{card.value}</div>
                   {card.sub && <div style={{ fontSize: 11, color: card.color, opacity: 0.8, marginBottom: 4 }}>{card.sub}</div>}
-                  <div style={{ fontSize: 12, color: '#64748B' }}>{card.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{card.label}</div>
                 </div>
               ))}
             </div>
@@ -554,8 +554,8 @@ export default function ReportsPanel({ showToast, refreshData }) {
             {data.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, marginTop: 24, marginBottom: 24 }}>
                 {/* Category Stock Value Pie Chart */}
-                <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Stock Value by Category</h3>
+                <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', padding: 24 }}>
+                  <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Stock Value by Category</h3>
                   <div style={{ height: 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -581,8 +581,8 @@ export default function ReportsPanel({ showToast, refreshData }) {
                 </div>
 
                 {/* Items vs Quantities Bar Chart */}
-                <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Category Quantities</h3>
+                <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', padding: 24 }}>
+                  <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Category Quantities</h3>
                   <div style={{ height: 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -602,17 +602,17 @@ export default function ReportsPanel({ showToast, refreshData }) {
 
             {/* ── EMPTY STATE ── */}
             {data.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '60px 0', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div style={{ textAlign: 'center', padding: '60px 0', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
-                <h3 style={{ color: '#0F172A', margin: '0 0 8px' }}>No inventory data found</h3>
+                <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>No inventory data found</h3>
               </div>
             )}
 
             {/* ── CATEGORY TABLE ── */}
             {data.length > 0 && (
-              <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 16px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', gap: 8 }}>
-                  {['Category','Items','Total Qty','Stock Value',`Sold (Period)`,'Revenue','Status'].map(h => <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>)}
+              <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 16px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', gap: 8 }}>
+                  {['Category','Items','Total Qty','Stock Value',`Sold (Period)`,'Revenue','Status'].map(h => <div key={h} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>)}
                 </div>
                 {data.map((cat, idx) => {
                   const status = getStatus(cat)
@@ -625,14 +625,14 @@ export default function ReportsPanel({ showToast, refreshData }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }}/>
                           <div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{cat.category}</div>
-                            <div style={{ width: 80, height: 3, background: '#F1F5F9', borderRadius: 999, marginTop: 4 }}><div style={{ width: `${barWidth}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.5s ease' }}/></div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{cat.category}</div>
+                            <div style={{ width: 80, height: 3, background: 'var(--bg-main)', borderRadius: 999, marginTop: 4 }}><div style={{ width: `${barWidth}%`, height: '100%', background: color, borderRadius: 999, transition: 'width 0.5s ease' }}/></div>
                           </div>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.totalItems}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.totalQty}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{cat.totalItems}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{cat.totalQty}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>{fmt(cat.totalValue)}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{cat.soldQty}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{cat.soldQty}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>{fmt(cat.revenue)}</div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: status.bg, color: status.color, whiteSpace: 'nowrap' }}>{status.label}</span>
@@ -641,8 +641,8 @@ export default function ReportsPanel({ showToast, refreshData }) {
                       
                       {/* Sub-items */}
                       {isExpanded && (
-                        <div style={{ background: '#F8FAFC', padding: '12px 16px 12px 48px', borderBottom: '1px solid #E2E8F0' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 8, paddingBottom: 8, borderBottom: '1px solid #E2E8F0', marginBottom: 8 }}>
+                        <div style={{ background: 'var(--bg-main)', padding: '12px 16px 12px 48px', borderBottom: '1px solid var(--border)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)', marginBottom: 8 }}>
                             {['Item Name','Qty','Rate','Value','Min','Status'].map(h => <div key={h} style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{h}</div>)}
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -654,11 +654,11 @@ export default function ReportsPanel({ showToast, refreshData }) {
                               else if (max > 0 && qty > max) { iStatus = 'Overstock'; iCol = '#D97706' }
                               return (
                                 <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 8, alignItems: 'center' }}>
-                                  <div style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{item.name}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>{item.name}</div>
                                   <div style={{ fontSize: 13, fontWeight: 600, color: iCol }}>{qty} {item.unit}</div>
-                                  <div style={{ fontSize: 13, color: '#64748B' }}>{fmt(rate)}</div>
+                                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{fmt(rate)}</div>
                                   <div style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8' }}>{fmt(qty * rate)}</div>
-                                  <div style={{ fontSize: 13, color: '#64748B' }}>{min} {item.unit}</div>
+                                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{min} {item.unit}</div>
                                   <div style={{ fontSize: 11, fontWeight: 600, color: iCol }}>{iStatus}</div>
                                 </div>
                               )
@@ -701,11 +701,11 @@ export default function ReportsPanel({ showToast, refreshData }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {/* Top Customers */}
-          <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Top 5 Customers</h3>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Top 5 Customers</h3>
             <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
+                <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
                   <th style={{ textAlign: 'left', padding: '8px 4px' }}>Customer</th>
                   <th style={{ textAlign: 'right', padding: '8px 4px' }}>Revenue</th>
                   <th style={{ textAlign: 'right', padding: '8px 4px' }}>Outst.</th>
@@ -714,7 +714,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
               <tbody>
                 {topCust.map((c, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '8px 4px', fontWeight: 600, color: '#334155' }}>{c.name}</td>
+                    <td style={{ padding: '8px 4px', fontWeight: 600, color: 'var(--text-secondary)' }}>{c.name}</td>
                     <td style={{ padding: '8px 4px', textAlign: 'right', color: '#1D4ED8', fontWeight: 600 }}>{fmt(c.totalPurchases)}</td>
                     <td style={{ padding: '8px 4px', textAlign: 'right', color: c.outstanding > 0 ? '#DC2626' : '#94A3B8' }}>{fmt(c.outstanding)}</td>
                   </tr>
@@ -749,11 +749,11 @@ export default function ReportsPanel({ showToast, refreshData }) {
           <StatCard icon={Receipt} label="Total SGST Collected" value={fmt(totSgst)} color="#7C3AED" bg="#F5F3FF" />
           <StatCard icon={TrendingUp} label="Total Tax Collected" value={fmt(totCgst + totSgst)} color="#1D4ED8" bg="#F0FDF4" />
         </div>
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Tax Breakdown by Bill</h3>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Tax Breakdown by Bill</h3>
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
+              <tr style={{ background: 'var(--bg-main)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ textAlign: 'left', padding: '10px' }}>Bill No.</th>
                 <th style={{ textAlign: 'left', padding: '10px' }}>Date</th>
                 <th style={{ textAlign: 'right', padding: '10px' }}>Bill Amt</th>
@@ -774,8 +774,8 @@ export default function ReportsPanel({ showToast, refreshData }) {
                     <td style={{ padding: '10px', fontWeight: 600, color: '#2563EB' }}>{b.billNumber}</td>
                     <td style={{ padding: '10px' }}>{fmtDate(b.date)}</td>
                     <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{fmt(b.grandTotal)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', color: '#64748B' }}>{fmt(bc)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', color: '#64748B' }}>{fmt(bs)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: 'var(--text-muted)' }}>{fmt(bc)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: 'var(--text-muted)' }}>{fmt(bs)}</td>
                   </tr>
                 )
               })}
@@ -799,11 +799,11 @@ export default function ReportsPanel({ showToast, refreshData }) {
           <StatCard icon={Users} label="Total Customers" value={customers.length} color="#2563EB" bg="#EFF6FF" />
           <StatCard icon={AlertCircle} label="Total Outstanding" value={fmt(totalOut)} color="#DC2626" bg="#FEF2F2" />
         </div>
-        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 16 }}>Customer Directory</h3>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Customer Directory</h3>
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#F8FAFC', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>
+              <tr style={{ background: 'var(--bg-main)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
                 <th style={{ textAlign: 'left', padding: '10px' }}>Tags</th>
                 <th style={{ textAlign: 'right', padding: '10px' }}>Revenue</th>
@@ -816,7 +816,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                   <td style={{ padding: '10px', fontWeight: 600 }}>{c.name}</td>
                   <td style={{ padding: '10px' }}>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      {(c.tags || []).map((t, i) => <span key={i} style={{ fontSize: 10, padding: '2px 6px', background: '#F1F5F9', borderRadius: 4 }}>{t}</span>)}
+                      {(c.tags || []).map((t, i) => <span key={i} style={{ fontSize: 10, padding: '2px 6px', background: 'var(--bg-main)', borderRadius: 4 }}>{t}</span>)}
                     </div>
                   </td>
                   <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#1D4ED8' }}>{fmt(c.totalPurchases)}</td>
@@ -881,14 +881,14 @@ export default function ReportsPanel({ showToast, refreshData }) {
     const reportData = REPORT_CARDS.find(c => c.id === activeReport)
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%', paddingBottom: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'white', padding: '16px 24px', borderRadius: 14, border: '1px solid #E2E8F0' }}>
-          <button onClick={() => setActiveReport(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: '#64748B', fontSize: 14, fontWeight: 600 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--bg-card)', padding: '16px 24px', borderRadius: 14, border: '1px solid var(--border)' }}>
+          <button onClick={() => setActiveReport(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 600 }}>
             <ArrowLeft size={18} /> Back to Reports
           </button>
           <div style={{ width: 1, height: 24, background: '#E2E8F0' }} />
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>{reportData?.title}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{reportData?.title}</h2>
         </div>
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: 40, textAlign: 'center', color: '#64748B' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)', padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
           <reportData.icon size={48} color={reportData.color} style={{ opacity: 0.2, marginBottom: 16 }} />
           <h3>{reportData.title} is under construction</h3>
           <p>This report will be implemented in the next phase.</p>
@@ -900,10 +900,10 @@ export default function ReportsPanel({ showToast, refreshData }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, height: '100%', paddingBottom: 40 }}>
       {/* ── HEADER & SEARCH ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '24px', borderRadius: 14, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '24px', borderRadius: 14, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: '0 0 4px' }}>Reports</h2>
-          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>Select a report to view detailed analytics</p>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Reports</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>Select a report to view detailed analytics</p>
         </div>
         <div style={{ position: 'relative', width: 300 }}>
           <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
@@ -912,7 +912,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
             placeholder="Search reports..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, outline: 'none' }}
+            style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, outline: 'none' }}
           />
         </div>
       </div>
@@ -940,7 +940,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                 e.currentTarget.style.borderColor = '#E2E8F0'
               }}
               style={{
-                background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20,
+                background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20,
                 cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column'
               }}
             >
@@ -949,13 +949,13 @@ export default function ReportsPanel({ showToast, refreshData }) {
                   <Icon size={22} color={card.color} />
                 </div>
                 <div style={{ paddingTop: 2 }}>
-                  <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{card.title}</h3>
+                  <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{card.title}</h3>
                 </div>
               </div>
-              <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748B', lineHeight: 1.5, flex: 1 }}>{card.desc}</p>
+              <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, flex: 1 }}>{card.desc}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                 {card.tags.map(t => (
-                  <span key={t} style={{ fontSize: 11, fontWeight: 500, color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: 4 }}>
+                  <span key={t} style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--bg-main)', padding: '2px 8px', borderRadius: 4 }}>
                     {t}
                   </span>
                 ))}
@@ -967,7 +967,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
           )
         })}
         {filteredCards.length === 0 && (
-          <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: '#64748B', background: 'white', borderRadius: 12, border: '1px dashed #CBD5E1' }}>
+          <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', borderRadius: 12, border: '1px dashed #CBD5E1' }}>
             No reports found matching "{searchQuery}"
           </div>
         )}

@@ -30,7 +30,7 @@ export default function InventoryTable({
   }
 
   const inputStyle = { width: '100%', padding: '4px 6px', border: '1px solid transparent', borderRadius: 4, outlineColor: '#2563EB', fontSize: 13, background: 'transparent' }
-  const inputFocusStyle = { background: 'white', border: '1px solid #E2E8F0', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }
+  const inputFocusStyle = { background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }
 
   const isMobile = useMediaQuery('(max-width: 768px)')
 
@@ -40,39 +40,39 @@ export default function InventoryTable({
 
   if (isMobile) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px', background: '#F8FAFC' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px', background: 'var(--bg-main)' }}>
         {displayedItems.map((item, index) => {
           const currentQty = item.qty || 0;
           const totalValue = currentQty * (item.purchase_rate || item.rate || 0);
           const statBadge = getStatus(currentQty, item.min || 0, item.max || 0);
 
           return (
-            <div key={item.id} style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div key={item.id} style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 16, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{item.name}</div>
-                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{item.hsn || item.sku} &bull; {item.category}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{item.hsn || item.sku} &bull; {item.category}</div>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: statBadge.color, background: statBadge.bg, padding: '4px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                   {statBadge.label}
                 </span>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, background: '#F8FAFC', padding: 10, borderRadius: 8, border: '1px solid #F1F5F9' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, background: 'var(--bg-main)', padding: 10, borderRadius: 8, border: '1px solid #F1F5F9' }}>
                 <div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Current Stock</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Current Stock</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#10B981', marginTop: 2 }}>{formatQty(currentQty)} {item.unit}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Purchase Rate</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>₹{Number(getValue(item, 'purchase_rate') || getValue(item, 'rate') || 0).toFixed(2)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Purchase Rate</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>₹{Number(getValue(item, 'purchase_rate') || getValue(item, 'rate') || 0).toFixed(2)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Value</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>₹{totalValue.toFixed(2)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Value</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>₹{totalValue.toFixed(2)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Sold</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Sold</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#3B82F6', marginTop: 2 }}>{formatQty(Math.max(0, (item.total_qty ?? item.qty) - currentQty))}</div>
                 </div>
               </div>
@@ -90,11 +90,11 @@ export default function InventoryTable({
   }
 
   return (
-    <div style={{ overflowX: 'auto', overflowY: 'visible', width: '100%', borderTop: '1px solid #E2E8F0', paddingBottom: 16 }}>
+    <div style={{ overflowX: 'auto', overflowY: 'visible', width: '100%', borderTop: '1px solid var(--border)', paddingBottom: 16 }}>
       <table style={{ width: 'max-content', minWidth: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
-          <tr style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
-            <th style={{ position: 'sticky', left: 0, zIndex: 2, background: '#F8FAFC', width: 50, padding: '12px 8px' }}><ColHeader label="#" /></th>
+          <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid #E2E8F0' }}>
+            <th style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--bg-main)', width: 50, padding: '12px 8px' }}><ColHeader label="#" /></th>
             <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="HSN/SKU" tooltip="HSN Code / Stock Keeping Unit" /></th>
             <th style={{ width: 200, padding: '12px 8px' }}><ColHeader label="Item Name" /></th>
             <th style={{ width: 120, padding: '12px 8px' }}><ColHeader label="Category" /></th>
@@ -115,7 +115,7 @@ export default function InventoryTable({
             <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Date Added" /></th>
             <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Last Restock" /></th>
             <th style={{ width: 110, padding: '12px 8px' }}><ColHeader label="Status" /></th>
-            <th style={{ position: 'sticky', right: 0, zIndex: 2, background: '#F8FAFC', width: 110, padding: '12px 8px', boxShadow: '-2px 0 4px rgba(0,0,0,0.05)' }}><ColHeader label="Actions" /></th>
+            <th style={{ position: 'sticky', right: 0, zIndex: 2, background: 'var(--bg-main)', width: 110, padding: '12px 8px', boxShadow: '-2px 0 4px rgba(0,0,0,0.05)' }}><ColHeader label="Actions" /></th>
           </tr>
         </thead>
         <tbody>
@@ -125,22 +125,22 @@ export default function InventoryTable({
             const statBadge = getStatus(currentQty, item.min || 0, item.max || 0)
 
             return (
-              <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0', ':hover': { background: '#F8FAFC' } }}>
-                <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'white', fontSize: 13, color: '#64748B', fontWeight: 500, padding: '12px 8px' }}>
+              <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', ':hover': { background: 'var(--bg-main)' } }}>
+                <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-card)', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, padding: '12px 8px' }}>
                   {(pagination.currentPage - 1) * pagination.itemsPerPage + index + 1}
                 </td>
-                <td style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, padding: '12px 8px' }}>{item.hsn || item.sku}</td>
-                <td style={{ fontWeight: 600, color: '#0F172A', padding: '12px 8px' }}>{item.name}</td>
-                <td style={{ color: '#0F172A', padding: '12px 8px' }}>
-                  <span style={{ padding: '2px 8px', borderRadius: 99, background: '#F1F5F9', fontSize: 12 }}>{item.category}</span>
+                <td style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, padding: '12px 8px' }}>{item.hsn || item.sku}</td>
+                <td style={{ fontWeight: 600, color: 'var(--text-primary)', padding: '12px 8px' }}>{item.name}</td>
+                <td style={{ color: 'var(--text-primary)', padding: '12px 8px' }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 99, background: 'var(--bg-main)', fontSize: 12 }}>{item.category}</span>
                 </td>
-                <td style={{ fontWeight: 600, color: '#475569', padding: '12px 8px' }}>{formatQty(item.total_qty ?? item.qty)}</td>
+                <td style={{ fontWeight: 600, color: 'var(--text-muted)', padding: '12px 8px' }}>{formatQty(item.total_qty ?? item.qty)}</td>
                 <td style={{ padding: '12px 8px' }}>
                   <span style={{ fontWeight: 700, color: '#10B981', fontSize: 14 }}>{formatQty(currentQty)}</span>
                 </td>
                 <td style={{ fontWeight: 600, color: '#3B82F6', padding: '12px 8px' }}>{formatQty(Math.max(0, (item.total_qty ?? item.qty) - currentQty))}</td>
                 <td style={{ fontWeight: 600, color: '#EF4444', padding: '12px 8px' }}>{formatQty(item.damaged_qty)}</td>
-                <td style={{ color: '#64748B', padding: '12px 8px' }}>{item.unit}</td>
+                <td style={{ color: 'var(--text-muted)', padding: '12px 8px' }}>{item.unit}</td>
                 <td style={{ padding: '4px 8px' }}>
                   <input type="number"
                     value={getValue(item, 'min')}
@@ -173,7 +173,7 @@ export default function InventoryTable({
                 </td>
                 <td style={{ padding: '4px 8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ color: '#64748B', fontSize: 13, flexShrink: 0 }}>₹</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>₹</span>
                     <input type="number"
                       value={getValue(item, 'purchase_rate') || getValue(item, 'rate')}
                       onChange={e => handleFieldChange(item.id, 'purchase_rate', e.target.value)}
@@ -218,17 +218,17 @@ export default function InventoryTable({
                     style={{ ...inputStyle, width: 50 }}
                   />
                 </td>
-                <td style={{ color: '#0F172A', padding: '12px 8px', fontWeight: 600 }}>
+                <td style={{ color: 'var(--text-primary)', padding: '12px 8px', fontWeight: 600 }}>
                   {Number(item.cgst_percent || 0) + Number(item.sgst_percent || 0)}%
                 </td>
-                <td style={{ color: '#0F172A', padding: '12px 8px', fontWeight: 700 }}>
+                <td style={{ color: 'var(--text-primary)', padding: '12px 8px', fontWeight: 700 }}>
                   ₹{totalValue.toFixed(2)}
                 </td>
-                <td style={{ color: '#475569', padding: '12px 8px' }}>{item.supplier_name || '—'}</td>
-                <td style={{ color: '#64748B', padding: '12px 8px', fontSize: 12 }}>
+                <td style={{ color: 'var(--text-muted)', padding: '12px 8px' }}>{item.supplier_name || '—'}</td>
+                <td style={{ color: 'var(--text-muted)', padding: '12px 8px', fontSize: 12 }}>
                   {item.date_added ? formatDate(item.date_added) : '—'}
                 </td>
-                <td style={{ color: '#64748B', padding: '12px 8px', fontSize: 12 }}>
+                <td style={{ color: 'var(--text-muted)', padding: '12px 8px', fontSize: 12 }}>
                   {item.last_restocked ? formatDate(item.last_restocked) : '—'}
                 </td>
                 <td style={{ padding: '12px 8px' }}>
@@ -236,7 +236,7 @@ export default function InventoryTable({
                     {statBadge.label}
                   </span>
                 </td>
-                <td style={{ position: 'sticky', right: 0, zIndex: 1, background: 'white', padding: '12px 8px', boxShadow: '-2px 0 4px rgba(0,0,0,0.05)' }}>
+                <td style={{ position: 'sticky', right: 0, zIndex: 1, background: 'var(--bg-card)', padding: '12px 8px', boxShadow: '-2px 0 4px rgba(0,0,0,0.05)' }}>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <ActionBtn color="#2563EB" hover="#1D4ED8" icon={<Pencil size={14} />} title="Edit Item" onClick={() => handleEditClick(item)} />
                     <ActionBtn color="#EA580C" hover="#C2410C" icon={<AlertTriangle size={14} />} title="Mark Damaged" onClick={() => handleDamage(item)} />

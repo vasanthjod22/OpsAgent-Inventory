@@ -36,7 +36,7 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Yes, Remo
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'white', borderRadius: '24px', width: '100%', maxWidth: '400px',
+          background: 'var(--bg-card)', borderRadius: '24px', width: '100%', maxWidth: '400px',
           boxShadow: '0 32px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.1)',
           overflow: 'visible', position: 'relative',
           animation: closing ? 'modalCardOut 0.22s cubic-bezier(0.4,0,0.6,1) forwards' : 'modalCardIn 0.36s cubic-bezier(0.34,1.3,0.64,1) forwards',
@@ -76,7 +76,7 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Yes, Remo
 
           {title && (
             <p style={{
-              fontSize: '19px', fontWeight: 800, color: '#0F172A',
+              fontSize: '19px', fontWeight: 800, color: 'var(--text-primary)',
               marginBottom: '8px', textAlign: 'center', letterSpacing: '-0.3px',
               animation: 'modalCardIn 0.35s ease 0.15s both',
             }}>
@@ -84,7 +84,7 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Yes, Remo
             </p>
           )}
           <p style={{
-            fontSize: '14px', color: '#64748B', textAlign: 'center',
+            fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center',
             lineHeight: 1.65, maxWidth: '280px',
             animation: 'modalCardIn 0.35s ease 0.2s both',
           }}>
@@ -93,7 +93,7 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Yes, Remo
         </div>
 
         {/* Divider */}
-        <div style={{ height: '1px', background: '#F1F5F9', margin: '0 24px' }} />
+        <div style={{ height: '1px', background: 'var(--bg-main)', margin: '0 24px' }} />
 
         {/* Buttons */}
         <div style={{
@@ -105,8 +105,8 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Yes, Remo
             onClick={handleCancel}
             style={{
               height: '46px', borderRadius: '12px',
-              border: '1.5px solid #E2E8F0', background: 'white',
-              fontWeight: 600, fontSize: '14px', color: '#64748B',
+              border: '1.5px solid #E2E8F0', background: 'var(--bg-card)',
+              fontWeight: 600, fontSize: '14px', color: 'var(--text-muted)',
               cursor: 'pointer', transition: 'all 0.15s',
               fontFamily: "'Inter', sans-serif",
             }}

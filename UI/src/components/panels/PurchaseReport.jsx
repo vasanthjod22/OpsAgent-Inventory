@@ -15,8 +15,8 @@ const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false }
 const tooltipStyle = {
-  contentStyle: { background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, color: '#0F172A', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' },
-  itemStyle: { color: '#0F172A', fontWeight: 600 }
+  contentStyle: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' },
+  itemStyle: { color: 'var(--text-primary)', fontWeight: 600 }
 }
 
 const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`
@@ -100,11 +100,11 @@ export default function PurchaseReport({ onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button 
             onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#475569', transition: 'all 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', transition: 'all 0.2s' }}
           >
             <ArrowLeft size={16} /> Back to Reports
           </button>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Purchase Report</h2>
+          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Purchase Report</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -125,56 +125,56 @@ export default function PurchaseReport({ onBack }) {
       </div>
 
       {loading || !data ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#64748B' }}>Loading...</div>
+        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           
           {/* ── KPI CARDS ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
                   <ShoppingCart size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Purchase Value</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Purchase Value</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalValue)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalValue)}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
                   <FileText size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Orders</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Orders</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{data.kpis.totalPOs}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{data.kpis.totalPOs}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706' }}>
                   <Clock size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Pending Orders</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Pending Orders</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>{formatCurrency(data.kpis.pendingValue)} value</div>
                 </div>
               </div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#D97706' }}>{data.kpis.pendingCount}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
                   <AlertCircle size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Overdue Orders</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Overdue Orders</div>
                 </div>
               </div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#DC2626' }}>{data.kpis.overdueCount}</div>
@@ -183,8 +183,8 @@ export default function PurchaseReport({ onBack }) {
 
           {/* ── CHARTS ── */}
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 500px', background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Monthly Purchase Trend</h3>
+            <div style={{ flex: '1 1 500px', background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Monthly Purchase Trend</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={data.monthlyTrend}>
                   <CartesianGrid {...gridStyle} />
@@ -196,8 +196,8 @@ export default function PurchaseReport({ onBack }) {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ flex: '1 1 400px', background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Purchases by Supplier</h3>
+            <div style={{ flex: '1 1 400px', background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Purchases by Supplier</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={data.supplierChart}>
                   <CartesianGrid {...gridStyle} />
@@ -215,13 +215,13 @@ export default function PurchaseReport({ onBack }) {
           </div>
 
           {/* ── PENDING POS TABLE ── */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Pending Purchase Orders</h3>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Pending Purchase Orders</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   <tr>
                     <th style={{ padding: '16px 24px' }}>PO No</th>
                     <th style={{ padding: '16px 24px' }}>Supplier</th>
@@ -246,22 +246,22 @@ export default function PurchaseReport({ onBack }) {
                     
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{o.po_number}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{o.po_number}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.supplier_name}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.items?.length || 0}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{formatCurrency(o.grand_total)}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.expected_date ? formatDate(o.expected_date) : '-'}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{o.items?.length || 0}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(o.grand_total)}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{o.expected_date ? formatDate(o.expected_date) : '-'}</td>
                         <td style={{ padding: '16px 24px' }}>
                           <span style={{ fontSize: 13, fontWeight: 600, color: daysColor, background: daysBg, padding: '4px 8px', borderRadius: 4 }}>
                             {o.daysPending} days
                           </span>
                         </td>
-                        <td style={{ padding: '16px 24px', fontSize: 13, color: '#64748B' }}>{o.status}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-muted)' }}>{o.status}</td>
                       </tr>
                     )
                   })}
                   {data.pendingOrders.length === 0 && (
-                    <tr><td colSpan="7" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No pending orders!</td></tr>
+                    <tr><td colSpan="7" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No pending orders!</td></tr>
                   )}
                 </tbody>
               </table>
@@ -269,13 +269,13 @@ export default function PurchaseReport({ onBack }) {
           </div>
 
           {/* ── SUPPLIER SUMMARY TABLE ── */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Supplier Purchase Summary</h3>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Supplier Purchase Summary</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   <tr>
                     <th style={{ padding: '16px 24px' }}>Supplier</th>
                     <th style={{ padding: '16px 24px' }}>Total POs</th>
@@ -288,11 +288,11 @@ export default function PurchaseReport({ onBack }) {
                 <tbody>
                   {data.supplierSummary.map((s, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{s.supplier}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{s.totalPOs}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{formatCurrency(s.totalValue)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatCurrency(s.avgValue)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(s.lastOrder)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{s.supplier}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{s.totalPOs}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(s.totalValue)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(s.avgValue)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatDate(s.lastOrder)}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: s.onTimePct >= 80 ? '#2563EB' : s.onTimePct < 50 ? '#DC2626' : '#D97706' }}>
                           {s.onTimePct}%
@@ -301,7 +301,7 @@ export default function PurchaseReport({ onBack }) {
                     </tr>
                   ))}
                   {data.supplierSummary.length === 0 && (
-                    <tr><td colSpan="6" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No supplier data!</td></tr>
+                    <tr><td colSpan="6" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No supplier data!</td></tr>
                   )}
                 </tbody>
               </table>

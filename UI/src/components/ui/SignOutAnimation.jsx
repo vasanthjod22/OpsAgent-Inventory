@@ -136,7 +136,7 @@ const GoodbyeMessage = ({ userName }) => {
       </div>
 
       {/* Greeting */}
-      <div style={{ fontSize: 14, color: '#64748B', marginBottom: 8, letterSpacing: '2px', textTransform: 'uppercase', animation: 'fadeInUp 0.4s ease 0.2s both' }}>
+      <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 8, letterSpacing: '2px', textTransform: 'uppercase', animation: 'fadeInUp 0.4s ease 0.2s both' }}>
         {fullGreeting}
       </div>
 
@@ -160,7 +160,7 @@ const GoodbyeMessage = ({ userName }) => {
         ].map(({ icon, label }) => (
           <div key={label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 24, marginBottom: 4 }}>{icon}</div>
-            <div style={{ fontSize: 11, color: '#475569' }}>{label}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</div>
           </div>
         ))}
       </div>

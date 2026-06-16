@@ -32,7 +32,7 @@ const FormattedAIResponse = ({ text }) => {
         if (line.startsWith('📊') || line.startsWith('💡') || line.startsWith('✅') || 
             line.startsWith('🔴') || line.startsWith('🟢') || line.startsWith('📈')) {
           return (
-            <div key={i} style={{ fontWeight: 600, marginTop: 12, marginBottom: 4, fontSize: 14, color: '#0F172A' }}>
+            <div key={i} style={{ fontWeight: 600, marginTop: 12, marginBottom: 4, fontSize: 14, color: 'var(--text-primary)' }}>
               {line}
             </div>
           )
@@ -40,7 +40,7 @@ const FormattedAIResponse = ({ text }) => {
         // Numbered items
         if (/^\d+\./.test(line.trim())) {
           return (
-            <div key={i} style={{ paddingLeft: 16, marginBottom: 4, color: '#334155' }}>
+            <div key={i} style={{ paddingLeft: 16, marginBottom: 4, color: 'var(--text-secondary)' }}>
               {line}
             </div>
           )
@@ -50,7 +50,7 @@ const FormattedAIResponse = ({ text }) => {
           return (
             <div key={i} style={{ paddingLeft: 16, marginBottom: 2, display: 'flex', gap: 8 }}>
               <span style={{ color: '#2563EB', fontWeight: 600 }}>•</span>
-              <span style={{ color: '#334155' }}>{line.replace(/^[-•]\s/, '')}</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{line.replace(/^[-•]\s/, '')}</span>
             </div>
           )
         }
@@ -60,7 +60,7 @@ const FormattedAIResponse = ({ text }) => {
         // Bold text **...**
         const boldFormatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         return (
-          <div key={i} dangerouslySetInnerHTML={{ __html: boldFormatted }} style={{ marginBottom: 2, color: '#334155' }} />
+          <div key={i} dangerouslySetInnerHTML={{ __html: boldFormatted }} style={{ marginBottom: 2, color: 'var(--text-secondary)' }} />
         )
       })}
     </div>
@@ -536,25 +536,25 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
   ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC', color: '#0F172A', overflowY: 'auto', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-main)', color: 'var(--text-primary)', overflowY: 'auto', fontFamily: "'Inter', sans-serif" }}>
       
       {/* ── HEADER ── */}
-      <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, background: 'rgba(248, 250, 252, 0.95)', zIndex: 50, backdropFilter: 'blur(8px)' }}>
+      <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: 'rgba(248, 250, 252, 0.95)', zIndex: 50, backdropFilter: 'blur(8px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={24} color="white" />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#0F172A' }}>OpsAgent AI</h1>
-            <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>Your AI Business Handler</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>OpsAgent AI</h1>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Your AI Business Handler</p>
           </div>
         </div>
 
         {/* Global Date Filter */}
-        <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E2E8F0' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 16, border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <span style={{ fontSize: 16 }}>📅</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Analysis Period:</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Analysis Period:</span>
           </div>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -577,20 +577,20 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
           </div>
 
           {dateRange.preset === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: 'white', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, width: 'fit-content' }}>
-              <span style={{ fontSize: 13, color: '#64748B' }}>Custom:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: 'var(--bg-card)', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, width: 'fit-content' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Custom:</span>
               <input 
                 type="date" 
                 value={dateRange.from} 
                 onChange={e => handleCustomDateChange(e.target.value, dateRange.to)}
-                style={{ background: 'transparent', border: 'none', color: '#0F172A', fontSize: 14, outline: 'none', colorScheme: 'light' }} 
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 14, outline: 'none', colorScheme: 'light' }} 
               />
-              <span style={{ color: '#64748B' }}>to</span>
+              <span style={{ color: 'var(--text-muted)' }}>to</span>
               <input 
                 type="date" 
                 value={dateRange.to} 
                 onChange={e => handleCustomDateChange(dateRange.from, e.target.value)}
-                style={{ background: 'transparent', border: 'none', color: '#0F172A', fontSize: 14, outline: 'none', colorScheme: 'light' }} 
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 14, outline: 'none', colorScheme: 'light' }} 
               />
             </div>
           )}
@@ -605,18 +605,18 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
         
         {/* ── SECTION 1: AI BUSINESS SNAPSHOT ── */}
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 16 }}>AI Business Snapshot</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>AI Business Snapshot</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
             {kpiCards.map((k, i) => {
               const Icon = k.icon
               return (
-                <div key={i} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ background: `${k.color}20`, width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon size={22} color={k.color} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, color: '#64748B', fontWeight: 500, marginBottom: 4 }}>{k.label}</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>{k.value}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 4 }}>{k.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{k.value}</div>
                   </div>
                 </div>
               )
@@ -624,19 +624,19 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
           </div>
 
           {/* Health Score */}
-          <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24, display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ width: 140, height: 140, borderRadius: '50%', border: `8px solid ${getScoreColor(snapshotData?.healthScore || 0)}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <span style={{ fontSize: 36, fontWeight: 800, color: '#1E293B', lineHeight: 1 }}>{snapshotData?.healthScore || 0}</span>
-              <span style={{ fontSize: 14, color: '#64748B', fontWeight: 600, marginTop: 4 }}>/ 100</span>
+              <span style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{snapshotData?.healthScore || 0}</span>
+              <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 600, marginTop: 4 }}>/ 100</span>
               <span style={{ position: 'absolute', bottom: -28, fontSize: 14, fontWeight: 700, color: getScoreColor(snapshotData?.healthScore || 0), textAlign: 'center', width: '100%' }}>
                 {getScoreLabel(snapshotData?.healthScore || 0)}
               </span>
             </div>
             <div style={{ flex: 1, minWidth: 250 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 16px 0', color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 16px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 🏥 Business Health Score
               </h3>
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
                 {snapshotData?.healthScore >= 70 
                   ? "Your business is performing well in this period. Maintain inventory levels and focus on timely payment collections to improve further."
                   : "Your business requires attention in this period. Focus on recovering pending payments and restocking low inventory to improve your score."}
@@ -647,7 +647,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
 
         {/* ── SECTION 2: AI QUICK ACTIONS ── */}
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 16 }}>AI Quick Actions</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>AI Quick Actions</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             {actionCards.map((a, i) => (
               <button 
@@ -655,7 +655,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
                 onClick={() => sendMessage(`Executing action: ${a.title}`, a.key)}
                 disabled={loading}
                 style={{
-                  background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20, textAlign: 'left',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, textAlign: 'left',
                   cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', height: '100%'
                 }}
                 onMouseEnter={e => { if(!loading) e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.background = '#F8FAFC' }}
@@ -663,9 +663,9 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <span style={{ fontSize: 28 }}>{a.icon}</span>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#0F172A' }}>{a.title}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{a.title}</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#64748B', marginBottom: 16, flex: 1 }}>{a.desc}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, flex: 1 }}>{a.desc}</div>
                 <div style={{ fontSize: 12, color: '#38BDF8', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
                   → Click to analyze
                 </div>
@@ -676,7 +676,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
 
         {/* ── SECTION 3: SUGGESTED QUESTIONS ── */}
         <div>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: '#64748B', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ask a specific question</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ask a specific question</h2>
           <div style={{ display: 'flex', overflowX: 'auto', gap: 10, paddingBottom: 12, '::-webkit-scrollbar': { height: 4 } }}>
             {suggestedQuestions.map((q, i) => (
               <button
@@ -684,8 +684,8 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
                 onClick={() => sendMessage(q)}
                 disabled={loading}
                 style={{
-                  background: 'white', border: '1px solid #E2E8F0', borderRadius: 99, padding: '8px 16px',
-                  fontSize: 13, color: '#475569', whiteSpace: 'nowrap', cursor: loading ? 'not-allowed' : 'pointer',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 99, padding: '8px 16px',
+                  fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap', cursor: loading ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s', flexShrink: 0
                 }}
                 onMouseEnter={e => { if(!loading) { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.color = '#2563EB'; e.currentTarget.style.background = '#EFF6FF' } }}
@@ -698,13 +698,13 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
         </div>
 
         {/* ── SECTION 4: AI CHAT INTERFACE ── */}
-        <div ref={chatRef} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 12, display: 'flex', flexDirection: 'column', height: 600 }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div ref={chatRef} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column', height: 600 }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Sparkles size={18} color="#38BDF8" /> Ask OpsAgent AI
               </h3>
-              <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>Responses based on your CRM data for selected period</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Responses based on your CRM data for selected period</p>
             </div>
           </div>
 
@@ -723,7 +723,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
             )}
 
             {messages.length === 0 && !apiKeyMissing && (
-              <div style={{ textAlign: 'center', color: '#64748B', marginTop: 100 }}>
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 100 }}>
                 <Sparkles size={32} opacity={0.3} style={{ marginBottom: 16 }} />
                 <p>No messages yet. Ask a question or select a quick action above.</p>
               </div>
@@ -748,7 +748,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
                     {msg.role === 'assistant' && msg.quickActionKey === 'monthlyReport' && (
                       <button 
                         onClick={() => exportMonthlyReportPDF(msg.content, msg.dateRange)}
-                        style={{ marginTop: 16, background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        style={{ marginTop: 16, background: 'var(--bg-main)', border: '1px solid #CBD5E1', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                       >
                         <FileText size={16} /> Export PDF
                       </button>
@@ -757,7 +757,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
                     {msg.role === 'assistant' && msg.quickActionKey === 'recommendPO' && (
                       <button 
                         onClick={() => handleCreatePOFromAI(msg.lowStockItems)}
-                        style={{ marginTop: 16, background: '#2563EB', border: 'none', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        style={{ marginTop: 16, background: '#2563EB', border: 'none', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                       >
                         <ShoppingCart size={16} /> Create Purchase Order →
                       </button>
@@ -765,10 +765,10 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
                   </div>
                   
                   {msg.role === 'assistant' && msg.dateRange && (
-                    <span style={{ fontSize: 11, color: '#64748B', marginTop: 6, marginLeft: 4 }}>Based on: {msg.dateRange}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, marginLeft: 4 }}>Based on: {msg.dateRange}</span>
                   )}
                   {msg.role === 'user' && (
-                    <span style={{ fontSize: 11, color: '#64748B', marginTop: 6, marginRight: 4 }}>{msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, marginRight: 4 }}>{msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                   )}
                 </div>
               </div>
@@ -776,7 +776,7 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
 
             {loading && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div style={{ background: 'white', padding: '16px', borderRadius: '16px 16px 16px 4px', display: 'flex', gap: 6 }}>
+                <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '16px 16px 16px 4px', display: 'flex', gap: 6 }}>
                   <div className="dot-bounce-1" style={{ width: 8, height: 8, background: '#94A3B8', borderRadius: '50%' }} />
                   <div className="dot-bounce-2" style={{ width: 8, height: 8, background: '#94A3B8', borderRadius: '50%' }} />
                   <div className="dot-bounce-3" style={{ width: 8, height: 8, background: '#94A3B8', borderRadius: '50%' }} />
@@ -785,15 +785,15 @@ Be specific with numbers from the data. Reference the date range naturally. Be c
             )}
           </div>
 
-          <div style={{ padding: 20, borderTop: '1px solid #E2E8F0', background: '#F8FAFC', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
-            <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 99, display: 'flex', alignItems: 'center', padding: '6px 6px 6px 20px' }}>
+          <div style={{ padding: 20, borderTop: '1px solid var(--border)', background: 'var(--bg-main)', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 99, display: 'flex', alignItems: 'center', padding: '6px 6px 6px 20px' }}>
               <input
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
                 disabled={loading || apiKeyMissing}
                 placeholder="Type your question..."
-                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#0F172A', fontSize: 14 }}
+                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 14 }}
               />
               <button
                 onClick={() => sendMessage(input)}

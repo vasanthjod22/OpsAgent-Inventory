@@ -66,8 +66,8 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
 
   const inp = {
     width: '100%', padding: '9px 12px', borderRadius: '8px',
-    border: '1px solid #E2E8F0', fontSize: '13px', color: '#0F172A',
-    outline: 'none', background: 'white', fontFamily: "'Inter', sans-serif",
+    border: '1px solid var(--border)', fontSize: '13px', color: 'var(--text-primary)',
+    outline: 'none', background: 'var(--bg-card)', fontFamily: "'Inter', sans-serif",
     boxSizing: 'border-box',
   }
 
@@ -75,35 +75,35 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
       
       <div>
-        <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', fontFamily: "'Inter', sans-serif" }}>System Settings</h2>
-        <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Manage API integrations, company info, and local data.</p>
+        <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>System Settings</h2>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px' }}>Manage API integrations, company info, and local data.</p>
       </div>
 
       {/* Company Details */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Building2 size={16} color="#7C3AED" />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Company Profile</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Pre-fills every quotation & bill automatically. Saved permanently.</p>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Company Profile</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Pre-fills every quotation & bill automatically. Saved permanently.</p>
           </div>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
           {/* Logo Upload */}
-          <div style={{ borderRadius: '10px', border: '1px solid #E2E8F0', padding: '16px', background: '#F8FAFC' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ borderRadius: '10px', border: '1px solid var(--border)', padding: '16px', background: 'var(--bg-main)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Image size={13} /> Company Logo <span style={{ fontWeight: 400, color: '#94A3B8', textTransform: 'none' }}>(Optional — appears on bills & PDFs)</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {logoPreview ? (
-                <div style={{ position: 'relative', width: 80, height: 60, borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', width: 80, height: 60, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   <img src={logoPreview} alt="Company Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                 </div>
               ) : (
-                <div style={{ width: 80, height: 60, borderRadius: 8, border: '2px dashed #CBD5E1', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
+                <div style={{ width: 80, height: 60, borderRadius: 8, border: '2px dashed #CBD5E1', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
                   <Image size={18} color="#94A3B8" />
                   <span style={{ fontSize: 9, color: '#94A3B8' }}>No Logo</span>
                 </div>
@@ -111,14 +111,14 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <button
                   onClick={() => logoInputRef.current?.click()}
-                  style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #7C3AED', background: 'white', color: '#7C3AED', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                  style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #7C3AED', background: 'var(--bg-card)', color: '#7C3AED', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <Image size={14} /> {logoPreview ? 'Change Logo' : 'Upload Logo'}
                 </button>
                 {logoPreview && (
                   <button
                     onClick={handleRemoveLogo}
-                    style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #FECACA', background: 'white', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                    style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #FECACA', background: 'var(--bg-card)', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                   >
                     <X size={14} /> Remove Logo
                   </button>
@@ -131,23 +131,23 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Company Name</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Company Name</label>
               <input style={inp} value={company.name || ''} onChange={e => setComp('name', e.target.value)} placeholder="Your Company Name" />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Address</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Address</label>
               <textarea style={{ ...inp, resize: 'vertical', minHeight: '56px' }} value={company.address || ''} onChange={e => setComp('address', e.target.value)} placeholder="123 Main St, City, State" rows={2} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Phone</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Phone</label>
               <input style={inp} value={company.phone || ''} onChange={e => setComp('phone', e.target.value)} placeholder="+91 98765 43210" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Email</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Email</label>
               <input style={inp} value={company.email || ''} onChange={e => setComp('email', e.target.value)} placeholder="info@yourcompany.com" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>GSTIN</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>GSTIN</label>
               <input
                 style={inp}
                 value={company.gstin || ''}
@@ -158,25 +158,25 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
               <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>Your GST Identification Number (15 characters) · Ex: 33AABCK2341C1ZP</div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>State</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>State</label>
               <input style={inp} value={company.state || ''} onChange={e => setComp('state', e.target.value)} placeholder="Tamil Nadu" />
             </div>
           </div>
 
           {/* Bank Details */}
           <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '12px' }}>Bank Details (optional)</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Bank Details (optional)</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Bank Name</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Bank Name</label>
                 <input style={inp} value={company.bankName || ''} onChange={e => setComp('bankName', e.target.value)} placeholder="State Bank of India" />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Account Number</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Account Number</label>
                 <input style={inp} value={company.accountNumber || ''} onChange={e => setComp('accountNumber', e.target.value)} placeholder="1234567890" />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>IFSC Code</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>IFSC Code</label>
                 <input style={{ ...inp }} value={company.ifsc || ''} onChange={e => setComp('ifsc', e.target.value.toUpperCase())} placeholder="SBIN0001234" />
               </div>
             </div>
@@ -194,21 +194,21 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
 
 
       {/* Theme Settings */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Moon size={16} color="#7C3AED" />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Appearance</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Customize the look and feel of your dashboard.</p>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Appearance</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Customize the look and feel of your dashboard.</p>
           </div>
         </div>
         <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #E2E8F0', borderRadius: '8px', background: '#F8FAFC' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-main)' }}>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Dark Mode</p>
-              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Switch to a dark theme for low-light environments.</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Dark Mode</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Switch to a dark theme for low-light environments.</p>
             </div>
             <div style={{ display: 'flex', background: '#E2E8F0', borderRadius: '8px', padding: '4px' }}>
               <button
@@ -229,19 +229,19 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
       </div>
 
       {/* AI Integrations */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <FileCode2 size={16} color="#16A34A" />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>AI Integrations</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Configure API keys for AI capabilities like Groq.</p>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>AI Integrations</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Configure API keys for AI capabilities like Groq.</p>
           </div>
         </div>
         <div style={{ padding: '24px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Groq API Key</label>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Groq API Key</label>
             <input 
               type="password"
               style={inp} 
@@ -266,21 +266,21 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
       </div>
 
       {/* Demo Data Section */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <FileCode2 size={16} color="#2563EB" />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Demo Data</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Populate the application with sample data to test the dashboard.</p>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Demo Data</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Populate the application with sample data to test the dashboard.</p>
           </div>
         </div>
         <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #E2E8F0', borderRadius: '8px', background: '#F8FAFC' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-main)' }}>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Load Demo Data</p>
-              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Loads sample inventory items and finance data into the Cloud Database.</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Load Demo Data</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Loads sample inventory items and finance data into the Cloud Database.</p>
             </div>
             <button 
               onClick={onLoadDemo}
@@ -294,14 +294,14 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
       </div>
 
       {/* Data Management */}
-      <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Database size={16} color="#DC2626" />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>Danger Zone</h3>
-            <p style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>Manage data securely.</p>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Danger Zone</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Manage data securely.</p>
           </div>
         </div>
         <div style={{ padding: '24px' }}>

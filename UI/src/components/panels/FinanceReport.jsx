@@ -17,8 +17,8 @@ const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false }
 const tooltipStyle = {
-  contentStyle: { background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, color: '#0F172A', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' },
-  itemStyle: { color: '#0F172A', fontWeight: 600 }
+  contentStyle: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' },
+  itemStyle: { color: 'var(--text-primary)', fontWeight: 600 }
 }
 
 const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`
@@ -117,11 +117,11 @@ export default function FinanceReport({ onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button 
             onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1px solid #E2E8F0', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#475569', transition: 'all 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', transition: 'all 0.2s' }}
           >
             <ArrowLeft size={16} /> Back to Reports
           </button>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Finance Report</h2>
+          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Finance Report</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -147,45 +147,45 @@ export default function FinanceReport({ onBack }) {
       </div>
 
       {loading || !data ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#64748B' }}>Loading...</div>
+        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           
           {/* ── KPI CARDS ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
                   <TrendingUp size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Revenue</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Revenue</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Total collected revenue</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalRevenue)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalRevenue)}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
                   <TrendingDown size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Total Expenses</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Expenses</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Total recorded expenses</div>
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0F172A' }}>{formatCurrency(data.kpis.totalExpenses)}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalExpenses)}</div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
                   <DollarSign size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Gross Profit</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Gross Profit</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Revenue minus expenses</div>
                 </div>
               </div>
@@ -194,13 +194,13 @@ export default function FinanceReport({ onBack }) {
               </div>
             </div>
 
-            <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
                   <Percent size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Net Profit Margin</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Net Profit Margin</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>Profit as % of revenue</div>
                 </div>
               </div>
@@ -211,8 +211,8 @@ export default function FinanceReport({ onBack }) {
           </div>
 
           {/* ── CHARTS ── */}
-          <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Revenue vs Expense Trend</h3>
+          <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Revenue vs Expense Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={data.trend}>
                 <defs>
@@ -237,8 +237,8 @@ export default function FinanceReport({ onBack }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-            <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Monthly Profit</h3>
+            <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Monthly Profit</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={data.monthlyProfit}>
                   <CartesianGrid {...gridStyle} />
@@ -254,8 +254,8 @@ export default function FinanceReport({ onBack }) {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ background: 'white', padding: 24, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Expense Distribution</h3>
+            <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
+              <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Expense Distribution</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -276,24 +276,24 @@ export default function FinanceReport({ onBack }) {
           </div>
 
           {/* ── REVENUE VS EXPENSE TABLE ── */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Monthly Revenue & Expense Summary</h3>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Monthly Revenue & Expense Summary</h3>
             </div>
             <div style={{ overflowX: 'auto', maxHeight: 350 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase', position: 'sticky', top: 0 }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', position: 'sticky', top: 0 }}>
                   <tr>
-                    <th style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0' }}>Month</th>
-                    <th style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0' }}>Revenue</th>
-                    <th style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0' }}>Expenses</th>
-                    <th style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0' }}>Net Profit</th>
+                    <th style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>Month</th>
+                    <th style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>Revenue</th>
+                    <th style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>Expenses</th>
+                    <th style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>Net Profit</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...data.trend].reverse().map((t, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{t.month}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{t.month}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 500, color: '#16A34A' }}>{formatCurrency(t.revenue)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 500, color: '#DC2626' }}>{formatCurrency(t.expenses)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: t.profit >= 0 ? '#16A34A' : '#DC2626' }}>
@@ -302,7 +302,7 @@ export default function FinanceReport({ onBack }) {
                     </tr>
                   ))}
                   {data.trend.length === 0 && (
-                    <tr><td colSpan="4" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No data available for this period.</td></tr>
+                    <tr><td colSpan="4" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No data available for this period.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -310,13 +310,13 @@ export default function FinanceReport({ onBack }) {
           </div>
 
           {/* ── OUTSTANDING PAYMENTS TABLE ── */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Outstanding Customer Payments</h3>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Outstanding Customer Payments</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#F8FAFC', fontSize: 12, color: '#64748B', textTransform: 'uppercase' }}>
+                <thead style={{ background: 'var(--bg-main)', fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   <tr>
                     <th style={{ padding: '16px 24px' }}>Customer</th>
                     <th style={{ padding: '16px 24px' }}>Phone</th>
@@ -334,17 +334,17 @@ export default function FinanceReport({ onBack }) {
                     
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid #F1F5F9', background: bg }}>
-                        <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{o.customer}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{o.phone || '-'}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{o.customer}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{o.phone || '-'}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.bills}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#DC2626' }}>{formatCurrency(o.totalDue)}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: '#64748B' }}>{formatDate(o.oldestBill)}</td>
+                        <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatDate(o.oldestBill)}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: o.daysOverdue > 30 ? '#DC2626' : '#D97706' }}>{o.daysOverdue} days</td>
                       </tr>
                     )
                   })}
                   {data.outstanding.length === 0 && (
-                    <tr><td colSpan="6" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No outstanding payments!</td></tr>
+                    <tr><td colSpan="6" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No outstanding payments!</td></tr>
                   )}
                 </tbody>
               </table>
@@ -357,25 +357,25 @@ export default function FinanceReport({ onBack }) {
       {/* ── EXPENSE MODAL ── */}
       {showExpenseModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: 12, width: 400, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: 400, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Record Expense</h3>
-              <button onClick={() => setShowExpenseModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={20}/></button>
+              <button onClick={() => setShowExpenseModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
             </div>
             <form onSubmit={handleExpenseSave} style={{ padding: 20 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Expense Title *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Expense Title *</label>
                   <input required value={expenseForm.title} onChange={e => setExpenseForm({...expenseForm, title: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} placeholder="e.g. Office Supplies" />
                 </div>
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Amount (₹) *</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Amount (₹) *</label>
                     <input required type="number" min="0" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} placeholder="0.00" />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Category</label>
-                    <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'white' }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Category</label>
+                    <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'var(--bg-card)' }}>
                       <option>General</option>
                       <option>Fuel</option>
                       <option>Rent</option>
@@ -388,8 +388,8 @@ export default function FinanceReport({ onBack }) {
                 </div>
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Payment Method</label>
-                    <select value={expenseForm.payment_method} onChange={e => setExpenseForm({...expenseForm, payment_method: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'white' }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Payment Method</label>
+                    <select value={expenseForm.payment_method} onChange={e => setExpenseForm({...expenseForm, payment_method: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14, background: 'var(--bg-card)' }}>
                       <option>Cash</option>
                       <option>UPI</option>
                       <option>Bank Transfer</option>
@@ -397,17 +397,17 @@ export default function FinanceReport({ onBack }) {
                     </select>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Date *</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Date *</label>
                     <input required type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} style={{ width: '100%', height: 38, borderRadius: 6, border: '1px solid #CBD5E1', padding: '0 12px', fontSize: 14 }} />
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Notes</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Notes</label>
                   <textarea value={expenseForm.notes} onChange={e => setExpenseForm({...expenseForm, notes: e.target.value})} style={{ width: '100%', height: 60, borderRadius: 6, border: '1px solid #CBD5E1', padding: '8px 12px', fontSize: 14, fontFamily: 'inherit', resize: 'none' }} placeholder="Optional notes..." />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
                 <button type="submit" style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#2563EB', color: 'white', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Save Expense</button>
               </div>
             </form>

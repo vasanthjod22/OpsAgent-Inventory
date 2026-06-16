@@ -476,13 +476,13 @@ export default function InventoryPanel({ showToast }) {
       {/* GRN UPLOAD MODAL */}
       {grnExpanded && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: 'white', borderRadius: 12, width: 800, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: 800, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 32, height: 32, background: '#EFF6FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Upload size={16} color="#2563EB" /></div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Upload Goods Receipt Note (GRN)</h3>
               </div>
-              <button onClick={() => setGrnExpanded(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={20}/></button>
+              <button onClick={() => setGrnExpanded(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
             </div>
             <div style={{ padding: 24 }}>
             {!grnFile && (
@@ -494,19 +494,19 @@ export default function InventoryPanel({ showToast }) {
                 style={{ border: `2px dashed ${grnDragging ? '#2563EB' : '#CBD5E1'}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center', cursor: 'pointer', background: grnDragging ? '#EFF6FF' : '#FAFBFC' }}
               >
                 <CloudUpload size={40} color={grnDragging ? '#2563EB' : '#94A3B8'} style={{ margin: '0 auto 12px auto' }} />
-                <div style={{ fontWeight: 600, color: '#0F172A' }}>Drop GRN photo or PDF here</div>
-                <div style={{ fontSize: 13, color: '#0F172A', marginTop: 4 }}>Accepts jpg, png, pdf</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Drop GRN photo or PDF here</div>
+                <div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 4 }}>Accepts jpg, png, pdf</div>
                 <input ref={grnFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => processGrnFile(e.target.files[0])} style={{ display: 'none' }} />
               </div>
             )}
 
             {grnFile && !grnData && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '20px', border: '1px solid #E2E8F0', borderRadius: 12, background: '#F8FAFC' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '20px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-main)' }}>
                 <FileImage size={40} color="#2563EB" />
                 <div style={{ fontWeight: 600 }}>{grnFile.name}</div>
                 {grnError && <div style={{ color: '#DC2626', fontSize: 13 }}>{grnError}</div>}
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setGrnFile(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => setGrnFile(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer' }}>Cancel</button>
                   <button onClick={extractGrnData} disabled={grnLoading} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#2563EB', color: 'white', fontWeight: 600, cursor: grnLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                     {grnLoading ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
                     {grnLoading ? 'Extracting...' : 'Extract Data with AI'}
@@ -527,14 +527,14 @@ export default function InventoryPanel({ showToast }) {
                           type="text"
                           value={grnData[f] || ''}
                           onChange={e => setGrnData(p => ({ ...p, [f]: e.target.value }))}
-                          style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #A7F3D0', background: 'white', fontSize: 13, marginTop: 4, outlineColor: '#34D399' }}
+                          style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #A7F3D0', background: 'var(--bg-card)', fontSize: 13, marginTop: 4, outlineColor: '#34D399' }}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div style={{ borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', overflowX: 'auto' }}>
+                <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', overflowX: 'auto' }}>
                   <table className="data-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '900px' }}>
                     <thead>
                       <tr style={{ background: '#0F172A', color: 'white' }}>
@@ -557,17 +557,17 @@ export default function InventoryPanel({ showToast }) {
                         }
                         
                         return (
-                          <tr key={i} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                            <td style={{ padding: 8 }}><input type="text" value={it.hsn || ''} onChange={e => handleChange('hsn', e.target.value)} style={{ width: '80px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
-                            <td style={{ padding: 8 }}><input type="text" value={it.description || ''} onChange={e => handleChange('description', e.target.value)} style={{ width: '100%', minWidth: '150px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
-                            <td style={{ padding: 8 }}><input type="number" value={it.quantity || ''} onChange={e => handleChange('quantity', e.target.value)} style={{ width: '60px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: 8 }}><input type="text" value={it.hsn || ''} onChange={e => handleChange('hsn', e.target.value)} style={{ width: '80px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="text" value={it.description || ''} onChange={e => handleChange('description', e.target.value)} style={{ width: '100%', minWidth: '150px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.quantity || ''} onChange={e => handleChange('quantity', e.target.value)} style={{ width: '60px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
                             <td style={{ padding: 8 }}>
-                              <input type="number" value={it.unit_price || ''} onChange={e => handleChange('unit_price', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} />
+                              <input type="number" value={it.unit_price || ''} onChange={e => handleChange('unit_price', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} />
                             </td>
-                            <td style={{ padding: 8 }}><input type="text" list="grn-unit-list" value={it.unit || ''} onChange={e => handleChange('unit', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
-                            <td style={{ padding: 8 }}><input type="text" list="grn-cat-list" value={it.category || ''} onChange={e => handleChange('category', e.target.value)} style={{ width: '100px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
-                            <td style={{ padding: 8 }}><input type="number" value={it.min || ''} onChange={e => handleChange('min', e.target.value)} style={{ width: '50px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
-                            <td style={{ padding: 8 }}><input type="number" value={it.max || ''} onChange={e => handleChange('max', e.target.value)} style={{ width: '50px', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="text" list="grn-unit-list" value={it.unit || ''} onChange={e => handleChange('unit', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="text" list="grn-cat-list" value={it.category || ''} onChange={e => handleChange('category', e.target.value)} style={{ width: '100px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.min || ''} onChange={e => handleChange('min', e.target.value)} style={{ width: '50px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
+                            <td style={{ padding: 8 }}><input type="number" value={it.max || ''} onChange={e => handleChange('max', e.target.value)} style={{ width: '50px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
                           </tr>
                         )
                       })}
@@ -586,7 +586,7 @@ export default function InventoryPanel({ showToast }) {
                   </datalist>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
-                  <button onClick={() => { setGrnData(null); setGrnFile(null) }} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Discard</button>
+                  <button onClick={() => { setGrnData(null); setGrnFile(null) }} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', fontWeight: 600, cursor: 'pointer' }}>Discard</button>
                   <button onClick={handleApproveGrn} disabled={grnApproving} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#16A34A', color: 'white', fontWeight: 600, cursor: grnApproving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                     {grnApproving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                     Approve & Update Stock
@@ -605,22 +605,22 @@ export default function InventoryPanel({ showToast }) {
 
 
       {/* SECTION 3: INVENTORY TABLE */}
-      <div ref={tableRef} style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div ref={tableRef} style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         
         {/* Header Row */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: 0 }}>Inventory</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Inventory</h2>
             <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '4px 10px', borderRadius: 99, fontSize: 13, fontWeight: 700 }}>{activePagination.totalItems} items</span>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setGrnExpanded(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#EFF6FF', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Upload GRN
             </button>
-            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setShowImport(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'white', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setShowImport(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'var(--bg-card)', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Download size={16} /> Import CSV
             </button>
-            <button onClick={() => exportCSV(items)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'white', color: '#16A34A', border: '1.5px solid #16A34A', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => exportCSV(items)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'var(--bg-card)', color: '#16A34A', border: '1.5px solid #16A34A', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Export CSV
             </button>
             <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', total_qty: '', qty: '', unit: prev?.unit || '', min: '', max: '', cost_price: '', rate: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
@@ -630,7 +630,7 @@ export default function InventoryPanel({ showToast }) {
         </div>
 
         {/* Search & Filter Row */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', background: '#FAFBFC' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: '#FAFBFC' }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <InventoryAutocomplete
               value={search}
@@ -709,15 +709,15 @@ export default function InventoryPanel({ showToast }) {
 
         {loading && items.length === 0 ? (
             <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 50, background: '#F1F5F9', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />)}
+              {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 50, background: 'var(--bg-main)', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />)}
             </div>
           ) : items.length === 0 ? (
-            <div style={{ padding: '80px 0', textAlign: 'center', color: '#1E293B' }}>
+            <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text-primary)' }}>
               {search ? (
                 <>
                   <SearchX size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Item not found</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8, maxWidth: 300, margin: '8px auto' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Item not found</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, maxWidth: 300, margin: '8px auto' }}>
                     No items match '{search}'. Try checking the spelling or search by HSN or category.
                   </div>
                   <button onClick={() => setSearch('')} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Search</button>
@@ -725,43 +725,43 @@ export default function InventoryPanel({ showToast }) {
               ) : status === 'low' ? (
                 <>
                   <CheckCircle size={56} color="#10B981" style={{ margin: '0 auto 16px auto' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Low Stock Items</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>All items are above minimum levels.</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>No Low Stock Items</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>All items are above minimum levels.</div>
                   <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
                 </>
               ) : status === 'ok' ? (
                 <>
                   <Package size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Items with OK Status</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>Check your min/max levels.</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>No Items with OK Status</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>Check your min/max levels.</div>
                   <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
                 </>
               ) : status === 'overstock' ? (
                 <>
                   <CheckCircle size={56} color="#10B981" style={{ margin: '0 auto 16px auto' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Overstock Items</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>All items are within limits.</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>No Overstock Items</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>All items are within limits.</div>
                   <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
                 </>
               ) : status === 'out' ? (
                 <>
                   <CheckCircle size={56} color="#10B981" style={{ margin: '0 auto 16px auto' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Out of Stock Items</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>All items have stock available.</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>No Out of Stock Items</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>All items have stock available.</div>
                   <button onClick={() => {setStatus('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
                 </>
               ) : category !== 'all' ? (
                 <>
                   <div style={{ fontSize: 56, margin: '0 auto 16px auto' }}>📁</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No items found in '{category}'</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>Try selecting a different category.</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>No items found in '{category}'</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>Try selecting a different category.</div>
                   <button onClick={() => {setCategory('all'); setPagination(p => ({...p, currentPage: 1}))}} style={{ marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}>Clear Filter</button>
                 </>
               ) : (
                 <>
                   <Package size={56} color="#94A3B8" style={{ margin: '0 auto 16px auto' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>No Items Found</div>
-                  <div style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>Try adjusting your filters or search.</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>No Items Found</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>Try adjusting your filters or search.</div>
                 </>
               )}
             </div>

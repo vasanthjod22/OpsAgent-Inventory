@@ -134,7 +134,7 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginRight: '10px', flexShrink: 0,
         }}>
-          <div style={{ width: '10px', height: '10px', background: 'white', borderRadius: '3px' }} />
+          <div style={{ width: '10px', height: '10px', background: 'var(--bg-card)', borderRadius: '3px' }} />
         </div>
         <div>
           <div style={{ fontWeight: 700, color: 'white', fontSize: '15px', lineHeight: 1.2, letterSpacing: '-0.3px' }}>OpsAgent</div>

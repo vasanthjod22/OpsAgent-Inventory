@@ -374,7 +374,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
       </div>
 
       {/* TABS */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #E2E8F0', paddingBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
         <button
           onClick={() => setActiveTab('history')}
           className={`btn-press ${activeTab === 'history' ? 'active-tab' : ''}`}
@@ -421,13 +421,13 @@ export default function PurchaseOrdersPanel({ refreshData }) {
                 placeholder="Search POs..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                style={{ padding: '10px 16px 10px 36px', borderRadius: '8px', border: '1px solid #E2E8F0', width: '250px' }}
+                style={{ padding: '10px 16px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', width: '250px' }}
               />
             </div>
             <select 
               value={statusFilter} 
               onChange={e => setStatusFilter(e.target.value)}
-              style={{ padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }}
+              style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}
             >
               <option value="All">All Status</option>
               {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s}</option>)}
@@ -437,26 +437,26 @@ export default function PurchaseOrdersPanel({ refreshData }) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px' }}>PO No.</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px' }}>Supplier</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px' }}>Expected</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px' }}>Items</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px' }}>Amount</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px' }}>Status</th>
-                  <th style={{ padding: '12px 16px', color: '#64748B', fontWeight: 600, fontSize: '13px', textAlign: 'right' }}>Actions</th>
+                <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>PO No.</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>Supplier</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>Expected</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>Items</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>Amount</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>Status</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPos.map((po) => (
-                  <tr key={po.id} style={{ borderBottom: '1px solid #E2E8F0' }} className="hover-bg">
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0F172A', fontSize: '13px' }}>{po.poNumber}</td>
-                    <td style={{ padding: '14px 16px', color: '#334155', fontSize: '13px' }}>{po.supplierName}</td>
-                    <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '13px' }}>
+                  <tr key={po.id} style={{ borderBottom: '1px solid var(--border)' }} className="hover-bg">
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>{po.poNumber}</td>
+                    <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '13px' }}>{po.supplierName}</td>
+                    <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
                       {po.expectedDate ? formatDate(po.expectedDate) : '-'}
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '13px' }}>{po.items.length}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0F172A', fontSize: '13px' }}>
+                    <td style={{ padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>{po.items.length}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>
                       ₹{Number(po.grandTotal).toLocaleString('en-IN')}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
@@ -476,7 +476,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
                         <select 
                           value={po.status}
                           onChange={(e) => handleChangeStatus(po.id, e.target.value)}
-                          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '12px' }}
+                          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}
                         >
                           {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
@@ -514,29 +514,29 @@ export default function PurchaseOrdersPanel({ refreshData }) {
           
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid #F1F5F9' }}>
             <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>Create Purchase Order</h2>
-              <p style={{ color: '#64748B', fontSize: '13px' }}>Issue a new PO to a supplier.</p>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Create Purchase Order</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Issue a new PO to a supplier.</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '13px', color: '#64748B', marginBottom: '4px' }}>PO Number</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>PO Number</div>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#2563EB' }}>{poNumber}</div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
             {/* Supplier Info */}
-            <div style={{ background: '#F8FAFC', padding: '20px', borderRadius: '12px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '16px' }}>Supplier Details</h3>
+            <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: '12px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '16px' }}>Supplier Details</h3>
               <div style={{ position: 'relative', marginBottom: '12px' }}>
                 <input 
                   type="text" placeholder="Supplier Name *" 
                   value={supplierName} 
                   onChange={e => { setSupplierName(e.target.value); setShowSupplierSuggest(true); }}
                   onFocus={() => setShowSupplierSuggest(true)}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)' }}
                 />
                 {showSupplierSuggest && filteredSuppliers.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', zIndex: 10, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', zIndex: 10, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
                     {filteredSuppliers.map((s, i) => (
                       <div 
                         key={i} 
@@ -548,7 +548,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
                         className="hover-bg"
                       >
                         <div style={{ fontWeight: 500, fontSize: '13px' }}>{s.name}</div>
-                        <div style={{ fontSize: '11px', color: '#64748B' }}>{s.phone}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{s.phone}</div>
                       </div>
                     ))}
                   </div>
@@ -556,30 +556,30 @@ export default function PurchaseOrdersPanel({ refreshData }) {
               </div>
               <input 
                 type="text" placeholder="Phone (Optional)" value={supplierPhone} onChange={e => setSupplierPhone(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', marginBottom: '12px' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '12px' }}
               />
               <input 
                 type="email" placeholder="Email (Optional)" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', marginBottom: '12px' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '12px' }}
               />
               <textarea 
                 placeholder="Supplier Address (Optional)" value={supplierAddress} onChange={e => setSupplierAddress(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', minHeight: '60px' }}
               />
             </div>
 
             {/* PO Info */}
-            <div style={{ background: '#F8FAFC', padding: '20px', borderRadius: '12px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '16px' }}>PO Details</h3>
-              <label style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '6px' }}>Expected Delivery Date</label>
+            <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: '12px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '16px' }}>PO Details</h3>
+              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Expected Delivery Date</label>
               <input 
                 type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', marginBottom: '16px' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}
               />
-              <label style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '6px' }}>Payment Terms</label>
+              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Payment Terms</label>
               <select 
                 value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)' }}
               >
                 <option value="Advance">Advance</option>
                 <option value="On delivery">On delivery</option>
@@ -593,24 +593,24 @@ export default function PurchaseOrdersPanel({ refreshData }) {
 
           {/* Line Items */}
           <div style={{ marginBottom: '32px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#0F172A', marginBottom: '16px' }}>Line Items</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>Line Items</h3>
             
-            <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ background: '#F1F5F9' }}>
+                <thead style={{ background: 'var(--bg-main)' }}>
                   <tr>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', color: '#475569', width: '40%' }}>Description</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', color: '#475569', width: '15%' }}>HSN</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: '#475569', width: '10%' }}>Qty</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', color: '#475569', width: '10%' }}>Unit</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: '#475569', width: '15%' }}>Rate</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: '#475569', width: '10%' }}>Amount</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', color: 'var(--text-muted)', width: '40%' }}>Description</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', color: 'var(--text-muted)', width: '15%' }}>HSN</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: 'var(--text-muted)', width: '10%' }}>Qty</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', color: 'var(--text-muted)', width: '10%' }}>Unit</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: 'var(--text-muted)', width: '15%' }}>Rate</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: 'var(--text-muted)', width: '10%' }}>Amount</th>
                     <th style={{ padding: '12px', width: '50px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, index) => (
-                    <tr key={index} style={{ borderTop: '1px solid #E2E8F0' }}>
+                    <tr key={index} style={{ borderTop: '1px solid var(--border)' }}>
                       <td style={{ padding: '8px' }}>
                         <input 
                           type="text" value={item.description}
@@ -625,38 +625,38 @@ export default function PurchaseOrdersPanel({ refreshData }) {
                               // Rate usually fetched from last purchase or item cost, using 0 for now as inventory has qty not price generally unless price added
                             }
                           }}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #E2E8F0', borderRadius: '6px' }}
+                          style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px' }}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input 
                           type="text" value={item.hsn}
                           onChange={e => handleItemChange(index, 'hsn', e.target.value)}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #E2E8F0', borderRadius: '6px' }}
+                          style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px' }}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input 
                           type="number" min="1" value={item.qty}
                           onChange={e => handleItemChange(index, 'qty', e.target.value)}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #E2E8F0', borderRadius: '6px', textAlign: 'right' }}
+                          style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px', textAlign: 'right' }}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input 
                           type="text" value={item.unit}
                           onChange={e => handleItemChange(index, 'unit', e.target.value)}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #E2E8F0', borderRadius: '6px' }}
+                          style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px' }}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input 
                           type="number" min="0" value={item.rate}
                           onChange={e => handleItemChange(index, 'rate', e.target.value)}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #E2E8F0', borderRadius: '6px', textAlign: 'right' }}
+                          style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px', textAlign: 'right' }}
                         />
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
                         {Number(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td style={{ padding: '8px', textAlign: 'center' }}>
@@ -670,7 +670,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
                   ))}
                 </tbody>
               </table>
-              <div style={{ padding: '12px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+              <div style={{ padding: '12px', background: 'var(--bg-main)', borderTop: '1px solid var(--border)' }}>
                 <button 
                   onClick={addItem}
                   className="btn-press"
@@ -689,29 +689,29 @@ export default function PurchaseOrdersPanel({ refreshData }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '40px' }}>
             {/* Notes */}
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>Terms & Notes</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Terms & Notes</label>
               <textarea 
                 value={notes} onChange={e => setNotes(e.target.value)}
                 placeholder="Additional terms and conditions..."
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '100px', fontSize: '13px' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', minHeight: '100px', fontSize: '13px' }}
               />
             </div>
 
             {/* Totals */}
-            <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '14px', color: '#475569' }}>
+            <div style={{ background: 'var(--bg-main)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '14px', color: 'var(--text-muted)' }}>
                 <span>Subtotal</span>
                 <span style={{ fontWeight: 600 }}>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#475569', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: 'var(--text-muted)', alignItems: 'center' }}>
                 <span>Tax Amount</span>
                 <input 
                   type="number" value={taxAmount} onChange={e => setTaxAmount(e.target.value)}
-                  style={{ width: '100px', padding: '6px 10px', textAlign: 'right', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                  style={{ width: '100px', padding: '6px 10px', textAlign: 'right', borderRadius: '6px', border: '1px solid var(--border)' }}
                 />
               </div>
               <div style={{ height: '1px', background: '#E2E8F0', marginBottom: '16px' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 <span>Grand Total</span>
                 <span>₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
@@ -722,7 +722,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
             <button 
               onClick={() => handleSave('Draft')}
               className="btn-press"
-              style={{ padding: '12px 24px', background: 'white', color: '#334155', border: '1px solid #E2E8F0', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+              style={{ padding: '12px 24px', background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
             >
               Save as Draft
             </button>

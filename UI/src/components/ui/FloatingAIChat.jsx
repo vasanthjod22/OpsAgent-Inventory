@@ -147,10 +147,10 @@ export default function FloatingAIChat({ currentPanel }) {
     height: isMobile ? '60vh' : 520,
     bottom: isMobile ? 80 : 90,
     right: isMobile ? 16 : 24,
-    background: 'white',
+    background: 'var(--bg-card)',
     borderRadius: 20,
     boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--border)',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -536,12 +536,12 @@ RESPONSE RULES:
           </div>
 
           {/* Messages Area */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, background: '#F8FAFC' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-main)' }}>
             {messages.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '20px 16px' }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>🤖</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>Hi! I'm OpsAgent AI</div>
-                <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Hi! I'm OpsAgent AI</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                   I know your inventory, bills, customers and business data. Ask me anything!
                 </div>
               </div>
@@ -570,7 +570,7 @@ RESPONSE RULES:
             {isTyping && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #2563EB, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🤖</div>
-                <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '12px 16px', borderRadius: '16px 16px 16px 4px', display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '12px 16px', borderRadius: '16px 16px 16px 4px', display: 'flex', gap: 4, alignItems: 'center' }}>
                   {[0,1,2].map(i => <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#94A3B8', animation: `typingDot 1.2s ease ${i * 0.2}s infinite` }}/>)}
                 </div>
               </div>
@@ -579,7 +579,7 @@ RESPONSE RULES:
           </div>
 
           {/* Quick Chips */}
-          <div style={{ padding: '8px 12px', borderTop: '1px solid #F1F5F9', background: 'white' }}>
+          <div style={{ padding: '8px 12px', borderTop: '1px solid #F1F5F9', background: 'var(--bg-card)' }}>
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
               {quickQuestions.map((q, i) => (
                 <button
@@ -600,14 +600,14 @@ RESPONSE RULES:
           </div>
 
           {/* Input Bar */}
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #E2E8F0', background: 'white', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-card)', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             <input
               ref={inputRef} type="text" value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
               placeholder="Ask about stock, bills, customers..."
               disabled={isTyping}
-              style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 20, border: '1px solid #E2E8F0', fontSize: 13, color: '#0F172A', background: '#F8FAFC', outline: 'none', transition: 'border 0.2s ease' }}
+              style={{ flex: 1, height: 40, padding: '0 14px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-primary)', background: 'var(--bg-main)', outline: 'none', transition: 'border 0.2s ease' }}
               onFocus={e => e.target.style.borderColor = '#2563EB'}
               onBlur={e => e.target.style.borderColor = '#E2E8F0'}
             />

@@ -292,19 +292,19 @@ const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
     { id: 'triplicate', icon: '📁', label: 'Triplicate', sub: 'For Owner / Supplier (your records)', color: '#7C3AED' },
   ]
 
-  const inp = { width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 7, fontSize: 12.5, outline: 'none', boxSizing: 'border-box', background: 'white' }
+  const inp = { width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-card)' }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 24 }}>
-      <div style={{ background: 'white', borderRadius: 18, width: 500, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 56px rgba(0,0,0,0.25)' }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 18, width: 500, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 28px 56px rgba(0,0,0,0.25)' }}>
 
         {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#0F172A' }}>🖨️ Select Print Copy</div>
-            <div style={{ fontSize: 12, color: '#1E293B', marginTop: 3 }}>Choose which copy to download</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>🖨️ Select Print Copy</div>
+            <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 3 }}>Choose which copy to download</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}><X size={18} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}><X size={18} /></button>
         </div>
 
         {/* Scrollable body */}
@@ -314,11 +314,11 @@ const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <span style={{ fontSize: 26 }}>{opt.icon}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0F172A' }}>{opt.label}</div>
-                  <div style={{ fontSize: 12, color: '#1E293B', marginTop: 1 }}>{opt.sub}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{opt.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 1 }}>{opt.sub}</div>
                 </div>
                 <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2.5px solid ${copy === opt.id ? opt.color : '#CBD5E1'}`, background: copy === opt.id ? opt.color : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {copy === opt.id && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'white' }} />}
+                  {copy === opt.id && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-card)' }} />}
                 </div>
               </div>
             </div>
@@ -327,7 +327,7 @@ const CopySelectorModal = ({ qt, company, isFinalized, onClose }) => {
 
         {/* Footer */}
         <div style={{ padding: '14px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ height: 42, padding: '0 22px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleDownload} style={{ height: 42, padding: '0 26px', borderRadius: 9, border: 'none', background: '#2563EB', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Download size={16} /> Download PDF
           </button>
@@ -348,7 +348,7 @@ const ValidityDatePicker = ({ value, onChange }) => {
     <div>
       <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 6 }}>
         Valid Until
-        <span style={{ color: '#334155', fontWeight: 400, marginLeft: 4, fontSize: 11 }}>(Optional)</span>
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 400, marginLeft: 4, fontSize: 11 }}>(Optional)</span>
       </label>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input
@@ -359,13 +359,13 @@ const ValidityDatePicker = ({ value, onChange }) => {
           style={{
             height: 40, padding: '0 12px', borderRadius: 8,
             border: `1px solid ${isExpired ? '#FCA5A5' : '#E2E8F0'}`,
-            fontSize: 13, color: '#0F172A', flex: 1, outline: 'none'
+            fontSize: 13, color: 'var(--text-primary)', flex: 1, outline: 'none'
           }}
         />
         {value && (
           <button
             onClick={() => onChange(null)}
-            style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#334155', cursor: 'pointer', fontSize: 16 }}
+            style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16 }}
             title="Clear date"
           >×</button>
         )}
@@ -375,13 +375,13 @@ const ValidityDatePicker = ({ value, onChange }) => {
           {isExpired ? '⚠️ This date has passed' : daysLeft === 0 ? '⚠️ Expires today' : daysLeft <= 3 ? `⏰ Expires in ${daysLeft} days` : `✓ Valid for ${daysLeft} days`}
         </p>
       )}
-      {!value && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#334155' }}>Leave empty for open validity</p>}
+      {!value && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>Leave empty for open validity</p>}
     </div>
   )
 }
 
 const TermsToggle = ({ include, onToggle, terms, onTermsChange }) => (
-  <div style={{ border: '1px solid #E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+  <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
     <div
       onClick={onToggle}
       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: include ? '#F0FDF4' : '#F8FAFC', transition: 'background 0.2s ease' }}
@@ -391,7 +391,7 @@ const TermsToggle = ({ include, onToggle, terms, onTermsChange }) => (
       </div>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Include Terms & Conditions</div>
-        <div style={{ fontSize: 11, color: '#334155', marginTop: 2 }}>{include ? 'Terms will appear in PDF' : 'Click to add terms to quotation'}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{include ? 'Terms will appear in PDF' : 'Click to add terms to quotation'}</div>
       </div>
     </div>
     {include && (
@@ -400,9 +400,9 @@ const TermsToggle = ({ include, onToggle, terms, onTermsChange }) => (
           value={terms}
           onChange={e => onTermsChange(e.target.value)}
           rows={5}
-          style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', lineHeight: 1.6, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: '#374151', lineHeight: 1.6, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
         />
-        <p style={{ margin: '6px 0 0', fontSize: 11, color: '#334155' }}>These terms will be printed at the bottom of your quotation PDF</p>
+        <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>These terms will be printed at the bottom of your quotation PDF</p>
       </div>
     )}
   </div>
@@ -577,57 +577,57 @@ export default function QuotationPanel({ onNavigate }) {
   const renderCreate = () => (
     <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 60 }}>
       {/* CUSTOMER DETAILS */}
-      <div style={{ background: 'white', borderRadius: 12, padding: 24, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 16 }}>CUSTOMER DETAILS</h3>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 16 }}>CUSTOMER DETAILS</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Name *</label>
-            <input value={form.customerName} onChange={e=>setForm({...form, customerName:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="E.g. Rajan Builders" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Customer Name *</label>
+            <input value={form.customerName} onChange={e=>setForm({...form, customerName:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none' }} placeholder="E.g. Rajan Builders" />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Phone</label>
-            <input value={form.customerPhone} onChange={e=>setForm({...form, customerPhone:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="+91..." />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Customer Phone</label>
+            <input value={form.customerPhone} onChange={e=>setForm({...form, customerPhone:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none' }} placeholder="+91..." />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Email</label>
-            <input value={form.customerEmail} onChange={e=>setForm({...form, customerEmail:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="customer@email.com" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Customer Email</label>
+            <input value={form.customerEmail} onChange={e=>setForm({...form, customerEmail:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none' }} placeholder="customer@email.com" />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Customer Address</label>
-            <input value={form.customerAddress} onChange={e=>setForm({...form, customerAddress:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="Billing address" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Customer Address</label>
+            <input value={form.customerAddress} onChange={e=>setForm({...form, customerAddress:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none' }} placeholder="Billing address" />
           </div>
         </div>
       </div>
 
       {/* QUOTATION DETAILS */}
-      <div style={{ background: 'white', borderRadius: 12, padding: 24, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 16 }}>QUOTATION DETAILS</h3>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 16 }}>QUOTATION DETAILS</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>QT Number</label>
-            <input value={form.id ? 'Will remain same' : 'Auto Generated'} disabled style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, background: '#F8FAFC', color: '#38BDF8', fontWeight: 600 }} />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>QT Number</label>
+            <input value={form.id ? 'Will remain same' : 'Auto Generated'} disabled style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-main)', color: '#38BDF8', fontWeight: 600 }} />
           </div>
           <ValidityDatePicker value={form.validityDate} onChange={v => setForm({...form, validityDate: v})} />
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Reference / Project</label>
-            <input value={form.projectName} onChange={e=>setForm({...form, projectName:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none' }} placeholder="Project or site name" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Reference / Project</label>
+            <input value={form.projectName} onChange={e=>setForm({...form, projectName:e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none' }} placeholder="Project or site name" />
           </div>
         </div>
       </div>
 
       {/* LINE ITEMS */}
-      <div style={{ background: 'white', borderRadius: 12, padding: 24, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 16 }}>LINE ITEMS</h3>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 16 }}>LINE ITEMS</h3>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 80px 80px 100px 120px 120px 40px', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 80px 80px 100px 120px 120px 40px', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
           {['#', 'Description', 'HSN', 'Qty', 'Unit', 'Rate', 'Amount', ''].map(h => (
-            <div key={h} style={{ fontSize: 11, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase' }}>{h}</div>
+            <div key={h} style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase' }}>{h}</div>
           ))}
         </div>
 
         {form.items.map((item, i) => (
           <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 80px 80px 100px 120px 120px 40px', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>{i+1}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{i+1}</div>
             <AutocompleteInput
               value={item.description}
               onChange={v => { const n = [...form.items]; n[i].description = v; setForm({...form, items: n}) }}
@@ -642,13 +642,13 @@ export default function QuotationPanel({ onNavigate }) {
                 setForm({...form, items: n})
               }}
             />
-            <input value={item.hsn} onChange={e=>{ const n=[...form.items]; n[i].hsn=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border:'1px solid #E2E8F0', borderRadius:6, fontSize:13 }} placeholder="HSN" />
-            <input type="number" value={item.qty} onChange={e=>{ const n=[...form.items]; n[i].qty=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border:'1px solid #E2E8F0', borderRadius:6, fontSize:13 }} min="0" step="any" />
-            <select value={item.unit} onChange={e=>{ const n=[...form.items]; n[i].unit=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border:'1px solid #E2E8F0', borderRadius:6, fontSize:13, background:'white' }}>
+            <input value={item.hsn} onChange={e=>{ const n=[...form.items]; n[i].hsn=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border: '1px solid var(--border)', borderRadius:6, fontSize:13 }} placeholder="HSN" />
+            <input type="number" value={item.qty} onChange={e=>{ const n=[...form.items]; n[i].qty=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border: '1px solid var(--border)', borderRadius:6, fontSize:13 }} min="0" step="any" />
+            <select value={item.unit} onChange={e=>{ const n=[...form.items]; n[i].unit=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border: '1px solid var(--border)', borderRadius:6, fontSize:13, background: 'var(--bg-card)' }}>
               {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
-            <input type="number" value={item.rate} onChange={e=>{ const n=[...form.items]; n[i].rate=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border:'1px solid #E2E8F0', borderRadius:6, fontSize:13 }} min="0" />
-            <div style={{ padding:'8px 10px', border:'1px solid transparent', background:'#F8FAFC', borderRadius:6, fontSize:13, fontWeight:700, color:'#0F172A' }}>
+            <input type="number" value={item.rate} onChange={e=>{ const n=[...form.items]; n[i].rate=e.target.value; setForm({...form,items:n}) }} style={{ width:'100%', padding:'8px 10px', border: '1px solid var(--border)', borderRadius:6, fontSize:13 }} min="0" />
+            <div style={{ padding:'8px 10px', border:'1px solid transparent', background: 'var(--bg-main)', borderRadius:6, fontSize:13, fontWeight:700, color: 'var(--text-primary)' }}>
               ₹{fmtINR((Number(item.qty)||0) * (Number(item.rate)||0))}
             </div>
             <button onClick={() => { if(form.items.length>1) { const n=form.items.filter((_,idx)=>idx!==i); setForm({...form,items:n}) } }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#DC2626', cursor: form.items.length>1?'pointer':'not-allowed', opacity: form.items.length>1?1:0.5, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -657,23 +657,23 @@ export default function QuotationPanel({ onNavigate }) {
           </div>
         ))}
 
-        <button onClick={() => setForm({...form, items: [...form.items, emptyItem()]})} style={{ marginTop: 8, height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #BFDBFE', background: 'white', color: '#2563EB', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => setForm({...form, items: [...form.items, emptyItem()]})} style={{ marginTop: 8, height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid #BFDBFE', background: 'var(--bg-card)', color: '#2563EB', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Plus size={14} /> Add Item
         </button>
 
         {/* TOTALS */}
-        <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ width: 300 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, color: '#1E293B' }}>Subtotal</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>₹{fmtINR(subtotal)}</span>
+              <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>Subtotal</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>₹{fmtINR(subtotal)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: 14, color: '#1E293B' }}>Discount</span>
-              <input type="number" value={form.discount} onChange={e=>setForm({...form, discount: e.target.value})} style={{ width: 100, padding: '6px 10px', border: '1px solid #E2E8F0', borderRadius: 6, textAlign: 'right', fontSize: 13 }} placeholder="0" />
+              <span style={{ fontSize: 14, color: 'var(--text-primary)' }}>Discount</span>
+              <input type="number" value={form.discount} onChange={e=>setForm({...form, discount: e.target.value})} style={{ width: 100, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 6, textAlign: 'right', fontSize: 13 }} placeholder="0" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 16, borderTop: '2px solid #E2E8F0' }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>Grand Total</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Grand Total</span>
               <span style={{ fontSize: 18, fontWeight: 800, color: '#2563EB' }}>₹{fmtINR(grandTotal)}</span>
             </div>
           </div>
@@ -683,15 +683,15 @@ export default function QuotationPanel({ onNavigate }) {
       {/* TERMS & NOTES */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         <TermsToggle include={form.includeTerms} onToggle={() => setForm({...form, includeTerms: !form.includeTerms})} terms={form.terms} onTermsChange={v => setForm({...form, terms: v})} />
-        <div style={{ background: 'white', borderRadius: 12, padding: 24, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 12 }}>Notes</h3>
-          <textarea value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} rows={5} placeholder="Additional notes for customer..." style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', resize: 'vertical', fontSize: 13, boxSizing: 'border-box' }} />
+        <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12 }}>Notes</h3>
+          <textarea value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} rows={5} placeholder="Additional notes for customer..." style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--border)', outline: 'none', resize: 'vertical', fontSize: 13, boxSizing: 'border-box' }} />
         </div>
       </div>
 
       {/* ACTIONS */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 16 }}>
-        <button onClick={handleSaveDraft} style={{ height: 44, padding: '0 24px', borderRadius: 8, border: '1px solid #BFDBFE', background: 'white', color: '#2563EB', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={handleSaveDraft} style={{ height: 44, padding: '0 24px', borderRadius: 8, border: '1px solid #BFDBFE', background: 'var(--bg-card)', color: '#2563EB', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
           Save as Draft
         </button>
         <button onClick={handleSavePDF} style={{ height: 44, padding: '0 24px', borderRadius: 8, border: 'none', background: '#2563EB', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -713,15 +713,15 @@ export default function QuotationPanel({ onNavigate }) {
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>Breakdown Quotations</h2>
-            <div style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#0F172A' }}>{filtered.length}</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Breakdown Quotations</h2>
+            <div style={{ padding: '4px 10px', background: 'var(--bg-main)', borderRadius: 12, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{filtered.length}</div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ position: 'relative', width: 260 }}>
               <Search size={16} color="#334155" style={{ position: 'absolute', left: 12, top: 12 }} />
-              <input value={searchBQ} onChange={e=>setSearchBQ(e.target.value)} placeholder="Search customer or QT..." style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+              <input value={searchBQ} onChange={e=>setSearchBQ(e.target.value)} placeholder="Search customer or QT..." style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: '1px solid var(--border)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <select value={filterBQ} onChange={e=>setFilterBQ(e.target.value)} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+            <select value={filterBQ} onChange={e=>setFilterBQ(e.target.value)} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-card)' }}>
               <option value="All">All Status</option>
               <option value="Draft">Draft</option>
               <option value="Sent">Sent</option>
@@ -733,31 +733,31 @@ export default function QuotationPanel({ onNavigate }) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-          <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Total Breakdowns</div>
+          <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}>Total Breakdowns</div>
             <div style={{ fontSize: 24, color: '#2563EB', fontWeight: 800 }}>{bqs.length}</div>
           </div>
-          <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Pending (Draft + Sent)</div>
+          <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}>Pending (Draft + Sent)</div>
             <div style={{ fontSize: 24, color: '#D97706', fontWeight: 800 }}>{bqs.filter(q => q.status==='Draft' || q.status==='Sent').length}</div>
           </div>
-          <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Accepted</div>
+          <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}>Accepted</div>
             <div style={{ fontSize: 24, color: '#16A34A', fontWeight: 800 }}>{bqs.filter(q => q.status==='Accepted').length}</div>
           </div>
         </div>
 
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>QT No</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Customer</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Created</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Valid Until</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Amount</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+              <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>QT No</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Customer</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Created</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Valid Until</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Amount</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -767,7 +767,7 @@ export default function QuotationPanel({ onNavigate }) {
                 const expColor = isExp ? '#DC2626' : (days !== null && days <= 3) ? '#D97706' : '#1E293B'
 
                 const sColors = {
-                  'Draft': { bg: '#F1F5F9', color: '#1E293B' },
+                  'Draft': { bg: '#F1F5F9', color: 'var(--text-primary)' },
                   'Sent': { bg: '#DBEAFE', color: '#1D4ED8' },
                   'Accepted': { bg: '#DCFCE7', color: '#15803D' },
                   'Rejected': { bg: '#FEE2E2', color: '#B91C1C' },
@@ -777,20 +777,20 @@ export default function QuotationPanel({ onNavigate }) {
 
                 return (
                   <React.Fragment key={q.id}>
-                    <tr onClick={() => setExpandedRows({...expandedRows, [q.id]: !expandedRows[q.id]})} style={{ borderBottom: '1px solid #E2E8F0', cursor: 'pointer', background: expandedRows[q.id] ? '#FAFBFC' : 'white' }}>
-                      <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{q.qt_number}</td>
-                      <td style={{ padding: '16px', fontSize: 13, color: '#334155', fontWeight: 500 }}>{q.customer_name}</td>
-                      <td style={{ padding: '16px', fontSize: 13, color: '#1E293B' }}>{fmtDate(q.created_at)}</td>
+                    <tr onClick={() => setExpandedRows({...expandedRows, [q.id]: !expandedRows[q.id]})} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: expandedRows[q.id] ? '#FAFBFC' : 'white' }}>
+                      <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{q.qt_number}</td>
+                      <td style={{ padding: '16px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{q.customer_name}</td>
+                      <td style={{ padding: '16px', fontSize: 13, color: 'var(--text-primary)' }}>{fmtDate(q.created_at)}</td>
                       <td style={{ padding: '16px', fontSize: 13 }}>
                         {q.validity_date ? (
                           <div style={{ color: expColor, fontWeight: isExp ? 600 : 400 }}>
                             {fmtDate(q.validity_date)} {isExp ? '(Expired)' : days <= 3 ? '(Expiring)' : ''}
                           </div>
                         ) : (
-                          <div style={{ padding: '2px 8px', background: '#F1F5F9', color: '#1E293B', borderRadius: 4, display: 'inline-block', fontSize: 11, fontWeight: 600 }}>Open</div>
+                          <div style={{ padding: '2px 8px', background: 'var(--bg-main)', color: 'var(--text-primary)', borderRadius: 4, display: 'inline-block', fontSize: 11, fontWeight: 600 }}>Open</div>
                         )}
                       </td>
-                      <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(q.grand_total)}</td>
+                      <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>₹{fmtINR(q.grand_total)}</td>
                       <td style={{ padding: '16px' }}>
                         <span style={{ padding: '4px 10px', background: sc.bg, color: sc.color, borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
                           {q.status}
@@ -808,7 +808,7 @@ export default function QuotationPanel({ onNavigate }) {
                             if(val === 'sent') updateBQStatus(q.id, 'Sent')
                             if(val === 'convert') setReviewModal(q)
                             if(val === 'delete') deleteBQ(q.id)
-                          }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', cursor: 'pointer', outline: 'none' }}>
+                          }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
                             <option value="" disabled>⋮</option>
                             <option value="sent">Mark as Sent</option>
                             <option value="accept">Mark as Accepted</option>
@@ -820,12 +820,12 @@ export default function QuotationPanel({ onNavigate }) {
                       </td>
                     </tr>
                     {expandedRows[q.id] && (
-                      <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                      <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
                         <td colSpan={7} style={{ padding: '16px 32px' }}>
                           <div style={{ maxWidth: 600 }}>
-                            <h4 style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 12, textTransform: 'uppercase' }}>Line Items</h4>
+                            <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, textTransform: 'uppercase' }}>Line Items</h4>
                             {q.items.map((item, i) => (
-                              <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 60px 80px 100px', gap: 8, padding: '6px 0', borderBottom: '1px solid #E2E8F0', fontSize: 13, color: '#334155' }}>
+                              <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 60px 80px 100px', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
                                 <div>{i+1}</div>
                                 <div>{item.description}</div>
                                 <div>{item.qty} {item.unit}</div>
@@ -835,13 +835,13 @@ export default function QuotationPanel({ onNavigate }) {
                             ))}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 12, fontSize: 13 }}>
                               <div style={{ width: 240 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E293B', marginBottom: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-primary)', marginBottom: 4 }}>
                                   <span>Subtotal</span><span>₹{fmtINR(q.subtotal)}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E293B', marginBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-primary)', marginBottom: 8 }}>
                                   <span>Discount</span><span>-₹{fmtINR(q.discount)}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#0F172A', borderTop: '1px solid #CBD5E1', paddingTop: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: 'var(--text-primary)', borderTop: '1px solid #CBD5E1', paddingTop: 4 }}>
                                   <span>Grand Total</span><span>₹{fmtINR(q.grand_total)}</span>
                                 </div>
                               </div>
@@ -854,7 +854,7 @@ export default function QuotationPanel({ onNavigate }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#334155' }}>No breakdown quotations found</td></tr>
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>No breakdown quotations found</td></tr>
               )}
             </tbody>
           </table>
@@ -875,15 +875,15 @@ export default function QuotationPanel({ onNavigate }) {
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>Finalized Quotations</h2>
-            <div style={{ padding: '4px 10px', background: '#F1F5F9', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#0F172A' }}>{filtered.length}</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Finalized Quotations</h2>
+            <div style={{ padding: '4px 10px', background: 'var(--bg-main)', borderRadius: 12, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{filtered.length}</div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ position: 'relative', width: 260 }}>
               <Search size={16} color="#334155" style={{ position: 'absolute', left: 12, top: 12 }} />
-              <input value={searchFQ} onChange={e=>setSearchFQ(e.target.value)} placeholder="Search customer or FQ..." style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+              <input value={searchFQ} onChange={e=>setSearchFQ(e.target.value)} placeholder="Search customer or FQ..." style={{ width: '100%', height: 40, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: '1px solid var(--border)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <select value={filterFQ} onChange={e=>setFilterFQ(e.target.value)} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+            <select value={filterFQ} onChange={e=>setFilterFQ(e.target.value)} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-card)' }}>
               <option value="All">All Status</option>
               <option value="Active">Active (Pending Bill)</option>
               <option value="Converted to Bill">Converted to Bill</option>
@@ -893,31 +893,31 @@ export default function QuotationPanel({ onNavigate }) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
-          <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Total Finalized</div>
+          <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}>Total Finalized</div>
             <div style={{ fontSize: 24, color: '#2563EB', fontWeight: 800 }}>{fqs.length}</div>
           </div>
-          <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Pending Bill</div>
+          <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}>Pending Bill</div>
             <div style={{ fontSize: 24, color: '#D97706', fontWeight: 800 }}>{fqs.filter(q => q.status==='Active').length}</div>
           </div>
-          <div style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: 13, color: '#1E293B', fontWeight: 600, marginBottom: 4 }}>Converted to Bill</div>
+          <div style={{ background: 'var(--bg-card)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}>Converted to Bill</div>
             <div style={{ fontSize: 24, color: '#16A34A', fontWeight: 800 }}>{fqs.filter(q => q.status==='Converted to Bill').length}</div>
           </div>
         </div>
 
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>FQ No</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Original QT</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Customer</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Finalized On</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Amount</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#1E293B', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+              <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>FQ No</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Original QT</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Customer</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Finalized On</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Amount</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -930,14 +930,14 @@ export default function QuotationPanel({ onNavigate }) {
                 const sc = sColors[q.status] || sColors['Active']
 
                 return (
-                  <tr key={q.id} style={{ borderBottom: '1px solid #E2E8F0', background: 'white' }}>
-                    <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <tr key={q.id} style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                    <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Lock size={12} color="#334155" /> {q.fq_number}
                     </td>
-                    <td style={{ padding: '16px', fontSize: 13, color: '#1E293B' }}>{q.original_qt_number}</td>
-                    <td style={{ padding: '16px', fontSize: 13, color: '#334155', fontWeight: 500 }}>{q.customer_name}</td>
-                    <td style={{ padding: '16px', fontSize: 13, color: '#1E293B' }}>{fmtDate(q.finalized_at)}</td>
-                    <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>₹{fmtINR(q.grand_total)}</td>
+                    <td style={{ padding: '16px', fontSize: 13, color: 'var(--text-primary)' }}>{q.original_qt_number}</td>
+                    <td style={{ padding: '16px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{q.customer_name}</td>
+                    <td style={{ padding: '16px', fontSize: 13, color: 'var(--text-primary)' }}>{fmtDate(q.finalized_at)}</td>
+                    <td style={{ padding: '16px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>₹{fmtINR(q.grand_total)}</td>
                     <td style={{ padding: '16px' }}>
                       <span style={{ padding: '4px 10px', background: sc.bg, color: sc.color, borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
                         {q.status}
@@ -959,7 +959,7 @@ export default function QuotationPanel({ onNavigate }) {
                           if(v==='delete') {
                             if(window.confirm('Delete FQ?')) { await backendFetch(`/quotations/finalized/${q.id}`, {method:'DELETE'}); loadData() }
                           }
-                        }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: '#1E293B', cursor: 'pointer', outline: 'none' }}>
+                        }} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
                           <option value="" disabled selected>⋮</option>
                           <option value="cancel">Cancel</option>
                           <option value="delete">Delete</option>
@@ -970,7 +970,7 @@ export default function QuotationPanel({ onNavigate }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#334155' }}>No finalized quotations found</td></tr>
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>No finalized quotations found</td></tr>
               )}
             </tbody>
           </table>
@@ -981,7 +981,7 @@ export default function QuotationPanel({ onNavigate }) {
 
   // ─── MAIN RETURN ─────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: 24, background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", position: 'relative' }}>
+    <div style={{ padding: 24, background: 'var(--bg-main)', minHeight: '100vh', fontFamily: "'Inter', sans-serif", position: 'relative' }}>
       
       {/* Toast */}
       {showToast && (
@@ -1020,36 +1020,36 @@ export default function QuotationPanel({ onNavigate }) {
       {/* REVIEW MODAL (BQ -> FQ) */}
       {reviewModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}>
-          <div style={{ background: 'white', width: 600, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: 18, color: '#0F172A' }}>Convert to Finalized Quotation</h3>
+          <div style={{ background: 'var(--bg-card)', width: 600, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: 'var(--text-primary)' }}>Convert to Finalized Quotation</h3>
               <button onClick={() => setReviewModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#1E293B" /></button>
             </div>
             <div style={{ padding: 24, maxHeight: '60vh', overflowY: 'auto' }}>
-              <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-                <div style={{ fontSize: 13, color: '#1E293B' }}>Customer: <strong style={{ color: '#0F172A' }}>{reviewModal.customer_name}</strong></div>
-                <div style={{ fontSize: 13, color: '#1E293B' }}>Original QT: <strong style={{ color: '#0F172A' }}>{reviewModal.qt_number}</strong></div>
+              <div style={{ background: 'var(--bg-main)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>Customer: <strong style={{ color: 'var(--text-primary)' }}>{reviewModal.customer_name}</strong></div>
+                <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>Original QT: <strong style={{ color: 'var(--text-primary)' }}>{reviewModal.qt_number}</strong></div>
               </div>
-              <h4 style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', marginBottom: 12 }}>Line Items (Editable)</h4>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 12 }}>Line Items (Editable)</h4>
               <div style={{ display: 'grid', gap: 8 }}>
                 {reviewModal.items.map((item, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 60px 80px 90px', gap: 8, alignItems: 'center' }}>
-                    <div style={{ fontSize: 13, color: '#334155' }}>{i+1}</div>
-                    <input value={item.description} onChange={e=>{ const m={...reviewModal}; m.items[i].description=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13 }} />
-                    <input type="number" value={item.qty} onChange={e=>{ const m={...reviewModal}; m.items[i].qty=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13 }} />
-                    <input type="number" value={item.rate} onChange={e=>{ const m={...reviewModal}; m.items[i].rate=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13 }} />
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{i+1}</div>
+                    <input value={item.description} onChange={e=>{ const m={...reviewModal}; m.items[i].description=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13 }} />
+                    <input type="number" value={item.qty} onChange={e=>{ const m={...reviewModal}; m.items[i].qty=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13 }} />
+                    <input type="number" value={item.rate} onChange={e=>{ const m={...reviewModal}; m.items[i].rate=e.target.value; setReviewModal(m) }} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13 }} />
                     <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'right' }}>₹{fmtINR((item.qty||0)*(item.rate||0))}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
                 <div style={{ width: 250 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span style={{ fontSize: 13, color: '#1E293B' }}>Discount:</span>
-                    <input type="number" value={reviewModal.discount} onChange={e=>setReviewModal({...reviewModal, discount: e.target.value})} style={{ width: 80, padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0', textAlign: 'right' }} />
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Discount:</span>
+                    <input type="number" value={reviewModal.discount} onChange={e=>setReviewModal({...reviewModal, discount: e.target.value})} style={{ width: 80, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', textAlign: 'right' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Grand Total:</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Grand Total:</span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#2563EB' }}>
                       ₹{fmtINR(reviewModal.items.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.rate)||0), 0) - (Number(reviewModal.discount)||0))}
                     </span>
@@ -1057,8 +1057,8 @@ export default function QuotationPanel({ onNavigate }) {
                 </div>
               </div>
             </div>
-            <div style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button onClick={() => setReviewModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'white', border: '1px solid #E2E8F0', color: '#1E293B', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            <div style={{ padding: '16px 24px', background: 'var(--bg-main)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button onClick={() => setReviewModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={finalizeQuotation} style={{ padding: '8px 16px', borderRadius: 8, background: '#2563EB', border: 'none', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Confirm & Finalize →</button>
             </div>
           </div>
@@ -1068,9 +1068,9 @@ export default function QuotationPanel({ onNavigate }) {
       {/* BILL MODAL (FQ -> Bill) */}
       {billModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}>
-          <div style={{ background: 'white', width: 400, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: 18, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}><Receipt size={20} color="#16A34A" /> Create Bill</h3>
+          <div style={{ background: 'var(--bg-card)', width: 400, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}><Receipt size={20} color="#16A34A" /> Create Bill</h3>
               <button onClick={() => setBillModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#1E293B" /></button>
             </div>
             <div style={{ padding: 24 }}>
@@ -1081,12 +1081,12 @@ export default function QuotationPanel({ onNavigate }) {
               
               <div style={{ display: 'grid', gap: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Bill Date</label>
-                  <input type="date" value={billModal.date} onChange={e=>setBillModal({...billModal, date: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Bill Date</label>
+                  <input type="date" value={billModal.date} onChange={e=>setBillModal({...billModal, date: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Payment Terms</label>
-                  <select value={billModal.paymentTerms} onChange={e=>setBillModal({...billModal, paymentTerms: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none', background: 'white', boxSizing: 'border-box' }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Payment Terms</label>
+                  <select value={billModal.paymentTerms} onChange={e=>setBillModal({...billModal, paymentTerms: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none', background: 'var(--bg-card)', boxSizing: 'border-box' }}>
                     <option value="Immediate">Immediate</option>
                     <option value="7 Days">7 Days</option>
                     <option value="15 Days">15 Days</option>
@@ -1095,13 +1095,13 @@ export default function QuotationPanel({ onNavigate }) {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', display: 'block', marginBottom: 6 }}>Payment Due Date</label>
-                  <input type="date" value={billModal.dueDate} onChange={e=>setBillModal({...billModal, dueDate: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Payment Due Date</label>
+                  <input type="date" value={billModal.dueDate} onChange={e=>setBillModal({...billModal, dueDate: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </div>
             </div>
-            <div style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button onClick={() => setBillModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'white', border: '1px solid #E2E8F0', color: '#1E293B', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            <div style={{ padding: '16px 24px', background: 'var(--bg-main)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button onClick={() => setBillModal(null)} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={convertToBill} style={{ padding: '8px 16px', borderRadius: 8, background: '#16A34A', border: 'none', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Create Bill →</button>
             </div>
           </div>

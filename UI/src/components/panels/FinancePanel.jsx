@@ -298,7 +298,7 @@ export default function FinancePanel() {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div style={{ background: '#fff', border: '1px solid #E2E8F0', padding: '10px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border)', padding: '10px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
           <p style={{ fontWeight: 600, marginBottom: '4px' }}>{label}</p>
           {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color, fontSize: '13px' }}>
@@ -311,13 +311,13 @@ export default function FinancePanel() {
     return null;
   };
 
-  const inputStyle = { padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '13px' }
+  const inputStyle = { padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-card)', fontSize: '13px' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '40px' }}>
       
       {/* Tab Switcher */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #E2E8F0', paddingBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
         {TABS.map(tab => (
           <button
             key={tab.id}
@@ -341,7 +341,7 @@ export default function FinancePanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-             <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A' }}>Financial Overview</h2>
+             <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Financial Overview</h2>
              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                <Calendar size={18} color="#334155"/>
                <select 
@@ -359,7 +359,7 @@ export default function FinancePanel() {
                      setSelectedYear(parseInt(e.target.value));
                    }
                  }} 
-                 style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: 600 }}
+                 style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none', background: 'var(--bg-card)', fontWeight: 600 }}
                >
                  <option value="Custom">Custom Range</option>
                  {[0, 1, 2, 3, 4].map(offset => {
@@ -371,7 +371,7 @@ export default function FinancePanel() {
                {overviewMode === 'Custom' && (
                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
                     <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={inputStyle} />
-                    <span style={{ color: '#334155', fontWeight: 600 }}>to</span>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>to</span>
                     <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={inputStyle} />
                  </div>
                )}
@@ -382,7 +382,7 @@ export default function FinancePanel() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <SummaryCard icon={TrendingUp} title="Total Revenue" value={`₹${fmtINR(currentOverview.revenue)}`} trend="neutral" trendValue={overviewMode === 'Year' ? `Year ${selectedYear}` : 'Custom Range'} colors={{ bg: '#F0FDF4', text: '#16A34A' }} />
             <SummaryCard icon={TrendingDown} title="Total Expenses" value={`₹${fmtINR(currentOverview.expenses)}`} trend="neutral" trendValue={overviewMode === 'Year' ? `Year ${selectedYear}` : 'Custom Range'} colors={{ bg: '#FEF2F2', text: '#DC2626' }} />
-            <div style={{ padding: '24px', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ padding: '24px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, color: currentOverview.net >= 0 ? '#16A34A' : '#DC2626', textTransform: 'uppercase' }}>
                 {currentOverview.net >= 0 ? 'Net Profit' : 'Net Loss'}
               </span>
@@ -411,8 +411,8 @@ export default function FinancePanel() {
 
           {/* Charts */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '20px', minHeight: '350px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '24px', color: '#0F172A' }}>Monthly Cash Flow</h3>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', minHeight: '350px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '24px', color: 'var(--text-primary)' }}>Monthly Cash Flow</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={currentOverview.monthlyData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -426,8 +426,8 @@ export default function FinancePanel() {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '20px', minHeight: '350px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '24px', color: '#0F172A' }}>Expenses Breakdown</h3>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', minHeight: '350px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '24px', color: 'var(--text-primary)' }}>Expenses Breakdown</h3>
               {currentOverview.categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -447,7 +447,7 @@ export default function FinancePanel() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: '14px' }}>
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                   No expenses recorded this year
                 </div>
               )}
@@ -480,7 +480,7 @@ export default function FinancePanel() {
                 style={{ height: '36px', padding: '0 12px' }}
                 title="Start Date"
               />
-              <span style={{ color: '#334155', fontWeight: 600 }}>—</span>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>—</span>
               <input
                 type="date"
                 value={endDate}
@@ -492,43 +492,43 @@ export default function FinancePanel() {
               
               <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 8px' }} />
 
-              <select value={sortField} onChange={e => setSortField(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '13px', height: '36px' }}>
+              <select value={sortField} onChange={e => setSortField(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px', height: '36px' }}>
                 <option value="date">Sort by Date</option>
                 <option value="amount">Sort by Amount</option>
               </select>
               <button 
                 onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                style={{ padding: '6px 12px', background: 'white', border: '1px solid #E2E8F0', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ padding: '6px 12px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <ArrowUpDown size={14} color="#334155" />
-                <span style={{ fontSize: '13px', fontWeight: 500, color: '#1E293B' }}>{sortOrder.toUpperCase()}</span>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{sortOrder.toUpperCase()}</span>
               </button>
             </div>
           </div>
 
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflowX: 'auto' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Date</th>
-                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Source</th>
-                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Description</th>
-                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700 }}>Status</th>
-                  <th style={{ padding: '12px 16px', color: '#1E293B', fontWeight: 700, textAlign: 'right' }}>Amount</th>
+                <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-primary)', fontWeight: 700 }}>Date</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-primary)', fontWeight: 700 }}>Source</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-primary)', fontWeight: 700 }}>Description</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-primary)', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', color: 'var(--text-primary)', fontWeight: 700, textAlign: 'right' }}>Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {operationsList.map((op, i) => (
                   <tr key={`${op.id}-${i}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '12px 16px', color: '#334155' }}>{formatDate(op.date)}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{formatDate(op.date)}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, background: '#F1F5F9', color: '#1E293B' }}>
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
                         {op.source}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px', fontWeight: 500, color: '#0F172A' }}>{op.description}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 500, color: 'var(--text-primary)' }}>{op.description}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>{op.status}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{op.status}</span>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: op.type === 'Revenue' ? '#16A34A' : '#DC2626' }}>
                       {op.type === 'Revenue' ? '+' : '-'} ₹{fmtINR(op.amount)}
@@ -537,7 +537,7 @@ export default function FinancePanel() {
                 ))}
                 {operationsList.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#475569' }}>No records found.</td>
+                    <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>No records found.</td>
                   </tr>
                 )}
               </tbody>
@@ -550,10 +550,10 @@ export default function FinancePanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* ── Tax Period Controls ── */}
-          <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Calendar size={16} color="#334155" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>Period:</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>Period:</span>
             </div>
             
             {/* Quick period buttons */}
@@ -589,7 +589,7 @@ export default function FinancePanel() {
                   style={inputStyle}
                   title="From"
                 />
-                <span style={{ color: '#334155', fontWeight: 600, fontSize: '13px' }}>to</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '13px' }}>to</span>
                 <input
                   type="date"
                   value={taxEnd}
@@ -609,7 +609,7 @@ export default function FinancePanel() {
             )}
 
             {/* Bill count badge */}
-            <div style={{ marginLeft: 'auto', background: '#F1F5F9', borderRadius: '8px', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#1E293B' }}>
+            <div style={{ marginLeft: 'auto', background: 'var(--bg-main)', borderRadius: '8px', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {taxSummary.count} bill{taxSummary.count !== 1 ? 's' : ''} in period
             </div>
           </div>
@@ -623,24 +623,24 @@ export default function FinancePanel() {
           </div>
 
           {/* ── Rate Breakdown Table ── */}
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '20px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px', color: '#0F172A' }}>Tax Rate Breakdown</h3>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>Tax Rate Breakdown</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', textAlign: 'left' }}>
                   {['GST Rate', 'No. of Bills', 'Taxable Amt', 'CGST', 'SGST', 'Total Tax'].map(h => (
-                    <th key={h} style={{ padding: '10px 8px', color: '#1E293B', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 8px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(taxSummary.rates).map(([r, v]) => (
                   <tr key={r} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '12px 8px', fontWeight: 700, color: '#0F172A' }}>
+                    <td style={{ padding: '12px 8px', fontWeight: 700, color: 'var(--text-primary)' }}>
                       <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 8px', borderRadius: '6px', fontSize: '12px' }}>{r}%</span>
                     </td>
-                    <td style={{ padding: '12px 8px', color: '#334155', fontWeight: 500 }}>{v.count.size}</td>
-                    <td style={{ padding: '12px 8px', color: '#334155', fontWeight: 500 }}>₹{fmtINR(v.taxable)}</td>
+                    <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontWeight: 500 }}>{v.count.size}</td>
+                    <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontWeight: 500 }}>₹{fmtINR(v.taxable)}</td>
                     <td style={{ padding: '12px 8px', color: '#7C3AED', fontWeight: 600 }}>₹{fmtINR(v.cgst)}</td>
                     <td style={{ padding: '12px 8px', color: '#4F46E5', fontWeight: 600 }}>₹{fmtINR(v.sgst)}</td>
                     <td style={{ padding: '12px 8px', fontWeight: 800, color: '#16A34A' }}>₹{fmtINR(v.cgst + v.sgst)}</td>
@@ -648,13 +648,13 @@ export default function FinancePanel() {
                 ))}
                 {Object.keys(taxSummary.rates).length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#475569' }}>No tax data for this period.</td>
+                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>No tax data for this period.</td>
                   </tr>
                 )}
-                <tr style={{ background: '#F8FAFC', borderTop: '2px solid #CBD5E1' }}>
-                  <td style={{ padding: '12px 8px', fontWeight: 800, color: '#0F172A' }}>TOTAL</td>
-                  <td style={{ padding: '12px 8px', fontWeight: 700, color: '#1E293B' }}>{taxSummary.count}</td>
-                  <td style={{ padding: '12px 8px', fontWeight: 700, color: '#1E293B' }}>₹{fmtINR(taxSummary.totalTaxable)}</td>
+                <tr style={{ background: 'var(--bg-main)', borderTop: '2px solid #CBD5E1' }}>
+                  <td style={{ padding: '12px 8px', fontWeight: 800, color: 'var(--text-primary)' }}>TOTAL</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 700, color: 'var(--text-primary)' }}>{taxSummary.count}</td>
+                  <td style={{ padding: '12px 8px', fontWeight: 700, color: 'var(--text-primary)' }}>₹{fmtINR(taxSummary.totalTaxable)}</td>
                   <td style={{ padding: '12px 8px', fontWeight: 700, color: '#7C3AED' }}>₹{fmtINR(taxSummary.totalCGST)}</td>
                   <td style={{ padding: '12px 8px', fontWeight: 700, color: '#4F46E5' }}>₹{fmtINR(taxSummary.totalSGST)}</td>
                   <td style={{ padding: '12px 8px', fontWeight: 800, color: '#16A34A', fontSize: '15px' }}>₹{fmtINR(taxSummary.totalCGST + taxSummary.totalSGST)}</td>

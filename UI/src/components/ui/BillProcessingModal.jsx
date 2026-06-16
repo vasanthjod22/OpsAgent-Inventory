@@ -275,7 +275,7 @@ export const BillProcessingModal = ({
                 boxShadow: '0 0 12px rgba(37,99,235,0.6)'
               }}/>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: '#64748B' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
               <span>Processing...</span>
               <span>{Math.round(progress)}%</span>
             </div>
@@ -324,7 +324,7 @@ export const BillProcessingModal = ({
                 ['Inventory', 'Updated ✓'],
               ].map(([label, value]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 13 }}>
-                  <span style={{ color: '#64748B' }}>{label}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{label}</span>
                   <span style={{ color: 'white', fontWeight: 500 }}>{value}</span>
                 </div>
               ))}
@@ -347,7 +347,7 @@ export const BillProcessingModal = ({
               </div>
             )}
 
-            <div style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>Closing automatically...</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Closing automatically...</div>
             <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{ height: '100%', background: '#16A34A', borderRadius: 999, animation: 'depleteBar 2s linear 1.5s forwards' }}/>
             </div>

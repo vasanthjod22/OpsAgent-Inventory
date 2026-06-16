@@ -22,7 +22,7 @@ export const ActionBtn = ({ color, hover, icon, title, onClick }) => {
 
 export const ColHeader = ({ label, tooltip }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-    <span style={{ fontSize: 13, fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{label}</span>
+    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{label}</span>
     {tooltip && (
       <span
         title={tooltip}
@@ -80,8 +80,8 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
   if (totalItems === 0) return null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid #E2E8F0' }}>
-      <span style={{ fontSize: 13, color: '#0F172A' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid var(--border)' }}>
+      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
         Showing {startItem}–{endItem} of <strong>{totalItems}</strong> items
       </span>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -89,7 +89,7 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
         <PageBtn onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>‹</PageBtn>
         {getPageNumbers().map((page, i) => (
           page === '...' ? (
-            <span key={i} style={{ padding: '0 8px', color: '#1E293B' }}>...</span>
+            <span key={i} style={{ padding: '0 8px', color: 'var(--text-primary)' }}>...</span>
           ) : (
             <PageBtn key={i} active={page === currentPage} onClick={() => onPageChange(page)}>{page}</PageBtn>
           )
@@ -98,11 +98,11 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
         <PageBtn onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>»</PageBtn>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, color: '#0F172A' }}>Per page:</span>
+        <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Per page:</span>
         <select
           value={itemsPerPage}
           onChange={e => onLimitChange(Number(e.target.value))}
-          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13, color: '#0F172A', outline: 'none' }}
+          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-primary)', outline: 'none' }}
         >
           {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
         </select>

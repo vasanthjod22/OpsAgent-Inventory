@@ -144,8 +144,8 @@ const StatCard = ({ icon: Icon, label, value, color, bg, onClick }) => (
       <Icon size={20} color={color} />
     </div>
     <div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontWeight: 500 }}>{label}</div>
     </div>
   </div>
 )
@@ -157,9 +157,9 @@ const Badge = ({ text, color = '#64748B', bg = '#F1F5F9' }) => (
 const Btn = ({ children, onClick, variant = 'secondary', small = false, icon: Icon, style: extraStyle }) => {
   const styles = {
     primary: { background: '#2563EB', color: 'white', border: 'none' },
-    secondary: { background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0' },
+    secondary: { background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' },
     danger: { background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' },
-    ghost: { background: 'transparent', color: '#64748B', border: '1px solid #E2E8F0' },
+    ghost: { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)' },
   }
   return (
     <button
@@ -223,8 +223,8 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
   if (totalItems === 0) return null
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid #E2E8F0', marginTop: 16 }}>
-      <span style={{ fontSize: 13, color: '#0F172A' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid var(--border)', marginTop: 16 }}>
+      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
         Showing {startItem}–{endItem} of <strong>{totalItems}</strong> customers
       </span>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -232,7 +232,7 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
         <PageBtn onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>‹</PageBtn>
         {getPageNumbers().map((page, i) => (
           page === '...' ? (
-            <span key={i} style={{ padding: '0 8px', color: '#1E293B' }}>...</span>
+            <span key={i} style={{ padding: '0 8px', color: 'var(--text-primary)' }}>...</span>
           ) : (
             <PageBtn key={i} active={page === currentPage} onClick={() => onPageChange(page)}>{page}</PageBtn>
           )
@@ -241,11 +241,11 @@ const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
         <PageBtn onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>»</PageBtn>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, color: '#0F172A' }}>Per page:</span>
+        <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Per page:</span>
         <select
           value={itemsPerPage}
           onChange={e => onLimitChange(Number(e.target.value))}
-          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 13, color: '#0F172A', outline: 'none' }}
+          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-primary)', outline: 'none' }}
         >
           {[12, 24, 48, 96].map(n => <option key={n} value={n}>{n}</option>)}
         </select>
@@ -274,7 +274,7 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
 
   return (
     <div style={{
-      background: 'white', borderRadius: 14, border: '1px solid #E2E8F0',
+      background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)',
       padding: '20px', display: 'flex', flexDirection: 'column', gap: 14,
       transition: 'box-shadow 0.2s, transform 0.2s', position: 'relative',
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
@@ -296,7 +296,7 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {customer.name}
             </div>
             {isTop && <span title="Top customer">⭐</span>}
@@ -307,7 +307,7 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
             </div>
           )}
           {displayPhone && (
-            <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
               <Phone size={10} style={{ marginRight: 3 }} />
               {displayPhone} {primaryContact && <span style={{fontSize:9, color:'#94A3B8'}}>({primaryContact.full_name})</span>}
             </div>
@@ -332,7 +332,7 @@ function CustomerCard({ customer, onView, onCreateBill, onCreateQuote, onRemind,
           </button>
           {menuOpen && (
             <div style={{
-              position: 'absolute', right: 0, top: 28, background: 'white', border: '1px solid #E2E8F0',
+              position: 'absolute', right: 0, top: 28, background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 180, overflow: 'hidden',
             }}>
               {[
@@ -452,23 +452,23 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
       </button>
 
       {/* Customer Header */}
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: '24px', marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)', padding: '24px', marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
           <div style={{ width: 64, height: 64, borderRadius: 16, background: avatarColor(customer.name), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 22, flexShrink: 0 }}>
             {initials(customer.name)}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: 0 }}>{customer.name}</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{customer.name}</h2>
               <button onClick={onEdit} style={{ background: '#EFF6FF', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#2563EB', fontWeight: 600 }}>
                 <Edit2 size={12} />Edit
               </button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
-              {customer.phone && <span style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5 }}><Phone size={13} />{customer.phone}</span>}
-              {customer.email && <span style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5 }}><Mail size={13} />{customer.email}</span>}
-              {(customer.city || customer.address) && <span style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={13} />{customer.city || customer.address}</span>}
-              {customer.gstin && <span style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5 }}><CreditCard size={13} />GST: {customer.gstin}</span>}
+              {customer.phone && <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}><Phone size={13} />{customer.phone}</span>}
+              {customer.email && <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}><Mail size={13} />{customer.email}</span>}
+              {(customer.city || customer.address) && <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={13} />{customer.city || customer.address}</span>}
+              {customer.gstin && <span style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}><CreditCard size={13} />GST: {customer.gstin}</span>}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -487,8 +487,8 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
       </div>
 
       {/* Tabs */}
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg-main)' }}>
           {tabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -510,23 +510,23 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
               {/* Timeline */}
               <div>
-                <h4 style={{ fontSize: 13, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Activity Timeline</h4>
+                <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Activity Timeline</h4>
                 {timeline.length === 0 ? <p style={{ fontSize: 13, color: '#94A3B8' }}>No activity yet</p> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {timeline.map((item, i) => {
                       const statusC = { Paid: '#1D4ED8', Unpaid: '#DC2626', Partial: '#D97706', Approved: '#1D4ED8', Rejected: '#DC2626', Draft: '#64748B', Sent: '#2563EB' }
                       const statusB = { Paid: '#F0FDF4', Unpaid: '#FEF2F2', Partial: '#FFFBEB', Approved: '#F0FDF4', Rejected: '#FEF2F2', Draft: '#F1F5F9', Sent: '#EFF6FF' }
                       return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-main)', borderRadius: 8, border: '1px solid var(--border)' }}>
                           <div style={{ width: 28, height: 28, borderRadius: 8, background: item.type === 'bill' ? '#EFF6FF' : '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {item.type === 'bill' ? <Receipt size={13} color="#2563EB" /> : <FileText size={13} color="#7C3AED" />}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>{item.label}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</div>
                             <div style={{ fontSize: 11, color: '#94A3B8' }}>{fmtDate(item.date)}</div>
                           </div>
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>{fmt(item.amount)}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(item.amount)}</div>
                             <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: statusB[item.status] || '#F1F5F9', color: statusC[item.status] || '#64748B' }}>{item.status}</span>
                           </div>
                         </div>
@@ -537,22 +537,22 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
               </div>
               {/* Payment Analysis */}
               <div>
-                <h4 style={{ fontSize: 13, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Payment Analysis</h4>
+                <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Payment Analysis</h4>
                 {[
                   { label: 'Paid', count: paidBills.length, color: '#1D4ED8', bg: '#F0FDF4' },
                   { label: 'Partial', count: partialBills.length, color: '#D97706', bg: '#FFFBEB' },
                   { label: 'Unpaid', count: unpaidBills.length, color: '#DC2626', bg: '#FEF2F2' },
                 ].map(({ label, count, color, bg }) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <div style={{ width: 80, fontSize: 12, color: '#64748B', fontWeight: 500 }}>{label}</div>
-                    <div style={{ flex: 1, height: 8, background: '#F1F5F9', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ width: 80, fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
+                    <div style={{ flex: 1, height: 8, background: 'var(--bg-main)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{ width: `${customer.bills.length ? (count / customer.bills.length) * 100 : 0}%`, height: '100%', background: color, borderRadius: 99, transition: 'width 0.5s' }} />
                     </div>
                     <div style={{ width: 50, fontSize: 12, color, fontWeight: 700, textAlign: 'right' }}>{count}/{customer.bills.length}</div>
                   </div>
                 ))}
                 <div style={{ marginTop: 20 }}>
-                  <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6, fontWeight: 500 }}>Customer Rating</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 500 }}>Customer Rating</div>
                   <div style={{ fontSize: 22 }}>{'⭐'.repeat(rating)}{'☆'.repeat(5 - rating)}</div>
                   <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Based on {paymentRate}% on-time payment rate</div>
                 </div>
@@ -569,8 +569,8 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
           {activeTab === 'bills' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#64748B' }}>
-                  <span>Total: <strong style={{ color: '#0F172A' }}>{fmt(customer.totalPurchases + customer.outstanding)}</strong></span>
+                <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text-muted)' }}>
+                  <span>Total: <strong style={{ color: 'var(--text-primary)' }}>{fmt(customer.totalPurchases + customer.outstanding)}</strong></span>
                   <span>Paid: <strong style={{ color: '#1D4ED8' }}>{fmt(customer.totalPurchases)}</strong></span>
                   <span>Outstanding: <strong style={{ color: '#DC2626' }}>{fmt(customer.outstanding)}</strong></span>
                 </div>
@@ -580,9 +580,9 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background: '#F8FAFC' }}>
+                      <tr style={{ background: 'var(--bg-main)' }}>
                         {['Bill No', 'Date', 'Amount', 'Status'].map(h => (
-                          <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#64748B', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
+                          <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -597,8 +597,8 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             <td style={{ padding: '10px 14px', fontWeight: 700, color: '#2563EB' }}>{b.billNumber || b.bill_number}</td>
-                            <td style={{ padding: '10px 14px', color: '#64748B' }}>{fmtDate(b.date)}</td>
-                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0F172A' }}>{fmt(b.grandTotal || b.grand_total)}</td>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{fmtDate(b.date)}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(b.grandTotal || b.grand_total)}</td>
                             <td style={{ padding: '10px 14px' }}>
                               <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: sb[status] || '#F1F5F9', color: sc[status] || '#64748B' }}>{status}</span>
                             </td>
@@ -621,9 +621,9 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background: '#F8FAFC' }}>
+                      <tr style={{ background: 'var(--bg-main)' }}>
                         {['Quote No', 'Date', 'Amount', 'Status'].map(h => (
-                          <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#64748B', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
+                          <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -638,8 +638,8 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
                             <td style={{ padding: '10px 14px', fontWeight: 700, color: '#7C3AED' }}>{q.quotationNumber || q.quotation_number}</td>
-                            <td style={{ padding: '10px 14px', color: '#64748B' }}>{fmtDate(q.date)}</td>
-                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0F172A' }}>{fmt(q.grandTotal || q.grand_total)}</td>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{fmtDate(q.date)}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(q.grandTotal || q.grand_total)}</td>
                             <td style={{ padding: '10px 14px' }}>
                               <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: statusB[status] || '#F1F5F9', color: statusC[status] || '#64748B' }}>{status}</span>
                             </td>
@@ -655,15 +655,15 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
 
           {activeTab === 'items' && (
             <div>
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Items Purchased Most</h4>
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, marginTop: 0 }}>Items Purchased Most</h4>
               {topItemsList.length === 0 ? <p style={{ fontSize: 13, color: '#94A3B8' }}>No itemized data available</p> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {topItemsList.map((item, i) => (
-                    <div key={i} style={{ padding: '12px 16px', background: '#F8FAFC', borderRadius: 10, border: '1px solid #E2E8F0' }}>
+                    <div key={i} style={{ padding: '12px 16px', background: 'var(--bg-main)', borderRadius: 10, border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                         <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{item.name}</div>
+                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
                          <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-                           <span style={{ color: '#64748B' }}>{item.qty} {item.unit}</span>
+                           <span style={{ color: 'var(--text-muted)' }}>{item.qty} {item.unit}</span>
                            <span style={{ fontWeight: 700, color: '#1D4ED8' }}>{fmt(item.amount)}</span>
                          </div>
                        </div>
@@ -688,17 +688,17 @@ function CustomerDetail({ customer, onBack, onEdit, onNavigate, showToast, compa
                     <div key={i} style={{ border: `1px solid ${c.is_primary ? '#FCD34D' : '#E2E8F0'}`, background: c.is_primary ? '#FFFBEB' : '#F8FAFC', padding: 16, borderRadius: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                             {c.is_primary && <Star size={14} fill="#F59E0B" color="#F59E0B" />}
                             {c.full_name}
                           </div>
-                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{c.designation || 'Contact Person'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{c.designation || 'Contact Person'}</div>
                         </div>
                         {c.is_primary && <Badge text="PRIMARY" color="#D97706" bg="#FEF3C7" />}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={12}/>{c.phone}</div>
-                        {c.email && <div style={{ fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={12}/>{c.email}</div>}
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={12}/>{c.phone}</div>
+                        {c.email && <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={12}/>{c.email}</div>}
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <Btn small onClick={() => window.location.href=`tel:+91${c.phone}`} icon={Phone} variant="ghost" style={{flex: 1, padding: '4px 0', justifyContent: 'center'}}>Call</Btn>
@@ -759,7 +759,7 @@ function CustomerModal({ onClose, onSave, existing, availableTags }) {
           onChange={e => { setForm(f => ({ ...f, [field]: e.target.value })); setErrors(er => ({ ...er, [field]: undefined })) }}
           placeholder={placeholder}
           rows={3}
-          style={{ width: '100%', padding: '9px 12px', border: `1px solid ${errors[field] ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, fontSize: 13, color: '#0F172A', fontFamily: "'Inter', sans-serif", resize: 'vertical', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '9px 12px', border: `1px solid ${errors[field] ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, fontSize: 13, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", resize: 'vertical', boxSizing: 'border-box' }}
         />
       ) : (
         <input
@@ -767,7 +767,7 @@ function CustomerModal({ onClose, onSave, existing, availableTags }) {
           value={form[field]}
           onChange={e => { setForm(f => ({ ...f, [field]: e.target.value })); setErrors(er => ({ ...er, [field]: undefined })) }}
           placeholder={placeholder}
-          style={{ width: '100%', padding: '9px 12px', border: `1px solid ${errors[field] ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, fontSize: 13, color: '#0F172A', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '9px 12px', border: `1px solid ${errors[field] ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, fontSize: 13, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}
         />
       )}
       {errors[field] && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4 }}>{errors[field]}</div>}
@@ -776,10 +776,10 @@ function CustomerModal({ onClose, onSave, existing, availableTags }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>{existing ? 'Edit Customer' : 'Add New Customer'}</h3>
-          <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}><X size={18} /></button>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{existing ? 'Edit Customer' : 'Add New Customer'}</h3>
+          <button onClick={onClose} style={{ background: 'var(--bg-main)', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}><X size={18} /></button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Field label="Customer Name" field="name" placeholder="e.g. Rajan Builders" required />
@@ -787,7 +787,7 @@ function CustomerModal({ onClose, onSave, existing, availableTags }) {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Phone</label>
               <div style={{ display: 'flex', border: `1px solid ${errors.phone ? '#DC2626' : '#D1D5DB'}`, borderRadius: 8, overflow: 'hidden' }}>
-                <span style={{ padding: '9px 10px', background: '#F8FAFC', fontSize: 13, color: '#64748B', borderRight: '1px solid #D1D5DB' }}>+91</span>
+                <span style={{ padding: '9px 10px', background: 'var(--bg-main)', fontSize: 13, color: 'var(--text-muted)', borderRight: '1px solid #D1D5DB' }}>+91</span>
                 <input
                   type="tel"
                   value={form.phone}
@@ -870,10 +870,10 @@ function ContactModal({ onClose, onSave, existing }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>{existing ? 'Edit Contact' : 'Add Contact'}</h3>
-          <button onClick={onClose} style={{ background: '#F1F5F9', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}><X size={18} /></button>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{existing ? 'Edit Contact' : 'Add Contact'}</h3>
+          <button onClick={onClose} style={{ background: 'var(--bg-main)', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer' }}><X size={18} /></button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
@@ -1139,7 +1139,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0 }}>Customers</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Customers</h1>
             <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 99 }}>
               {allCustomers.length}
             </span>
@@ -1152,14 +1152,14 @@ export default function CustomersPanel({ showToast, onNavigate }) {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search name, phone, city…"
-                style={{ paddingLeft: 34, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#0F172A', width: 220, fontFamily: "'Inter', sans-serif", outline: 'none' }}
+                style={{ paddingLeft: 34, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text-primary)', width: 220, fontFamily: "'Inter', sans-serif", outline: 'none' }}
               />
             </div>
             {/* Filter */}
             <select
               value={filter}
               onChange={e => setFilter(e.target.value)}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', cursor: 'pointer', background: 'white', fontFamily: "'Inter', sans-serif" }}
+              style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', background: 'var(--bg-card)', fontFamily: "'Inter', sans-serif" }}
             >
               <option value="all">All Customers</option>
               <option value="outstanding">With Outstanding</option>
@@ -1172,7 +1172,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
             <select
               value={sort}
               onChange={e => setSort(e.target.value)}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#334155', cursor: 'pointer', background: 'white', fontFamily: "'Inter', sans-serif" }}
+              style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', background: 'var(--bg-card)', fontFamily: "'Inter', sans-serif" }}
             >
               <option value="name">Name A–Z</option>
               <option value="purchases">Top Purchases</option>
@@ -1181,7 +1181,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
               <option value="bills">Most Bills</option>
             </select>
             {/* View toggle */}
-            <div style={{ display: 'flex', border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {[{ mode: 'grid', Icon: Grid }, { mode: 'list', Icon: List }].map(({ mode, Icon }) => (
                 <button key={mode} onClick={() => setViewMode(mode)}
                   style={{ padding: '8px 12px', border: 'none', cursor: 'pointer', background: viewMode === mode ? '#2563EB' : 'white', color: viewMode === mode ? 'white' : '#64748B', transition: 'all 0.15s' }}>
@@ -1208,9 +1208,9 @@ export default function CustomersPanel({ showToast, onNavigate }) {
 
       {/* Empty State */}
       {allCustomers.length === 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', background: 'white', borderRadius: 16, border: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)' }}>
           <Users size={64} color="#CBD5E1" style={{ marginBottom: 20 }} />
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#334155', margin: 0, marginBottom: 8 }}>No customers yet</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-secondary)', margin: 0, marginBottom: 8 }}>No customers yet</h3>
           <p style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 20, maxWidth: 360 }}>
             Your customers will automatically appear here when you create bills or quotations.
           </p>
@@ -1221,7 +1221,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
 
       {/* No results */}
       {allCustomers.length > 0 && displayed.length === 0 && (
-        <div style={{ padding: '40px', textAlign: 'center', background: 'white', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+        <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
           <p style={{ fontSize: 14, color: '#94A3B8' }}>No customers match your search or filter.</p>
           <Btn onClick={() => { setSearch(''); setFilter('all') }} variant="ghost" style={{ margin: '12px auto 0' }}>Clear Filters</Btn>
         </div>
@@ -1258,11 +1258,11 @@ export default function CustomersPanel({ showToast, onNavigate }) {
 
       {/* List View */}
       {viewMode === 'list' && displayed.length > 0 && (
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
                   {[
                     { label: 'Customer', key: 'name' },
                     { label: 'Phone', key: null },
@@ -1274,7 +1274,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
                   ].map(({ label, key }) => (
                     <th key={label}
                       onClick={key ? () => setSort(key) : undefined}
-                      style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748B', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: key ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                      style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: key ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         {label}{key && <ArrowUpDown size={11} color={sort === key ? '#2563EB' : '#94A3B8'} />}
                       </span>
@@ -1295,15 +1295,15 @@ export default function CustomersPanel({ showToast, onNavigate }) {
                           {initials(customer.name)}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, color: '#0F172A' }}>{customer.name}</div>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{customer.name}</div>
                           {customer.city && <div style={{ fontSize: 11, color: '#94A3B8' }}>{customer.city}</div>}
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748B' }}>{customer.phone || '—'}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{customer.phone || '—'}</td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1D4ED8' }}>{fmt(customer.totalPurchases)}</td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: customer.outstanding > 0 ? '#DC2626' : '#94A3B8' }}>{fmt(customer.outstanding)}</td>
-                    <td style={{ padding: '12px 16px', color: '#64748B' }}>{fmtDate(customer.lastPurchase)}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{fmtDate(customer.lastPurchase)}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <Badge text={customer.bills.length} color="#2563EB" bg="#EFF6FF" />
                     </td>

@@ -133,7 +133,7 @@ export const InventoryAutocomplete = ({
           onKeyDown={handleKeyDown}
           onFocus={() => { if (suggestions.length > 0) setShowDropdown(true) }}
           placeholder={placeholder || "Search items..."}
-          style={{ width: '100%', height: 40, paddingLeft: 38, paddingRight: value ? 36 : 12, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 14, color: '#0F172A', outline: 'none', transition: 'border 0.2s ease', boxSizing: 'border-box' }}
+          style={{ width: '100%', height: 40, paddingLeft: 38, paddingRight: value ? 36 : 12, borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, color: 'var(--text-primary)', outline: 'none', transition: 'border 0.2s ease', boxSizing: 'border-box' }}
           onFocusCapture={e => e.target.style.borderColor = '#2563EB'}
           onBlurCapture={e => e.target.style.borderColor = '#E2E8F0'}
         />
@@ -148,9 +148,9 @@ export const InventoryAutocomplete = ({
       </div>
 
       {showDropdown && suggestions.length > 0 && (
-        <div ref={dropdownRef} style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: 10, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden', maxHeight: 320, overflowY: 'auto' }}>
+        <div ref={dropdownRef} style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', zIndex: 100, overflow: 'hidden', maxHeight: 320, overflowY: 'auto' }}>
           {prefixCount > 0 && (
-            <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+            <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--bg-main)', borderBottom: '1px solid #F1F5F9' }}>
               Best matches
             </div>
           )}
@@ -163,7 +163,7 @@ export const InventoryAutocomplete = ({
             return (
               <div key={item.hsn || index} style={{ display: 'contents' }}>
                 {showDivider && (
-                  <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', borderTop: '1px solid #F1F5F9' }}>
+                  <div style={{ padding: '6px 12px 4px', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--bg-main)', borderBottom: '1px solid #F1F5F9', borderTop: '1px solid #F1F5F9' }}>
                     Other matches
                   </div>
                 )}
@@ -173,9 +173,9 @@ export const InventoryAutocomplete = ({
                   onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; setActiveIndex(index) }}
                   onMouseLeave={e => { if (index !== activeIndex) e.currentTarget.style.background = 'white' }}
                 >
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>📦</div>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>📦</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: '#0F172A', fontWeight: isPrefix ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: isPrefix ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {highlightText(item.name, value)}
                     </div>
                     <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2, display: 'flex', gap: 8 }}>
@@ -185,7 +185,7 @@ export const InventoryAutocomplete = ({
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{item.qty} {item.unit}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.qty} {item.unit}</div>
                     <span style={{ fontSize: 10, fontWeight: 600, color: statusBadge.color, background: statusBadge.color + '18', padding: '1px 6px', borderRadius: 999 }}>
                       {statusBadge.label}
                     </span>
@@ -194,7 +194,7 @@ export const InventoryAutocomplete = ({
               </div>
             )
           })}
-          <div style={{ padding: '6px 12px', fontSize: 11, color: '#94A3B8', background: '#F8FAFC', borderTop: '1px solid #F1F5F9', display: 'flex', gap: 12 }}>
+          <div style={{ padding: '6px 12px', fontSize: 11, color: '#94A3B8', background: 'var(--bg-main)', borderTop: '1px solid #F1F5F9', display: 'flex', gap: 12 }}>
             <span>↑↓ Navigate</span><span>Enter to select</span><span>Esc to close</span>
           </div>
         </div>
@@ -256,14 +256,14 @@ export const CategoryAutocomplete = ({ value, onChange, categories, onAddCategor
             }
           }
         }}
-        style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
+        style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
       />
       <ChevronDown size={14} color="#64748B" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       {showDropdown && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 200, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 200, overflowY: 'auto' }}>
           <div
             onClick={() => { onChange('all'); setInputValue(''); setShowDropdown(false) }}
-            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A', borderBottom: '1px solid #F1F5F9' }}
+            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)', borderBottom: '1px solid #F1F5F9' }}
             onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
@@ -273,7 +273,7 @@ export const CategoryAutocomplete = ({ value, onChange, categories, onAddCategor
             <div
               key={cat}
               onClick={() => { onChange(cat); setInputValue(cat); setShowDropdown(false) }}
-              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A' }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)' }}
               onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
@@ -300,7 +300,7 @@ export const FilterSelect = ({ value, onChange, options }) => (
   <select
     value={value}
     onChange={e => onChange(e.target.value)}
-    style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, color: '#374151', background: 'white', cursor: 'pointer', outline: 'none', minWidth: 140 }}
+    style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: '#374151', background: 'var(--bg-card)', cursor: 'pointer', outline: 'none', minWidth: 140 }}
   >
     {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
   </select>
@@ -366,16 +366,16 @@ export const FormAutocomplete = ({ value, onChange, options, onAddOption, placeh
             }
           }
         }}
-        style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
+        style={{ width: '100%', height: 40, padding: '0 12px', paddingRight: 30, borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, outlineColor: '#2563EB', boxSizing: 'border-box' }}
       />
       <ChevronDown size={14} color="#64748B" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       {showDropdown && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 200, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 200, overflowY: 'auto' }}>
           {filtered.map(opt => (
             <div
               key={opt}
               onClick={() => { onChange(opt); setInputValue(opt); setShowDropdown(false) }}
-              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: '#0F172A' }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)' }}
               onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >

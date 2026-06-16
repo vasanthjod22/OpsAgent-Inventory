@@ -41,7 +41,7 @@ export default function SummaryCard({ id, icon: Icon, title, value, trend, trend
       <div style={{ marginTop: '16px' }}>
         <div style={{
           fontSize: '28px', fontWeight: 700,
-          color: '#0F172A',
+          color: 'var(--text-primary)',
           letterSpacing: '-0.5px',
           lineHeight: 1.1,
           fontFamily: "'Inter', sans-serif",
@@ -49,7 +49,7 @@ export default function SummaryCard({ id, icon: Icon, title, value, trend, trend
         }}>
           {value}
         </div>
-        <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
           {title}
         </div>
       </div>
