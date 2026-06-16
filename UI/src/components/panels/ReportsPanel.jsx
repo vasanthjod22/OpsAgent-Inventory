@@ -19,6 +19,8 @@ import CustomerReport from './CustomerReport'
 import ProductReport from './ProductReport'
 import BillingReport from './BillingReport'
 import DemandAnalysis from './DemandAnalysis'
+
+import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 /* ─── Helpers ─────────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => {
@@ -573,7 +575,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                             <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                           ))}
                         </Pie>
-                        <RechartsTooltip formatter={(value) => fmt(value)} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        <RechartsTooltip wrapperClassName="glass-tooltip" formatter={(value) => fmt(value)} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -589,7 +591,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                         <XAxis dataKey="category" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
-                        <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        <RechartsTooltip wrapperClassName="glass-tooltip" cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
                         <Bar {...ANIMATION_DEFAULTS} dataKey="totalQty" name="Total Qty" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         <Bar {...ANIMATION_DEFAULTS} dataKey="soldQty" name="Sold Qty" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />

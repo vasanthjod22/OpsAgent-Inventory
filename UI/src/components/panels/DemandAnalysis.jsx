@@ -10,6 +10,8 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import ExportButton from '../ui/ExportButton'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 
+import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
+
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false }
 const tooltipStyle = {

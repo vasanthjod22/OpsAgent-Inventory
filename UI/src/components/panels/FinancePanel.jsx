@@ -8,6 +8,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import SummaryCard from '../SummaryCard'
 import { useAppStore } from '../../store/appStore'
 
+import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
+
 const COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2']
 
 export default function FinancePanel() {

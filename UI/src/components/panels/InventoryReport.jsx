@@ -11,6 +11,8 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import ExportButton from '../ui/ExportButton'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 
+import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
+
 const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6']
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false }

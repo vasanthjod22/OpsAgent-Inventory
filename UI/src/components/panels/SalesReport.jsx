@@ -11,6 +11,8 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 import ExportButton from '../ui/ExportButton'
 
+import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
+
 // Common Chart Styling
 const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6'];
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false };
@@ -204,7 +206,7 @@ export default function SalesReport({ onBack }) {
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="date" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                  <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} />
+                  <RechartsTooltip wrapperClassName="glass-tooltip" {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} />
                   <Line {...ANIMATION_DEFAULTS} type="monotone" dataKey="revenue" stroke="#38BDF8" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { fill: '#38BDF8', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -219,7 +221,7 @@ export default function SalesReport({ onBack }) {
                     <CartesianGrid {...gridStyle} />
                     <XAxis dataKey="category" {...axisStyle} tick={{ fontSize: 11, fill: '#64748B' }} interval={0} angle={-30} textAnchor="end" height={60} />
                     <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                    <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} cursor={{ fill: '#F1F5F9' }} />
+                    <RechartsTooltip wrapperClassName="glass-tooltip" {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} cursor={{ fill: '#F1F5F9' }} />
                     <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
                       {data.byCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Bar>
@@ -235,7 +237,7 @@ export default function SalesReport({ onBack }) {
                     <CartesianGrid {...gridStyle} horizontal={false}/>
                     <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" width={120} {...axisStyle} tick={{ fontSize: 11, fill: '#374151', fontWeight: 500 }} />
-                    <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v) => [formatCurrency(v), 'Revenue']} />
+                    <RechartsTooltip wrapperClassName="glass-tooltip" {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v) => [formatCurrency(v), 'Revenue']} />
                     <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" radius={[0,4,4,0]} maxBarSize={28}>
                       {data.topProducts.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Bar>
@@ -261,7 +263,7 @@ export default function SalesReport({ onBack }) {
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <RechartsTooltip {...tooltipStyle} formatter={(v) => formatCurrency(v)} />
+                    <RechartsTooltip wrapperClassName="glass-tooltip" {...tooltipStyle} formatter={(v) => formatCurrency(v)} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
