@@ -170,12 +170,12 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
   return (
     <div
       className={sliding ? 'animate-slideUp' : ''}
-      style={{ display: 'flex', minHeight: '100vh', width: '100vw', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}
+      style={{ display: 'flex', minHeight: '100vh', width: '100vw', fontFamily: "'Outfit', sans-serif", overflow: 'hidden' }}
     >
       {/* ── Left Dark Panel ── */}
       <div
-        className="hidden md:flex flex-col justify-center auth-panel-transition"
-        style={{ width: '40%', background: leftPanel.bg, padding: '60px', position: 'relative', overflow: 'hidden' }}
+        className={`hidden md:flex flex-col justify-center auth-panel-transition ${leftPanel.mode === 'default' ? 'bg-mesh-premium' : ''}`}
+        style={{ width: '40%', background: leftPanel.mode !== 'default' ? leftPanel.bg : undefined, padding: '60px', position: 'relative', overflow: 'hidden' }}
       >
         {/* Sparkles for signup success */}
         {leftPanel.mode === 'signupSuccess' && sparkles.map(s => (
@@ -449,7 +449,7 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
           cursor: (phase === 'loading' || phase === 'typing') ? 'not-allowed' : 'pointer',
           boxShadow: '0 4px 12px rgba(37,99,235,0.2)', marginBottom: '24px',
           transition: 'background 0.3s ease',
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "'Outfit', sans-serif",
         }}
       >
         {phase === 'loading' ? (
@@ -483,7 +483,7 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
         type="button" onClick={handleDemo}
         disabled={phase !== 'idle'}
         className="btn-press"
-        style={{ width: '100%', height: '44px', background: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '8px', border: '1px solid var(--border)', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: phase !== 'idle' ? 'not-allowed' : 'pointer', marginBottom: '24px', fontFamily: "'Inter', sans-serif" }}
+        style={{ width: '100%', height: '44px', background: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '8px', border: '1px solid var(--border)', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: phase !== 'idle' ? 'not-allowed' : 'pointer', marginBottom: '24px', fontFamily: "'Outfit', sans-serif" }}
       >
         <Zap size={16} color="#F59E0B" /> Try Demo Account
       </button>
@@ -758,7 +758,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
         type="submit"
         disabled={!isReady || phase !== 'idle'}
         className="btn-press"
-        style={{ width: '100%', height: '44px', background: (!isReady || phase !== 'idle') ? '#94A3B8' : '#2563EB', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '14px', cursor: (!isReady || phase !== 'idle') ? 'not-allowed' : 'pointer', marginBottom: '20px', transition: 'background 0.2s', fontFamily: "'Inter', sans-serif" }}
+        style={{ width: '100%', height: '44px', background: (!isReady || phase !== 'idle') ? '#94A3B8' : '#2563EB', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '14px', cursor: (!isReady || phase !== 'idle') ? 'not-allowed' : 'pointer', marginBottom: '20px', transition: 'background 0.2s', fontFamily: "'Outfit', sans-serif" }}
       >
         {phase === 'loading' ? (
           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>

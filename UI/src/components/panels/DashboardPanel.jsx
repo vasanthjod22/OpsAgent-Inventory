@@ -12,6 +12,7 @@ import {
 import { backendFetch } from '../../utils/backend'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 import { CHART_COLORS, CHART_DEFAULTS, tooltipStyle, gridStyle, axisStyle } from '../../utils/chartTheme'
+import AnimatedNumber from '../ui/AnimatedNumber'
 
 export default function DashboardPanel({ onNavigate }) {
   
@@ -167,44 +168,44 @@ export default function DashboardPanel({ onNavigate }) {
 
     const kpiData = [
       { 
-        title: "Total Sales", val: formatCurrency(kpis.totalSalesAllTime), sub: "Lifetime revenue", 
+        title: "Total Sales", val: <AnimatedNumber value={kpis.totalSalesAllTime} formatter={formatCurrency} />, sub: "Lifetime revenue", 
         icon: TrendingUp, color: '#2563EB', 
         change: null
       },
       { 
-        title: "Today's Sales", val: formatCurrency(kpis.todaySales), sub: "Revenue today", 
+        title: "Today's Sales", val: <AnimatedNumber value={kpis.todaySales} formatter={formatCurrency} />, sub: "Revenue today", 
         icon: TrendingUp, color: '#16A34A', 
         change: kpis.todaySalesChange !== undefined ? { pct: kpis.todaySalesChange } : null
       },
       { 
-        title: "Today's Profit", val: formatCurrency(kpis.todayProfit), sub: "Profit today", 
+        title: "Today's Profit", val: <AnimatedNumber value={kpis.todayProfit} formatter={formatCurrency} />, sub: "Profit today", 
         icon: DollarSign, color: '#2563EB', 
         change: kpis.todayProfitChange !== undefined ? { pct: kpis.todayProfitChange } : null
       },
       { 
-        title: "Pending Bills", val: kpis.pendingBills?.count || 0, sub: "Awaiting payment", 
+        title: "Pending Bills", val: <AnimatedNumber value={kpis.pendingBills?.count || 0} />, sub: "Awaiting payment", 
         valSub: `(${formatCurrency(kpis.pendingBills?.amount)})`,
         icon: FileText, color: '#D97706', onClick: () => onNavigate('billing')
       },
       { 
-        title: "Pending POs", val: kpis.pendingPOs || 0, sub: "Orders pending", 
+        title: "Pending POs", val: <AnimatedNumber value={kpis.pendingPOs || 0} />, sub: "Orders pending", 
         icon: ShoppingCart, color: '#9333EA', onClick: () => onNavigate('purchase_orders')
       },
       { 
-        title: "Low Stock Products", val: kpis.lowStock || 0, sub: "Below reorder level", 
+        title: "Low Stock Products", val: <AnimatedNumber value={kpis.lowStock || 0} />, sub: "Below reorder level", 
         icon: AlertTriangle, color: '#DC2626', onClick: () => { sessionStorage.setItem('inventory_filter', 'low'); onNavigate('inventory') }
       },
       { 
-        title: "Customer Due Amount", val: formatCurrency(kpis.customerDue), sub: "Outstanding receivables", 
+        title: "Customer Due Amount", val: <AnimatedNumber value={kpis.customerDue} formatter={formatCurrency} />, sub: "Outstanding receivables", 
         icon: Users, color: '#EA580C', onClick: () => onNavigate('customers')
       },
       { 
-        title: "Today's Orders", val: kpis.todayOrders || 0, sub: "Bills created today", 
+        title: "Today's Orders", val: <AnimatedNumber value={kpis.todayOrders || 0} />, sub: "Bills created today", 
         icon: Package, color: '#0891B2', 
         change: kpis.todayOrdersChange !== undefined ? { pct: kpis.todayOrdersChange } : null
       },
       { 
-        title: "Total Customers", val: kpis.totalCustomers || 0, sub: "Registered customers", 
+        title: "Total Customers", val: <AnimatedNumber value={kpis.totalCustomers || 0} />, sub: "Registered customers", 
         icon: UserCheck, color: '#4F46E5', onClick: () => onNavigate('customers'),
         change: kpis.newCustomersThisWeek !== undefined ? { pct: kpis.newCustomersThisWeek, label: 'new this week' } : null
       }
@@ -340,15 +341,15 @@ export default function DashboardPanel({ onNavigate }) {
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total Sales</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#16A34A' }}>{formatCurrency(kpis.todaySales)}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#16A34A' }}><AnimatedNumber value={kpis.todaySales} formatter={formatCurrency} /></div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Cash Received</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#D97706' }}>{formatCurrency(kpis.todayPaymentMap?.['Cash']?.value || 0)}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#D97706' }}><AnimatedNumber value={kpis.todayPaymentMap?.['Cash']?.value || 0} formatter={formatCurrency} /></div>
             </div>
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>UPI / Online</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0284C7' }}>{formatCurrency((kpis.todayPaymentMap?.['UPI']?.value || 0) + (kpis.todayPaymentMap?.['Bank']?.value || 0) + (kpis.todayPaymentMap?.['Card']?.value || 0))}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#0284C7' }}><AnimatedNumber value={(kpis.todayPaymentMap?.['UPI']?.value || 0) + (kpis.todayPaymentMap?.['Bank']?.value || 0) + (kpis.todayPaymentMap?.['Card']?.value || 0)} formatter={formatCurrency} /></div>
             </div>
           </div>
         </div>

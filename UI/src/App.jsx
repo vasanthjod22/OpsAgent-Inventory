@@ -15,6 +15,7 @@ import CustomersPanel from './components/panels/CustomersPanel'
 import ReportsPanel from './components/panels/ReportsPanel'
 import AuthPage from './components/AuthPage'
 import FloatingAIChat from './components/ui/FloatingAIChat'
+import CommandMenu from './components/ui/CommandMenu'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './hooks/storageKeys'
 import { backendFetch } from './utils/backend'
@@ -242,6 +243,9 @@ function MainDashboard({ currentUser, onLogout, showToast }) {
 
       {/* Floating AI Chat - appears on ALL pages */}
       <FloatingAIChat currentPanel={activeNav} />
+
+      {/* Global Command Menu (Ctrl+K) */}
+      <CommandMenu />
     </div>
   )
 }
