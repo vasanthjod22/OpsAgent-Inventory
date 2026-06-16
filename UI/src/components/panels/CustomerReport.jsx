@@ -361,7 +361,7 @@ export default function CustomerReport({ onBack }) {
                   <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" width={120} {...axisStyle} />
                   <Tooltip {...tooltipStyle} formatter={(value, name, props) => [`${formatCurrency(value)} (${props.payload.orders} bills)`, 'Revenue']} />
-                  <Bar dataKey="revenue" fill="#38BDF8" radius={[0,4,4,0]} barSize={20} />
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" fill="#38BDF8" radius={[0,4,4,0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -375,9 +375,9 @@ export default function CustomerReport({ onBack }) {
                   <YAxis {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-                  <Line name="New Customers" type="monotone" dataKey="newCustomers" stroke="#2563EB" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
-                  <Line name="Existing Customers" type="monotone" dataKey="existingCustomers" stroke="#10B981" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
-                  <Line name="Repeat Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} name="New Customers" type="monotone" dataKey="newCustomers" stroke="#2563EB" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} name="Existing Customers" type="monotone" dataKey="existingCustomers" stroke="#10B981" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} name="Repeat Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

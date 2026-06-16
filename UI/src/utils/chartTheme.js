@@ -16,23 +16,36 @@ export const CHART_COLORS = [
 export const CHART_DEFAULTS = {
   margin: { top: 5, right: 20, 
             left: 10, bottom: 5 },
-  style: { fontSize: 12 }
+  style: { fontSize: 12 },
+}
+
+export const ANIMATION_DEFAULTS = {
+  isAnimationActive: true,
+  animationDuration: 1500,
+  animationEasing: 'ease-out',
+  animationBegin: 200
 }
 
 // Tooltip style
 export const tooltipStyle = {
+  wrapperClassName: 'glass-tooltip',
   contentStyle: {
-    background: 'white',
-    border: '1px solid #E2E8F0',
-    borderRadius: 8,
-    color: '#0F172A',
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--text-primary)',
     fontSize: 12,
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    boxShadow: 'none',
+    padding: '12px'
   },
   labelStyle: {
-    color: '#64748B',
+    color: 'var(--text-muted)',
     marginBottom: 4,
-    fontWeight: 500
+    fontWeight: 600
+  },
+  cursor: {
+    stroke: 'var(--text-muted)',
+    strokeWidth: 1,
+    strokeDasharray: '3 3'
   }
 }
 

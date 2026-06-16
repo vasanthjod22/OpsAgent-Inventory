@@ -420,8 +420,8 @@ export default function FinancePanel() {
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#334155' }} tickFormatter={(val) => `₹${val/1000}k`} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
-                  <Bar dataKey="Revenue" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={24} />
-                  <Bar dataKey="Expenses" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="Revenue" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="Expenses" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -431,7 +431,7 @@ export default function FinancePanel() {
               {currentOverview.categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
+                    <Pie {...ANIMATION_DEFAULTS}
                       data={currentOverview.categoryData}
                       cx="50%" cy="45%"
                       innerRadius={60} outerRadius={80}

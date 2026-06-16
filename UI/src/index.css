@@ -92,7 +92,18 @@ body {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fadein { animation: fadein 0.18s ease forwards; }
+.animate-fadein { animation: fadein 0.4s ease forwards; }
+
+/* ─── Staggered Cascade Entrances ────────────────────────────────────────── */
+@keyframes cascadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cascade-1 { animation: cascadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.0s forwards; opacity: 0; }
+.cascade-2 { animation: cascadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; }
+.cascade-3 { animation: cascadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; }
+.cascade-4 { animation: cascadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; }
+.cascade-5 { animation: cascadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; opacity: 0; }
 
 /* ─── Skeleton / Shimmer ─────────────────────────────────────────────────── */
 .skeleton {
@@ -510,6 +521,31 @@ body {
 @keyframes pulse-shadow {
   0%, 100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
   50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1); }
+}
+
+/* Pulsing Active Dot for Recharts */
+@keyframes pulse-dot {
+  0% { filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)); }
+  50% { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8)); }
+  100% { filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)); }
+}
+.recharts-active-dot circle {
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* Frosted Glass Tooltip */
+.glass-tooltip {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+.dark .glass-tooltip {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 /* Premium Mesh Gradient for Auth/Landing Pages */

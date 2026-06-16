@@ -196,8 +196,8 @@ export default function BillingReport({ onBack }) {
                   <YAxis yAxisId="right" orientation="right" {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-                  <Line yAxisId="left" name="Amount" type="monotone" dataKey="amount" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
-                  <Line yAxisId="right" name="Bill Count" type="monotone" dataKey="count" stroke="#7C3AED" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} yAxisId="left" name="Amount" type="monotone" dataKey="amount" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} yAxisId="right" name="Bill Count" type="monotone" dataKey="count" stroke="#7C3AED" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -208,7 +208,7 @@ export default function BillingReport({ onBack }) {
                 <PieChart>
                   <Tooltip {...tooltipStyle} formatter={(v) => formatCurrency(v)} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-                  <Pie data={data.paymentMethods} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
+                  <Pie {...ANIMATION_DEFAULTS} data={data.paymentMethods} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
                     {data.paymentMethods.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
                 </PieChart>

@@ -559,7 +559,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                   <div style={{ height: 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
+                        <Pie {...ANIMATION_DEFAULTS}
                           data={data}
                           dataKey="totalValue"
                           nameKey="category"
@@ -591,8 +591,8 @@ export default function ReportsPanel({ showToast, refreshData }) {
                         <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
                         <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Bar dataKey="totalQty" name="Total Qty" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                        <Bar dataKey="soldQty" name="Sold Qty" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar {...ANIMATION_DEFAULTS} dataKey="totalQty" name="Total Qty" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar {...ANIMATION_DEFAULTS} dataKey="soldQty" name="Sold Qty" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

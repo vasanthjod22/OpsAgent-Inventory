@@ -175,7 +175,7 @@ export default function DemandAnalysis({ onBack }) {
                   <XAxis type="number" {...axisStyle} />
                   <YAxis dataKey="name" type="category" width={120} {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
-                  <Bar dataKey="units" fill="#2563EB" radius={[0, 4, 4, 0]} barSize={20} />
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="units" fill="#2563EB" radius={[0, 4, 4, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -188,7 +188,7 @@ export default function DemandAnalysis({ onBack }) {
                   <XAxis type="number" {...axisStyle} />
                   <YAxis dataKey="name" type="category" width={100} {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
-                  <Bar dataKey="units" fill="#DC2626" radius={[0, 4, 4, 0]} barSize={20} />
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="units" fill="#DC2626" radius={[0, 4, 4, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

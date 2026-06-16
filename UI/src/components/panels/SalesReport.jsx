@@ -205,7 +205,7 @@ export default function SalesReport({ onBack }) {
                   <XAxis dataKey="date" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} />
-                  <Line type="monotone" dataKey="revenue" stroke="#38BDF8" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { fill: '#38BDF8', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} type="monotone" dataKey="revenue" stroke="#38BDF8" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { fill: '#38BDF8', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -220,7 +220,7 @@ export default function SalesReport({ onBack }) {
                     <XAxis dataKey="category" {...axisStyle} tick={{ fontSize: 11, fill: '#64748B' }} interval={0} angle={-30} textAnchor="end" height={60} />
                     <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                     <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} cursor={{ fill: '#F1F5F9' }} />
-                    <Bar dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
+                    <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
                       {data.byCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Bar>
                   </BarChart>
@@ -236,7 +236,7 @@ export default function SalesReport({ onBack }) {
                     <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" width={120} {...axisStyle} tick={{ fontSize: 11, fill: '#374151', fontWeight: 500 }} />
                     <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v) => [formatCurrency(v), 'Revenue']} />
-                    <Bar dataKey="revenue" radius={[0,4,4,0]} maxBarSize={28}>
+                    <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" radius={[0,4,4,0]} maxBarSize={28}>
                       {data.topProducts.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Bar>
                   </BarChart>
@@ -248,7 +248,7 @@ export default function SalesReport({ onBack }) {
                 <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Payment Methods</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
-                    <Pie
+                    <Pie {...ANIMATION_DEFAULTS}
                       data={data.paymentMethods}
                       cx="50%"
                       cy="50%"

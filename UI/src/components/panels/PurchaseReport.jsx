@@ -191,7 +191,7 @@ export default function PurchaseReport({ onBack }) {
                   <XAxis dataKey="month" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Purchase Value']} />
-                  <Line type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4, fill: '#2563EB', strokeWidth: 2, stroke: 'white' }} activeDot={{ r: 6 }} />
+                  <Line {...ANIMATION_DEFAULTS} type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4, fill: '#2563EB', strokeWidth: 2, stroke: 'white' }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -204,7 +204,7 @@ export default function PurchaseReport({ onBack }) {
                   <XAxis dataKey="name" {...axisStyle} angle={-25} textAnchor="end" height={60} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Value']} />
-                  <Bar dataKey="value" radius={[4,4,0,0]}>
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="value" radius={[4,4,0,0]}>
                     {data.supplierChart.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}

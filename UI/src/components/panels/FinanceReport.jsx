@@ -245,7 +245,7 @@ export default function FinanceReport({ onBack }) {
                   <XAxis dataKey="month" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Profit']} />
-                  <Line type="monotone" dataKey="profit" stroke="#2563EB" strokeWidth={2.5} dot={(props) => {
+                  <Line {...ANIMATION_DEFAULTS} type="monotone" dataKey="profit" stroke="#2563EB" strokeWidth={2.5} dot={(props) => {
                     const { cx, cy, value, key } = props
                     return <circle key={key} cx={cx} cy={cy} r={5} fill={value >= 0 ? '#16A34A' : '#DC2626'} stroke="white" strokeWidth={2} />
                   }} />
@@ -258,7 +258,7 @@ export default function FinanceReport({ onBack }) {
               <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Expense Distribution</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
-                  <Pie
+                  <Pie {...ANIMATION_DEFAULTS}
                     data={data.expenseCategories}
                     cx="50%" cy="50%"
                     innerRadius={55} outerRadius={85}

@@ -296,7 +296,7 @@ export default function InventoryReport({ onBack }) {
                   <XAxis dataKey="category" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Stock Value']} />
-                  <Bar dataKey="value" radius={[4,4,0,0]}>
+                  <Bar {...ANIMATION_DEFAULTS} dataKey="value" radius={[4,4,0,0]}>
                     {data.categoryValue.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
@@ -334,7 +334,7 @@ export default function InventoryReport({ onBack }) {
                     <XAxis type="number" {...axisStyle} />
                     <YAxis type="category" dataKey="name" width={120} {...axisStyle} />
                     <Tooltip {...tooltipStyle} formatter={(v) => [v, 'Qty Sold']} />
-                    <Bar dataKey="qty" fill="#2563EB" radius={[0,4,4,0]} barSize={20}>
+                    <Bar {...ANIMATION_DEFAULTS} dataKey="qty" fill="#2563EB" radius={[0,4,4,0]} barSize={20}>
                       <LabelList dataKey="qty" position="right" fill="#64748B" fontSize={12} />
                     </Bar>
                   </BarChart>
@@ -355,7 +355,7 @@ export default function InventoryReport({ onBack }) {
                     <XAxis type="number" {...axisStyle} />
                     <YAxis type="category" dataKey="name" width={120} {...axisStyle} />
                     <Tooltip {...tooltipStyle} formatter={(v) => [v, 'Qty Sold']} />
-                    <Bar dataKey="qty" fill="#EF4444" radius={[0,4,4,0]} barSize={20}>
+                    <Bar {...ANIMATION_DEFAULTS} dataKey="qty" fill="#EF4444" radius={[0,4,4,0]} barSize={20}>
                       <LabelList dataKey="qty" position="right" fill="#64748B" fontSize={12} />
                     </Bar>
                   </BarChart>
