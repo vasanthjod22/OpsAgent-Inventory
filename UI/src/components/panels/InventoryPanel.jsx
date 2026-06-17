@@ -104,25 +104,6 @@ export default function InventoryPanel({ showToast }) {
   const [sortBy, setSortBy] = useState('name')
   const [stats, setStats] = useState({})
   
-  useEffect(() => {
-    setStats({
-      totalItems: allItems.length,
-      lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
-      outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
-      overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
-      totalValue: Math.round(allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0)), 0))
-    })
-  }, [allItems])
-
-  useEffect(() => {
-    setStats({
-      totalItems: allItems.length,
-      lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
-      outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
-      overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
-      totalValue: Math.round(allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0)), 0))
-    })
-  }, [allItems])
 
   const formatQty = (q) => {
     const num = Number(q)
@@ -163,6 +144,16 @@ export default function InventoryPanel({ showToast }) {
     },
     refetchInterval: 60000
   })
+
+  useEffect(() => {
+    setStats({
+      totalItems: allItems.length,
+      lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
+      outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
+      overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
+      totalValue: Math.round(allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0)), 0))
+    })
+  }, [allItems])
 
   const { data: rawInventory, isLoading: isInventoryLoading, refetch: fetchInventory } = useQuery({
     queryKey: ['inventory', pagination.currentPage, pagination.itemsPerPage, search, category, status, sortBy],
