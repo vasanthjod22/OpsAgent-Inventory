@@ -10,7 +10,6 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import ExportButton from '../ui/ExportButton'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
 const gridStyle = { strokeDasharray: '3 3', stroke: '#F1F5F9', vertical: false }
@@ -177,7 +176,7 @@ export default function DemandAnalysis({ onBack }) {
                   <XAxis type="number" {...axisStyle} />
                   <YAxis dataKey="name" type="category" width={120} {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="units" fill="#2563EB" radius={[0, 4, 4, 0]} barSize={20} />
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="units" fill="#2563EB" radius={[0, 4, 4, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -190,7 +189,7 @@ export default function DemandAnalysis({ onBack }) {
                   <XAxis type="number" {...axisStyle} />
                   <YAxis dataKey="name" type="category" width={100} {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="units" fill="#DC2626" radius={[0, 4, 4, 0]} barSize={20} />
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="units" fill="#DC2626" radius={[0, 4, 4, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

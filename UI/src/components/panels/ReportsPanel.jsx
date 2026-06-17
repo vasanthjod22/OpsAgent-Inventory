@@ -20,7 +20,6 @@ import ProductReport from './ProductReport'
 import BillingReport from './BillingReport'
 import DemandAnalysis from './DemandAnalysis'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 /* ─── Helpers ─────────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 const fmtDate = (d) => {
@@ -561,7 +560,7 @@ export default function ReportsPanel({ showToast, refreshData }) {
                   <div style={{ height: 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie {...ANIMATION_DEFAULTS}
+                        <Pie isAnimationActive={true} animationDuration={1500} animationEasing="ease-out"
                           data={data}
                           dataKey="totalValue"
                           nameKey="category"
@@ -593,8 +592,8 @@ export default function ReportsPanel({ showToast, refreshData }) {
                         <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
                         <RechartsTooltip wrapperClassName="glass-tooltip" cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Bar {...ANIMATION_DEFAULTS} dataKey="totalQty" name="Total Qty" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                        <Bar {...ANIMATION_DEFAULTS} dataKey="soldQty" name="Sold Qty" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="totalQty" name="Total Qty" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="soldQty" name="Sold Qty" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

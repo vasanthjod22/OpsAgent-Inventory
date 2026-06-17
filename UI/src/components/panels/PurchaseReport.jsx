@@ -11,7 +11,6 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import ExportButton from '../ui/ExportButton'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 
 const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6']
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
@@ -193,7 +192,7 @@ export default function PurchaseReport({ onBack }) {
                   <XAxis dataKey="month" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Purchase Value']} />
-                  <Line {...ANIMATION_DEFAULTS} type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4, fill: '#2563EB', strokeWidth: 2, stroke: 'white' }} activeDot={{ r: 6 }} />
+                  <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={3} dot={data?.trend?.length > 24 ? false : { r: 4, fill: '#2563EB', strokeWidth: 2, stroke: 'white' }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -206,7 +205,7 @@ export default function PurchaseReport({ onBack }) {
                   <XAxis dataKey="name" {...axisStyle} angle={-25} textAnchor="end" height={60} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Value']} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="value" radius={[4,4,0,0]}>
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="value" radius={[4,4,0,0]}>
                     {data.supplierChart.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}

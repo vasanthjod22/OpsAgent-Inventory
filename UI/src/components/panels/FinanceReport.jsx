@@ -13,7 +13,6 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 import ExportButton from '../ui/ExportButton'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 
 const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6']
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
@@ -247,7 +246,7 @@ export default function FinanceReport({ onBack }) {
                   <XAxis dataKey="month" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Profit']} />
-                  <Line {...ANIMATION_DEFAULTS} type="monotone" dataKey="profit" stroke="#2563EB" strokeWidth={2.5} dot={(props) => {
+                  <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" type="monotone" dataKey="profit" stroke="#2563EB" strokeWidth={2.5} dot={(props) => {
                     const { cx, cy, value, key } = props
                     return <circle key={key} cx={cx} cy={cy} r={5} fill={value >= 0 ? '#16A34A' : '#DC2626'} stroke="white" strokeWidth={2} />
                   }} />
@@ -260,7 +259,7 @@ export default function FinanceReport({ onBack }) {
               <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Expense Distribution</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
-                  <Pie {...ANIMATION_DEFAULTS}
+                  <Pie isAnimationActive={true} animationDuration={1500} animationEasing="ease-out"
                     data={data.expenseCategories}
                     cx="50%" cy="50%"
                     innerRadius={55} outerRadius={85}

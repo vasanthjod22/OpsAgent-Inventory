@@ -19,12 +19,6 @@ export const CHART_DEFAULTS = {
   style: { fontSize: 12 },
 }
 
-export const ANIMATION_DEFAULTS = {
-  isAnimationActive: true,
-  animationDuration: 1500,
-  animationEasing: 'ease-out',
-  animationBegin: 200
-}
 
 // Tooltip style
 export const tooltipStyle = {

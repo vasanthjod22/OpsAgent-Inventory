@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
-import { CHART_COLORS, CHART_DEFAULTS, tooltipStyle, gridStyle, axisStyle , ANIMATION_DEFAULTS } from '../../utils/chartTheme'
+import { CHART_COLORS, CHART_DEFAULTS, tooltipStyle, gridStyle, axisStyle  } from '../../utils/chartTheme'
 import AnimatedNumber from '../ui/AnimatedNumber'
 
 export default function DashboardPanel({ onNavigate }) {
@@ -377,8 +377,8 @@ export default function DashboardPanel({ onNavigate }) {
               <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
               <RechartsTooltip {...tooltipStyle} formatter={(v, n) => [n === 'Sales Revenue' ? formatCurrency(v) : v, n]} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-              <Line {...ANIMATION_DEFAULTS} name="Sales Revenue" type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} dot={salesTrend?.length > 24 ? false : { fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
-              <Line {...ANIMATION_DEFAULTS} name="Total Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={2} dot={salesTrend?.length > 24 ? false : { fill: '#7C3AED', r: 3 }} strokeDasharray="5 5" yAxisId="right" />
+              <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" name="Sales Revenue" type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} dot={salesTrend?.length > 24 ? false : { fill: '#2563EB', r: 4 }} activeDot={{ r: 6 }} />
+              <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" name="Total Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={2} dot={salesTrend?.length > 24 ? false : { fill: '#7C3AED', r: 3 }} strokeDasharray="5 5" yAxisId="right" />
               <YAxis yAxisId="right" orientation="right" {...axisStyle} tickLine={false} axisLine={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -402,7 +402,7 @@ export default function DashboardPanel({ onNavigate }) {
               <XAxis dataKey="category" {...axisStyle} tick={{ fontSize: 11, fill: '#64748B' }} interval={0} angle={-30} textAnchor="end" height={60} />
               <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
               <RechartsTooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} cursor={{ fill: '#F1F5F9' }} />
-              <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
+              <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="revenue" radius={[4,4,0,0]} maxBarSize={40}>
                 {categorySales.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Bar>
             </BarChart>
@@ -419,7 +419,7 @@ export default function DashboardPanel({ onNavigate }) {
             <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(2)}k`} />
             <YAxis type="category" dataKey="name" width={180} {...axisStyle} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
             <RechartsTooltip {...tooltipStyle} cursor={{ fill: '#F1F5F9' }} formatter={(v, n) => [n === 'Revenue' ? formatCurrency(v) : v, n]} />
-            <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" name="Revenue" radius={[0,4,4,0]} maxBarSize={28}>
+            <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="revenue" name="Revenue" radius={[0,4,4,0]} maxBarSize={28}>
               {topProducts.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
             </Bar>
           </BarChart>

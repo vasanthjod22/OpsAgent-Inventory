@@ -8,7 +8,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import SummaryCard from '../SummaryCard'
 import { useAppStore } from '../../store/appStore'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 
 const COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2']
 
@@ -422,8 +421,8 @@ export default function FinancePanel() {
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#334155' }} tickFormatter={(val) => `₹${val/1000}k`} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="Revenue" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={24} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="Expenses" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="Revenue" fill="#2563EB" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="Expenses" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -433,7 +432,7 @@ export default function FinancePanel() {
               {currentOverview.categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie {...ANIMATION_DEFAULTS}
+                    <Pie isAnimationActive={true} animationDuration={1500} animationEasing="ease-out"
                       data={currentOverview.categoryData}
                       cx="50%" cy="45%"
                       innerRadius={60} outerRadius={80}

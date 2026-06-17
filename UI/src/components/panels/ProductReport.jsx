@@ -10,7 +10,6 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import ExportButton from '../ui/ExportButton'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 
 const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6']
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
@@ -201,7 +200,7 @@ export default function ProductReport({ onBack }) {
                   <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" width={120} {...axisStyle} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" fill="#38BDF8" radius={[0,4,4,0]} barSize={20} />
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="revenue" fill="#38BDF8" radius={[0,4,4,0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -214,7 +213,7 @@ export default function ProductReport({ onBack }) {
                   <XAxis dataKey="category" {...axisStyle} angle={-25} textAnchor="end" height={60} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Revenue']} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" radius={[4,4,0,0]}>
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="revenue" radius={[4,4,0,0]}>
                     {data.categoryRevenue.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}

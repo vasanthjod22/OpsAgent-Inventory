@@ -11,7 +11,6 @@ import { exportToPDF, exportToExcel } from '../../utils/exportUtils'
 import ExportButton from '../ui/ExportButton'
 import DateRangePicker, { getDateRange } from '../ui/DateRangePicker'
 
-import { ANIMATION_DEFAULTS } from '../../utils/chartTheme';
 
 const CHART_COLORS = ['#38BDF8', '#8B5CF6', '#2563EB', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#14B8A6']
 const axisStyle = { tick: { fontSize: 12, fill: '#64748B' }, axisLine: { stroke: '#E2E8F0' }, tickLine: false }
@@ -363,7 +362,7 @@ export default function CustomerReport({ onBack }) {
                   <XAxis type="number" {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" width={120} {...axisStyle} />
                   <Tooltip {...tooltipStyle} formatter={(value, name, props) => [`${formatCurrency(value)} (${props.payload.orders} bills)`, 'Revenue']} />
-                  <Bar {...ANIMATION_DEFAULTS} dataKey="revenue" fill="#38BDF8" radius={[0,4,4,0]} barSize={20} />
+                  <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="revenue" fill="#38BDF8" radius={[0,4,4,0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -377,9 +376,9 @@ export default function CustomerReport({ onBack }) {
                   <YAxis {...axisStyle} />
                   <Tooltip {...tooltipStyle} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--text-muted)' }} />
-                  <Line {...ANIMATION_DEFAULTS} name="New Customers" type="monotone" dataKey="newCustomers" stroke="#2563EB" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
-                  <Line {...ANIMATION_DEFAULTS} name="Existing Customers" type="monotone" dataKey="existingCustomers" stroke="#10B981" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
-                  <Line {...ANIMATION_DEFAULTS} name="Repeat Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" name="New Customers" type="monotone" dataKey="newCustomers" stroke="#2563EB" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" name="Existing Customers" type="monotone" dataKey="existingCustomers" stroke="#10B981" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
+                  <Line isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" name="Repeat Orders" type="monotone" dataKey="orders" stroke="#7C3AED" strokeWidth={3} dot={data?.monthlyTrend?.length > 24 ? false : { r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
