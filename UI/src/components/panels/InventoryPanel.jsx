@@ -190,7 +190,7 @@ export default function InventoryPanel({ showToast }) {
     refetchInterval: 60000
   })
 
-  const { data: units = ['Nos', 'Kg', 'Ltrs', 'Set', 'Metre', 'Sqft'] } = useQuery({
+  const { data: units = ['Nos', 'Kg', 'Ltrs', 'Set', 'Metre', 'Sqft'], refetch: fetchUnits } = useQuery({
     queryKey: ['units'],
     queryFn: async () => {
       const data = await backendFetch('/inventory/units')
