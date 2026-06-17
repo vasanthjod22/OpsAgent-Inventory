@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Edit2, Download, Search, Plus, X, FileText, CheckCircle } from 'lucide-react'
+import { Edit2, Download, Search, Plus, X, FileText, CheckCircle, Clock, FileCheck, Receipt } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import AutocompleteInput from '../AutocompleteInput'
 import { useAppStore } from '../../store/appStore'
@@ -507,7 +507,7 @@ export default function QuotationPanel({ onNavigate }) {
   }
 
   const editBQ = (bq) => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' })
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setForm({
       id: bq.id,
       customerName: bq.customer_name || '', customerPhone: bq.customer_phone || '',

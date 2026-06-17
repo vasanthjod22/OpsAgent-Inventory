@@ -96,7 +96,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
   };
 
   const handleCreateNew = () => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setPoNumber(generatePONumber());
     setSupplierName('');
     setSupplierPhone('');
@@ -165,7 +165,7 @@ export default function PurchaseOrdersPanel({ refreshData }) {
   };
 
   const handleDelete = async (id) => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (!confirm('Are you sure you want to delete this PO?')) return;
     try {
       await backendFetch(`/purchase-orders/${id}`, {

@@ -477,7 +477,7 @@ export default function DashboardPanel({ onNavigate }) {
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Recent Activity</h3>
-            <button onClick={() => fetchActivities()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+            <button onClick={() => refetchAct()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><RefreshCw size={14} /></button>
           </div>
           <div style={{ padding: '20px', flex: 1, overflowY: 'auto', maxHeight: 400 }}>
             {activities.length === 0 ? (

@@ -1834,7 +1834,7 @@ function BillingPanelBase({ showToast, onNavigate }) {
     const bill = buildBillData()
 
     setShowProcessing(true)
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' })
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
     try {
       // Check for inventory items to deduct

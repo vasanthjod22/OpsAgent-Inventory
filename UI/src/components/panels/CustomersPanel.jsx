@@ -1059,7 +1059,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
   }
 
   const handleDelete = async (customer) => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (customer.bills.length > 0) {
       showToast('Cannot delete a customer with existing bills', 'error')
       return
@@ -1122,7 +1122,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
       <CustomerDetail
         customer={detailLive}
         onBack={() => setDetailCustomer(null)}
-        onEdit={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setEditingCustomer(detailLive); setShowModal(true) }}
+        onEdit={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setEditingCustomer(detailLive); setShowModal(true) }}
         onNavigate={onNavigate}
         showToast={showToast}
         companyName={companySettings.name}
@@ -1190,7 +1190,7 @@ export default function CustomersPanel({ showToast, onNavigate }) {
               ))}
             </div>
             {/* Add Customer */}
-            <Btn onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setEditingCustomer(null); setShowModal(true) }} icon={Plus} variant="primary">Add Customer</Btn>
+            <Btn onClick={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setEditingCustomer(null); setShowModal(true) }} icon={Plus} variant="primary">Add Customer</Btn>
           </div>
         </div>
 
