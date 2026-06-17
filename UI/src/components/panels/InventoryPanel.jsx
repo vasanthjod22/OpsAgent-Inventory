@@ -222,7 +222,7 @@ export default function InventoryPanel({ showToast }) {
 
   // Action Handlers
   const handleEditClick = (item) => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setNewItem({ ...item, gst: item.gst ?? '18' })
     setEditingItemId(item.id)
     setAdding(true)
@@ -269,7 +269,7 @@ export default function InventoryPanel({ showToast }) {
   }
 
   const handleDelete = (item) => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setConfirmModal({
       title: 'Delete Item',
       message: `Are you sure you want to completely delete ${item.name}?`,
@@ -289,7 +289,7 @@ export default function InventoryPanel({ showToast }) {
   }
 
   const handleDeleteGrn = (grn) => {
-    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setConfirmModal({
       title: 'Delete GRN',
       message: `Are you sure you want to delete the GRN from ${grn.supplier} and reverse its inventory updates?`,
@@ -605,16 +605,16 @@ export default function InventoryPanel({ showToast }) {
             <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '4px 10px', borderRadius: 99, fontSize: 13, fontWeight: 700 }}>{activePagination.totalItems} items</span>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setGrnExpanded(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#EFF6FF', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setGrnExpanded(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#EFF6FF', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Upload GRN
             </button>
-            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setShowImport(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'var(--bg-card)', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setShowImport(true); }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'var(--bg-card)', color: '#2563EB', border: '1.5px solid #2563EB', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Download size={16} /> Import CSV
             </button>
             <button onClick={() => exportCSV(items)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'var(--bg-card)', color: '#16A34A', border: '1.5px solid #16A34A', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Export CSV
             </button>
-            <button onClick={() => { document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' }); setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', total_qty: '', qty: '', unit: prev?.unit || '', min: '', max: '', cost_price: '', rate: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', total_qty: '', qty: '', unit: prev?.unit || '', min: '', max: '', cost_price: '', rate: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Plus size={16} /> Add Item
             </button>
           </div>
