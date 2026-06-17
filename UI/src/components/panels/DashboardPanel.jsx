@@ -274,7 +274,7 @@ export default function DashboardPanel({ onNavigate }) {
           { label: 'Add Product', icon: Box, onClick: () => onNavigate('inventory') },
           { label: 'Create PO', icon: ShoppingCart, onClick: () => onNavigate('purchase_orders') },
           { label: 'Record Expense', icon: MoneyIcon, onClick: () => setShowExpenseModal(true) },
-          { label: 'Create Quotation', icon: FileSignature, onClick: () => onNavigate('quotations') }
+          { label: 'Create Quotation', icon: FileSignature, onClick: () => onNavigate('quotation') }
         ].map((btn, i) => (
           <button 
             key={i} onClick={btn.onClick}
