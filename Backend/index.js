@@ -1,15 +1,4 @@
 require('dotenv').config();
-const Sentry = require("@sentry/node");
-const { nodeProfilingIntegration } = require("@sentry/profiling-node");
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  integrations: [
-    nodeProfilingIntegration(),
-  ],
-  tracesSampleRate: 1.0,
-  profilesSampleRate: 1.0,
-});
 
 const express = require('express');
 const cors = require('cors');
@@ -112,7 +101,6 @@ app.use((req, res) => {
 });
 
 // ─── Global Error Handler ───────────────────────────────────
-Sentry.setupExpressErrorHandler(app);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
