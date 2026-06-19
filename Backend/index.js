@@ -1,8 +1,21 @@
 require('dotenv').config();
+const Sentry = require("@sentry/node");
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  profilesSampleRate: 1.0,
+});
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 const supabase = require('./data/supabaseClient');
 const { auth } = require('./middleware/auth');
 
@@ -29,6 +42,7 @@ const initRoutes       = require('./routes/init');
 
 // ─── Middleware ─────────────────────────────────────────────
 app.use(helmet());
+app.use(morgan('combined'));
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -98,6 +112,8 @@ app.use((req, res) => {
 });
 
 // ─── Global Error Handler ───────────────────────────────────
+Sentry.setupExpressErrorHandler(app);
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message || 'Internal server error' });

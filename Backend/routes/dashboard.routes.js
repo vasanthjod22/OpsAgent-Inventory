@@ -3,6 +3,7 @@ const express = require('express');
 const supabase = require('../data/supabaseClient');
 const { auth } = require('../middleware/auth');
 const { AnalyticsService } = require('../services/analytics.service');
+const CacheService = require('../services/cache.service');
 
 const router = express.Router();
 
@@ -13,6 +14,13 @@ router.get('/kpis', auth, async (req, res) => {
     const todayStr = today.toISOString().split('T')[0];
     const yesterdayStr = new Date(today.getTime() - 86400000).toISOString().split('T')[0];
     const weekAgoStr = new Date(today.getTime() - 7 * 86400000).toISOString().split('T')[0];
+
+    const cacheKey = `dashboard:kpis:${userId}:${todayStr}`;
+    const cachedData = await CacheService.get(cacheKey);
+    
+    if (cachedData) {
+      return res.json(cachedData);
+    }
 
     const todayMetrics = await AnalyticsService.getCoreMetrics(userId, todayStr, todayStr);
     const yesterdayMetrics = await AnalyticsService.getCoreMetrics(userId, yesterdayStr, yesterdayStr);
@@ -29,7 +37,7 @@ router.get('/kpis', auth, async (req, res) => {
 
     const totalSalesAllTime = allPaidBills?.reduce((s, b) => s + Number(b.grand_total || 0), 0) || 0;
 
-    res.json({
+    const responseData = {
       success: true,
       todaySales: todayMetrics.totalRevenue,
       todaySalesChange: yesterdayMetrics.totalRevenue > 0 ? ((todayMetrics.totalRevenue - yesterdayMetrics.totalRevenue) / yesterdayMetrics.totalRevenue) * 100 : 0,
@@ -49,7 +57,12 @@ router.get('/kpis', auth, async (req, res) => {
       newCustomersThisWeek: customerMetrics.newCustomers,
       totalSalesAllTime,
       todayPaymentMap: todayMetrics.paymentMap
-    });
+    };
+
+    // Cache for 5 minutes (300 seconds)
+    await CacheService.set(cacheKey, responseData, 300);
+
+    res.json(responseData);
   } catch (err) {
     console.error('Dashboard KPIs Error:', err);
     res.status(500).json({ error: err.message });
