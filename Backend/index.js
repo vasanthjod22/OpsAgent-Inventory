@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const supabase = require('./data/supabaseClient');
 const { auth } = require('./middleware/auth');
 
@@ -26,11 +28,21 @@ const PORT = process.env.PORT || 3001;
 const initRoutes       = require('./routes/init');
 
 // ─── Middleware ─────────────────────────────────────────────
+app.use(helmet());
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-groq-api-key'],
 }));
+
+// Global Rate Limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per window
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api', globalLimiter);
+
 app.use(express.json({ limit: '10mb' }));  // 10mb for base64 image uploads
 app.use(express.urlencoded({ extended: true }));
 
