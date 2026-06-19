@@ -212,8 +212,9 @@ export const CategoryAutocomplete = ({ value, onChange, categories, onAddCategor
     setInputValue(value === 'all' ? '' : value)
   }, [value])
 
-  const filtered = categories.filter(c => c.toLowerCase().includes(inputValue.toLowerCase()))
-  const isExactMatch = categories.some(c => c.toLowerCase() === inputValue.trim().toLowerCase())
+  const safeCategories = categories || []
+  const filtered = safeCategories.filter(c => c.toLowerCase().includes(inputValue.toLowerCase()))
+  const isExactMatch = safeCategories.some(c => c.toLowerCase() === inputValue.trim().toLowerCase())
 
   useEffect(() => {
     const handleOutside = (e) => {
@@ -322,8 +323,9 @@ export const FormAutocomplete = ({ value, onChange, options, onAddOption, placeh
     setInputValue(value || '')
   }, [value])
 
-  const filtered = options.filter(o => o.toLowerCase().includes(inputValue.toLowerCase()))
-  const isExactMatch = options.some(o => o.toLowerCase() === inputValue.trim().toLowerCase())
+  const safeOptions = options || []
+  const filtered = safeOptions.filter(o => o.toLowerCase().includes(inputValue.toLowerCase()))
+  const isExactMatch = safeOptions.some(o => o.toLowerCase() === inputValue.trim().toLowerCase())
 
   useEffect(() => {
     const handleOutside = (e) => {
