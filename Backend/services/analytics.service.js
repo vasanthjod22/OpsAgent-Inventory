@@ -248,9 +248,11 @@ class AnalyticsService {
   }
 
   /**
-   * Centralized method for Inventory Value and Status
+   * Centralized method for Inventory Value and Status.
+   * When asOfDate is provided, reconstructs historical stock via:
+   *   historicalQty = currentQty + (salesQtyAfterDate) - (purchasesQtyAfterDate)
    */
-  static async getInventoryStatus(userId, rawInventory = null) {
+  static async getInventoryStatus(userId, rawInventory = null, asOfDate = null) {
     try {
       let inventoryData = rawInventory;
       if (!inventoryData) {
@@ -261,16 +263,59 @@ class AnalyticsService {
         inventoryData = data || [];
       }
 
+      // ── Time-Travel: build qty-delta maps for items sold/purchased AFTER asOfDate ──
+      let salesAfterMap = {};    // itemName → qty sold after asOfDate
+      let purchasesAfterMap = {}; // itemName → qty purchased after asOfDate
+
+      if (asOfDate) {
+        // Bills sold AFTER asOfDate (these reduced current stock; we add them back)
+        const { data: futureBills } = await supabase
+          .from('bills')
+          .select('items')
+          .eq('user_id', userId)
+          .gt('date', asOfDate);
+
+        (futureBills || []).forEach(bill => {
+          (bill.items || []).forEach(item => {
+            const name = (item.description || '').toLowerCase();
+            const qty  = this.safeNumber(item.quantity);
+            salesAfterMap[name] = (salesAfterMap[name] || 0) + qty;
+          });
+        });
+
+        // GRN purchases AFTER asOfDate (these increased current stock; we subtract them)
+        const { data: futureGrns } = await supabase
+          .from('grn')
+          .select('items')
+          .eq('user_id', userId)
+          .eq('inventory_updated', true)
+          .gt('date', asOfDate);
+
+        (futureGrns || []).forEach(grn => {
+          (grn.items || []).forEach(item => {
+            const name = (item.description || '').toLowerCase();
+            const qty  = this.safeNumber(item.quantity);
+            purchasesAfterMap[name] = (purchasesAfterMap[name] || 0) + qty;
+          });
+        });
+      }
+
       let totalInventoryValue = 0;
       let lowStockCount = 0;
       let outOfStockCount = 0;
 
       inventoryData.forEach(item => {
-        const qty = this.safeNumber(item.qty);
+        let qty = this.safeNumber(item.qty);
         const rate = this.safeNumber(item.rate);
-        const min = this.safeNumber(item.min);
+        const min  = this.safeNumber(item.min);
 
-        totalInventoryValue += (qty * rate); // Value is typically calculated on Selling Price/Rate, but can also be Cost Price. We standardize on Rate here based on UI.
+        if (asOfDate) {
+          const name = (item.name || '').toLowerCase();
+          qty = qty + (salesAfterMap[name] || 0) - (purchasesAfterMap[name] || 0);
+          qty = Math.max(0, qty); // never go negative in historical view
+        }
+
+        totalInventoryValue += (qty * rate);
         if (qty === 0) outOfStockCount++;
         else if (qty <= min) lowStockCount++;
       });

@@ -58,6 +58,16 @@ const PageBtn = ({ children, active, disabled, onClick }) => (
 );
 
 export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange, onLimitChange }) => {
+  const [jumpValue, setJumpValue] = useState('');
+
+  const handleJump = () => {
+    const p = parseInt(jumpValue);
+    if (!isNaN(p) && p >= 1 && p <= totalPages) {
+      onPageChange(p);
+      setJumpValue('');
+    }
+  };
+
   const getPageNumbers = () => {
     const pages = [];
     if (totalPages <= 7) {
@@ -80,7 +90,7 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
   if (totalItems === 0) return null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
       <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
         Showing {startItem}–{endItem} of <strong>{totalItems}</strong> items
       </span>
@@ -97,7 +107,7 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
         <PageBtn onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>›</PageBtn>
         <PageBtn onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>»</PageBtn>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Per page:</span>
         <select
           value={itemsPerPage}
@@ -106,6 +116,23 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
         >
           {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
         </select>
+        <span style={{ fontSize: 13, color: 'var(--text-primary)', marginLeft: 4 }}>Go to:</span>
+        <input
+          type="number"
+          min={1}
+          max={totalPages}
+          value={jumpValue}
+          onChange={e => setJumpValue(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleJump()}
+          style={{ width: 52, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, textAlign: 'center', outline: 'none', color: 'var(--text-primary)' }}
+          placeholder="#"
+        />
+        <button
+          onClick={handleJump}
+          style={{ height: 32, padding: '0 10px', borderRadius: 6, border: '1px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Go
+        </button>
       </div>
     </div>
   );

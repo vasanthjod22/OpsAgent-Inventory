@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Save, Database, Trash2, FileCode2, Building2, Image, X, Moon, Sun } from 'lucide-react'
+import { Save, Database, Trash2, FileCode2, Building2, Image, X, Moon, Sun, RefreshCw, CheckCircle } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import { useAppStore } from '../../store/appStore'
 
@@ -7,6 +7,8 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
   const { theme, setTheme } = useAppStore()
   const [company, setCompany] = useState({})
   const [logoPreview, setLogoPreview] = useState(null)
+  const [reconciling, setReconciling] = useState(false)
+  const [reconcileResult, setReconcileResult] = useState(null)
   const logoInputRef = useRef(null)
 
   useEffect(() => {
@@ -63,6 +65,24 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
       onClearAll()
     }
   }
+
+  const handleReconcile = async () => {
+    if (!window.confirm(
+      'This will recalculate purchase rates for all items based on GRN history. This fixes valuation errors. Continue?'
+    )) return;
+
+    setReconciling(true);
+    setReconcileResult(null);
+    try {
+      const result = await backendFetch('/grn/reconcile-valuations', { method: 'POST' });
+      setReconcileResult(result);
+      showToast?.(`✅ ${result.message}`, 'success');
+    } catch (e) {
+      showToast?.(e.message, 'error');
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   const inp = {
     width: '100%', padding: '9px 12px', borderRadius: '8px',
@@ -290,6 +310,73 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
               <FileCode2 size={16} /> Load Data
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Inventory Tools */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <RefreshCw size={16} color="#7C3AED" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Inventory Tools</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Utilities to fix or manage your inventory.</p>
+          </div>
+        </div>
+        <div style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-main)' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Fix Stock Valuations</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>Recalculate correct average cost for all items based on purchase history.</p>
+            </div>
+            <button 
+              onClick={handleReconcile}
+              disabled={reconciling}
+              className="btn-press"
+              style={{ height: '36px', padding: '0 16px', borderRadius: '8px', background: 'transparent', color: '#7C3AED', border: '1px solid #7C3AED', fontWeight: 600, fontSize: '13px', cursor: reconciling ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: reconciling ? 0.7 : 1 }}
+            >
+              <RefreshCw size={16} className={reconciling ? 'spin-anim' : ''} /> {reconciling ? 'Fixing...' : '🔧 Fix Valuations'}
+            </button>
+          </div>
+
+          {reconcileResult && (
+            <div style={{
+              background: '#ECFDF5', border: '1px solid #6EE7B7', borderRadius: 10,
+              padding: '14px 18px', marginTop: 20
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <CheckCircle size={16} color="#059669" />
+                <strong style={{ color: '#065F46', fontSize: 14 }}>{reconcileResult.message}</strong>
+              </div>
+              {reconcileResult.results?.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ fontSize: 13, width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ color: '#059669', borderBottom: '1px solid #6EE7B7' }}>
+                        {['Item', 'Old Rate', 'Corrected Rate', 'Changed?'].map(h => (
+                          <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reconcileResult.results.map((r, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #D1FAE5' }}>
+                          <td style={{ padding: '8px 10px', fontWeight: 600 }}>{r.item}</td>
+                          <td style={{ padding: '8px 10px', color: '#DC2626' }}>₹{r.old_rate ?? r.oldRate ?? r.old_rate}</td>
+                          <td style={{ padding: '8px 10px', color: '#059669', fontWeight: 700 }}>₹{r.corrected_rate ?? r.correctedRate ?? r.corrected_rate}</td>
+                          <td style={{ padding: '8px 10px' }}>
+                            {r.changed ? <span style={{ color: '#059669', fontWeight: 600 }}>Yes</span> : <span style={{ color: '#6B7280' }}>No</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
 

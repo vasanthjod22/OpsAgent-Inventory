@@ -18,7 +18,7 @@ router.get('/kpis', auth, async (req, res) => {
     const yesterdayMetrics = await AnalyticsService.getCoreMetrics(userId, yesterdayStr, yesterdayStr);
     const outstanding = await AnalyticsService.getOutstandingReceivables(userId);
     const inventoryStatus = await AnalyticsService.getInventoryStatus(userId);
-    const customerMetrics = await AnalyticsService.getCustomerMetrics(userId, `${weekAgoStr}T00:00:00`, new Date().toISOString());
+    const customerMetrics = await AnalyticsService.getCustomerMetrics(userId, `${weekAgoStr}T00:00:00`, `${todayStr}T23:59:59`);
     const purchaseMetrics = await AnalyticsService.getPurchaseMetrics(userId, todayStr, todayStr);
 
     const { data: allPaidBills } = await supabase
@@ -43,6 +43,7 @@ router.get('/kpis', auth, async (req, res) => {
       },
       pendingPOs: purchaseMetrics.pendingPOsCount,
       lowStock: inventoryStatus.lowStockCount,
+      inventoryValue: inventoryStatus.totalInventoryValue,
       customerDue: outstanding.totalOutstanding,
       totalCustomers: customerMetrics.totalCustomers,
       newCustomersThisWeek: customerMetrics.newCustomers,
@@ -55,10 +56,11 @@ router.get('/kpis', auth, async (req, res) => {
   }
 });
 
+
 router.get('/sales-trend', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
-    
+
     const fromDate = from ? from.substring(0, 10) : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
     const toDate = to ? to.substring(0, 10) : new Date().toISOString().substring(0, 10);
 
@@ -72,10 +74,7 @@ router.get('/sales-trend', auth, async (req, res) => {
         _sort: new Date(d.date).getTime()
       }))
       .sort((a, b) => a._sort - b._sort)
-      .map(d => {
-        delete d._sort;
-        return d;
-      });
+      .map(d => { delete d._sort; return d; });
 
     res.json({ success: true, data: dataArray });
   } catch (err) {

@@ -1,7 +1,8 @@
-import React from 'react';
-import { Pencil, AlertTriangle, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Pencil, AlertTriangle, Trash2, Info } from 'lucide-react';
 import { ActionBtn, ColHeader } from './InventoryShared';
 import useMediaQuery from '../../../hooks/useMediaQuery';
+import { ValuationBreakdownModal } from './ValuationPanel';
 
 export default function InventoryTable({
   items,
@@ -16,6 +17,8 @@ export default function InventoryTable({
   handleDelete,
   formatQty
 }) {
+  const [valuationItem, setValuationItem] = useState(null);
+
   const formatDate = (d) => {
     if (!d) return '—'
     const date = new Date(d)
@@ -69,7 +72,14 @@ export default function InventoryTable({
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Value</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>₹{totalValue.toFixed(2)}</div>
+                  <div 
+                    onClick={() => setValuationItem(item)}
+                    style={{ fontSize: 14, fontWeight: 700, color: '#059669', marginTop: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                    title="Click for Valuation Breakdown"
+                  >
+                    ₹{totalValue.toFixed(2)}
+                    <Info size={14} color="#059669" />
+                  </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Sold</div>
@@ -85,6 +95,9 @@ export default function InventoryTable({
             </div>
           )
         })}
+        {valuationItem && (
+          <ValuationBreakdownModal item={valuationItem} onClose={() => setValuationItem(null)} />
+        )}
       </div>
     )
   }
@@ -221,8 +234,15 @@ export default function InventoryTable({
                 <td style={{ color: 'var(--text-primary)', padding: '12px 8px', fontWeight: 600 }}>
                   {Number(item.cgst_percent || 0) + Number(item.sgst_percent || 0)}%
                 </td>
-                <td style={{ color: 'var(--text-primary)', padding: '12px 8px', fontWeight: 700 }}>
-                  ₹{totalValue.toFixed(2)}
+                <td 
+                  onClick={() => setValuationItem(item)}
+                  style={{ color: '#059669', padding: '12px 8px', fontWeight: 700, cursor: 'pointer' }}
+                  title="Click for Valuation Breakdown"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    ₹{totalValue.toFixed(2)}
+                    <Info size={14} color="#059669" />
+                  </div>
                 </td>
                 <td style={{ color: 'var(--text-muted)', padding: '12px 8px' }}>{item.supplier_name || '—'}</td>
                 <td style={{ color: 'var(--text-muted)', padding: '12px 8px', fontSize: 12 }}>
@@ -248,6 +268,9 @@ export default function InventoryTable({
           })}
         </tbody>
       </table>
+      {valuationItem && (
+        <ValuationBreakdownModal item={valuationItem} onClose={() => setValuationItem(null)} />
+      )}
     </div>
   );
 }

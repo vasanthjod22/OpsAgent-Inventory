@@ -1259,11 +1259,16 @@ function BillHistory({ bills, refetchBills, inventory, company, showToast, onGen
   const [search, setSearch] = useState('')
   const [editStatusId, setEditStatusId] = useState(null)
   const isMobile = useMediaQuery('(max-width: 768px)')
-  
+
   const [dateFilter, setDateFilter] = useState('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All Categories')
+  const [page, setPage] = useState(1)
+  const [jumpPage, setJumpPage] = useState('')
+  const ITEMS_PER_PAGE = 10
+
+  useEffect(() => { setPage(1) }, [search, dateFilter, customFrom, customTo, categoryFilter])
   
   const categories = ['All Categories', ...new Set((inventory || []).map(i => i.category).filter(Boolean))]
 
@@ -1291,6 +1296,9 @@ function BillHistory({ bills, refetchBills, inventory, company, showToast, onGen
 
     return true;
   })
+
+  const totalBillPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  const paginatedBills = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
   const totalRevenue = bills.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + b.grandTotal, 0)
   const pendingAmount = bills.filter(b => b.paymentStatus !== 'Paid').reduce((s, b) => s + (b.paymentStatus === 'Partial' ? (b.balanceDue || 0) : b.grandTotal), 0)
@@ -1380,7 +1388,7 @@ function BillHistory({ bills, refetchBills, inventory, company, showToast, onGen
               {bills.length === 0 ? 'No bills yet. Generate your first bill!' : 'No bills match your search.'}
             </div>
           )}
-          {filtered.map(b => (
+          {paginatedBills.map(b => (
             <div key={b.id} style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -1446,7 +1454,7 @@ function BillHistory({ bills, refetchBills, inventory, company, showToast, onGen
                 {bills.length === 0 ? 'No bills yet. Generate your first bill!' : 'No bills match your search.'}
               </td></tr>
             )}
-            {(filtered || []).map((b, i) => (
+            {(paginatedBills || []).map((b, i) => (
               <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9', background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563EB' }}>{b.billNumber}</td>
                 <td style={{ padding: '12px 16px' }}>
@@ -1502,6 +1510,53 @@ function BillHistory({ bills, refetchBills, inventory, company, showToast, onGen
           </tbody>
         </table>
       </div>
+      )}
+
+      {/* Bill History Pagination */}
+      {totalBillPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+            Showing {Math.min((page - 1) * ITEMS_PER_PAGE + 1, filtered.length)}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of <strong>{filtered.length}</strong> bills
+          </span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+            {[['«', 1, page === 1], ['‹', page - 1, page === 1]].map(([label, target, dis]) => (
+              <button key={label} onClick={() => setPage(target)} disabled={dis}
+                style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: dis ? '#CBD5E1' : '#374151', cursor: dis ? 'not-allowed' : 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {label}
+              </button>
+            ))}
+            {Array.from({ length: totalBillPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalBillPages || Math.abs(p - page) <= 1)
+              .map((p, i, arr) => (
+                <React.Fragment key={p}>
+                  {i > 0 && p - arr[i - 1] > 1 && <span style={{ padding: '0 4px', color: '#94A3B8', fontSize: 13 }}>…</span>}
+                  <button onClick={() => setPage(p)}
+                    style={{ width: 30, height: 30, borderRadius: 6, border: p === page ? 'none' : '1px solid #E2E8F0', background: p === page ? '#2563EB' : 'white', color: p === page ? 'white' : '#374151', fontWeight: p === page ? 700 : 400, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {p}
+                  </button>
+                </React.Fragment>
+              ))}
+            {[['›', page + 1, page === totalBillPages], ['»', totalBillPages, page === totalBillPages]].map(([label, target, dis]) => (
+              <button key={label} onClick={() => setPage(target)} disabled={dis}
+                style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', color: dis ? '#CBD5E1' : '#374151', cursor: dis ? 'not-allowed' : 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {label}
+              </button>
+            ))}
+            <span style={{ fontSize: 13, color: 'var(--text-primary)', marginLeft: 8 }}>Go:</span>
+            <input
+              type="number" min={1} max={totalBillPages} value={jumpPage}
+              onChange={e => setJumpPage(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { const p = Math.min(Math.max(1, parseInt(jumpPage) || 1), totalBillPages); setPage(p); setJumpPage('') } }}
+              style={{ width: 46, height: 30, padding: '0 6px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, textAlign: 'center', outline: 'none', color: 'var(--text-primary)' }}
+              placeholder="#"
+            />
+            <button
+              onClick={() => { const p = Math.min(Math.max(1, parseInt(jumpPage) || 1), totalBillPages); setPage(p); setJumpPage('') }}
+              style={{ height: 30, padding: '0 10px', borderRadius: 6, border: '1px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              Go
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -1907,7 +1962,7 @@ function BillingPanelBase({ showToast, onNavigate }) {
       </div>
 
       <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-        {['Create Bill', 'Transport Bills History'].map(tab => (
+        {['Create Bill', 'Bill History', 'Transport Bills History'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}

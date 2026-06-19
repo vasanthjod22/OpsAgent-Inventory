@@ -1,7 +1,7 @@
 import { formatDate } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react'
 import {
-  ArrowLeft, Download, FileText, Hash, Percent, Tag, FileDown
+  ArrowLeft, Download, FileText, Hash, Percent, Tag, FileDown, Check, Pencil
 } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import {
@@ -26,6 +26,8 @@ const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-
 export default function BillingReport({ onBack }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
+  const [editingDateId, setEditingDateId] = useState(null)
+  const [editingDateValue, setEditingDateValue] = useState('')
   
   const [dateRange, setDateRange] = useState('all')
   const [customFrom, setCustomFrom] = useState(null)
@@ -60,6 +62,37 @@ export default function BillingReport({ onBack }) {
       setLoading(false)
     }
   }
+
+  const handleDateUpdate = async (billId, newDate) => {
+    try {
+      await backendFetch(`/bills/${billId}/date`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: newDate })
+      })
+      // Update local data so table refreshes without full reload
+      setData(prev => ({
+        ...prev,
+        recentBills: prev.recentBills.map(b =>
+          b.id === billId ? { ...b, date: newDate } : b
+        )
+      }))
+    } catch (err) {
+      console.error('Failed to update date:', err)
+    } finally {
+      setEditingDateId(null)
+      setEditingDateValue('')
+    }
+  }
+
+  // Sort bills by bill number ascending (extract numeric suffix)
+  const sortedBills = data?.recentBills
+    ? [...data.recentBills].sort((a, b) => {
+        const numA = parseInt((a.bill_number || '').replace(/\D/g, '')) || 0
+        const numB = parseInt((b.bill_number || '').replace(/\D/g, '')) || 0
+        return numA - numB
+      })
+    : []
 
   const handleExportPDF = () => {
     if (!data) return
@@ -237,14 +270,48 @@ export default function BillingReport({ onBack }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recentBills.map((b, i) => {
-                    const gst = b.items?.reduce((s, it) => s + (it.quantity * it.rate * ((it.gstPercent || it.gst_percent || 0)/100)), 0) || 0
+                  {sortedBills.map((b, i) => {
+                    const isEditingDate = editingDateId === b.id
                     
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <tr key={b.id || i} style={{ borderBottom: '1px solid #F1F5F9' }}>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#2563EB' }}>{b.bill_number}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-primary)' }}>{b.customer_name || 'Walk-in'}</td>
-                        <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatDate(b.created_at)}</td>
+                        <td style={{ padding: '12px 24px', fontSize: 14, color: 'var(--text-muted)' }}>
+                          {isEditingDate ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <input
+                                type="date"
+                                value={editingDateValue}
+                                onChange={e => setEditingDateValue(e.target.value)}
+                                autoFocus
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') handleDateUpdate(b.id, editingDateValue)
+                                  if (e.key === 'Escape') { setEditingDateId(null); setEditingDateValue('') }
+                                }}
+                                style={{ padding: '4px 8px', border: '1px solid #2563EB', borderRadius: 6, fontSize: 13, outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-card)', width: 140 }}
+                              />
+                              <button
+                                onClick={() => handleDateUpdate(b.id, editingDateValue)}
+                                title="Save date"
+                                style={{ width: 28, height: 28, borderRadius: 6, border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                              >
+                                <Check size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              onClick={() => { setEditingDateId(b.id); setEditingDateValue(b.date || (b.created_at ? b.created_at.substring(0, 10) : '')) }}
+                              title="Click to edit date"
+                              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 6, transition: 'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              {formatDate(b.date || b.created_at)}
+                              <Pencil size={12} style={{ opacity: 0.4 }} />
+                            </span>
+                          )}
+                        </td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{b.items?.length || 0}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(b.grand_total)}</td>
                         <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(b.discount)}</td>
@@ -268,7 +335,7 @@ export default function BillingReport({ onBack }) {
                       </tr>
                     )
                   })}
-                  {data.recentBills.length === 0 && (
+                  {sortedBills.length === 0 && (
                     <tr><td colSpan="8" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No recent bills!</td></tr>
                   )}
                 </tbody>

@@ -277,6 +277,85 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// GET /api/inventory/:sku/valuation-breakdown
+router.get('/:sku/valuation-breakdown', auth, async (req, res) => {
+  try {
+    const { sku } = req.params;
+    
+    // 1. Fetch item by SKU (or ID, or HSN if SKU is missing)
+    let query = supabase
+      .from('inventory')
+      .select('*')
+      .eq('user_id', req.user.id);
+      
+    // The SKU might be the id in some cases, so we will try to match sku, hsn, or id
+    query = query.or(`sku.eq.${sku},hsn.eq.${sku},id.eq.${sku}`);
+
+    const { data: item, error: itemErr } = await query.maybeSingle();
+
+    if (itemErr || !item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    // 2. Fetch GRN history from stock_movements
+    const { data: movements } = await supabase
+      .from('stock_movements')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .eq('item_name', item.name) // Or item_sku
+      .eq('movement_type', 'GRN')
+      .order('movement_date', { ascending: true });
+
+    // 3. Replay to calculate WAC
+    let runningQty = 0;
+    let runningValue = 0;
+    const history = (movements || []).map(m => {
+      const qty = Number(m.quantity_in) || 0;
+      const rate = Number(m.rate) || 0;
+      const value = qty * rate;
+      
+      runningQty += qty;
+      runningValue += value;
+      
+      const avgSoFar = runningQty > 0 ? Math.round((runningValue / runningQty) * 100) / 100 : rate;
+      
+      return {
+        date: m.movement_date,
+        reference: m.reference_no,
+        qty_in: qty,
+        rate,
+        value,
+        running_qty: runningQty,
+        running_avg: avgSoFar,
+        notes: m.notes
+      };
+    });
+
+    const currentQty = Number(item.qty) || 0;
+    const currentRate = Number(item.purchase_rate || item.rate) || 0;
+
+    res.json({
+      item: {
+        id: item.id,
+        name: item.name,
+        sku: item.sku || item.hsn || '',
+        qty: currentQty,
+        avg_rate: currentRate,
+        total_value: currentQty * currentRate
+      },
+      purchase_history: history,
+      calculation: {
+        formula: 'qty × weighted_avg_cost',
+        current_qty: currentQty,
+        avg_cost: currentRate,
+        total_value: currentQty * currentRate
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/inventory — add a new item
 router.post('/', auth, async (req, res) => {
   const { hsn, name, category, qty, unit, min, max } = req.body;

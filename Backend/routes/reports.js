@@ -271,7 +271,18 @@ router.get('/finance', auth, async (req, res) => {
     // Pre-fill empty months between fromDate and toDate
     let current = new Date(fromDate);
     current.setDate(1);
-    const end = new Date(toDate);
+
+    let maxDate = new Date(fromDate);
+    Object.values(metrics.monthMap).forEach(m => {
+       const d = new Date(`${m.month}-01T00:00:00`);
+       if (d > maxDate) maxDate = d;
+    });
+    expenseData.rawExpenses.forEach(e => {
+       const d = new Date(e.date);
+       if (d > maxDate) maxDate = d;
+    });
+
+    const end = (!to || to === 'undefined') ? maxDate : new Date(toDate);
     end.setDate(1);
     
     let loops = 0;
@@ -534,12 +545,13 @@ router.get('/customers', auth, async (req, res) => {
     // All bills to calculate true customer stats
     const { data: bills } = await supabase
       .from('bills')
-      .select('customer_name, customer_phone, grand_total, payment_status, created_at')
+      .select('customer_name, customer_phone, grand_total, payment_status, created_at, date')
       .eq('user_id', userId);
 
     // Build customer stats
     const custMap = {};
     bills?.forEach(b => {
+      const bDate = b.date || b.created_at;
       const name = b.customer_name || 'Walk-in Customer';
       if (!custMap[name]) {
         custMap[name] = {
@@ -547,16 +559,16 @@ router.get('/customers', auth, async (req, res) => {
           phone: b.customer_phone || '',
           orders: 0,
           totalSpent: 0,
-          firstOrder: b.created_at,
-          lastOrder: b.created_at
+          firstOrder: bDate,
+          lastOrder: bDate
         };
       }
       custMap[name].orders++;
       if (b.payment_status === 'Paid') {
         custMap[name].totalSpent += Number(b.grand_total) || 0;
       }
-      if (b.created_at > custMap[name].lastOrder) custMap[name].lastOrder = b.created_at;
-      if (b.created_at < custMap[name].firstOrder) custMap[name].firstOrder = b.created_at;
+      if (bDate > custMap[name].lastOrder) custMap[name].lastOrder = bDate;
+      if (bDate < custMap[name].firstOrder) custMap[name].firstOrder = bDate;
     });
 
     const todayStart = new Date();
@@ -591,9 +603,19 @@ router.get('/customers', auth, async (req, res) => {
       const mNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return `${mNames[d.getMonth()]} ${d.getFullYear().toString().substr(-2)}`;
     };
+    let maxDataDate = new Date(fromDate);
+    bills?.forEach(b => {
+      const d = new Date(b.date || b.created_at);
+      if (d > maxDataDate) maxDataDate = d;
+    });
+    customerStats.forEach(c => {
+      const d = new Date(c.firstOrder);
+      if (d > maxDataDate) maxDataDate = d;
+    });
+
     let current = new Date(fromDate);
     current.setDate(1);
-    const end = new Date(toDate);
+    const end = (!to || to === 'undefined') ? maxDataDate : new Date(toDate);
     end.setDate(1);
     let loops = 0;
     while (current <= end && loops < 120) {
@@ -604,7 +626,7 @@ router.get('/customers', auth, async (req, res) => {
     }
 
     bills?.forEach(b => {
-      const d = new Date(b.created_at);
+      const d = new Date(b.date || b.created_at);
       const key = formatMonthYear(d);
       if (!monthlyMap[key]) monthlyMap[key] = { month: key, newCustomers: 0, existingCustomers: 0, orders: 0, _customersThisMonth: new Set(), _sort: new Date(d.getFullYear(), d.getMonth(), 1).getTime() };
       monthlyMap[key].orders++;
@@ -648,7 +670,8 @@ router.get('/customers', auth, async (req, res) => {
       }
       outstandingMap[name].bills++;
       outstandingMap[name].totalDue += Number(b.balance_due) || Number(b.grand_total) || 0;
-      if (b.created_at < outstandingMap[name].oldestBill) outstandingMap[name].oldestBill = b.created_at;
+      const bDate = b.date || b.created_at;
+      if (bDate < outstandingMap[name].oldestBill) outstandingMap[name].oldestBill = bDate;
     });
 
     const outstanding = Object.values(outstandingMap).map(o => ({
@@ -696,10 +719,10 @@ router.get('/products', auth, async (req, res) => {
     // Bills in period
     const { data: bills } = await supabase
       .from('bills')
-      .select('items, payment_status')
+      .select('items, payment_status, date')
       .eq('user_id', userId)
-      .gte('created_at', fromDate)
-      .lte('created_at', toDate);
+      .gte('date', fromDate)
+      .lte('date', toDate);
 
     // Build product performance map
     const productMap = {};
@@ -782,9 +805,9 @@ router.get('/billing', auth, async (req, res) => {
       .from('bills')
       .select('*')
       .eq('user_id', userId)
-      .gte('created_at', fromDate)
-      .lte('created_at', toDate)
-      .order('created_at', { ascending: false });
+      .gte('date', fromDate)
+      .lte('date', toDate)
+      .order('date', { ascending: false });
 
     const totalBills = bills?.length || 0;
     const totalAmount = bills?.reduce((s,b) => s + (Number(b.grand_total) || 0), 0) || 0;
@@ -804,7 +827,7 @@ router.get('/billing', auth, async (req, res) => {
     // Daily trend
     const dailyMap = {};
     bills?.forEach(b => {
-      const date = formatDate(b.created_at);
+      const date = formatDate(b.date || b.created_at);
       if (!dailyMap[date]) {
         dailyMap[date] = { date, count: 0, amount: 0 };
       }
@@ -864,10 +887,10 @@ router.get('/demand', auth, async (req, res) => {
     // Current period bills
     const { data: bills } = await supabase
       .from('bills')
-      .select('items, created_at')
+      .select('items, created_at, date')
       .eq('user_id', userId)
-      .gte('created_at', fromDate)
-      .lte('created_at', toDate);
+      .gte('date', fromDate)
+      .lte('date', toDate);
 
     // Previous period for trend
     const periodMs = new Date(toDate) - new Date(fromDate);
@@ -875,10 +898,10 @@ router.get('/demand', auth, async (req, res) => {
 
     const { data: prevBills } = await supabase
       .from('bills')
-      .select('items')
+      .select('items, date, created_at')
       .eq('user_id', userId)
-      .gte('created_at', prevFrom)
-      .lt('created_at', fromDate);
+      .gte('date', prevFrom)
+      .lt('date', fromDate);
 
     // Build demand map current period
     const demandMap = {};

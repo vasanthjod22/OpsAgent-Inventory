@@ -143,6 +143,23 @@ router.patch('/:id/transport', auth, async (req, res) => {
   res.json(formatBill(updated));
 });
 
+// PATCH /api/bills/:id/date — update bill date only
+router.patch('/:id/date', auth, async (req, res) => {
+  const { date } = req.body;
+  if (!date) return res.status(400).json({ error: 'date is required' });
+
+  const { data: updated, error } = await supabase
+    .from('bills')
+    .update({ date })
+    .eq('user_id', req.user.id)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(formatBill(updated));
+});
+
 // DELETE /api/bills/:id
 router.delete('/:id', auth, async (req, res) => {
   const { data, error } = await supabase.from('bills').delete().eq('user_id', req.user.id).eq('id', req.params.id).select();
