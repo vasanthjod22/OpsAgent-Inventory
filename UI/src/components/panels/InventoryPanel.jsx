@@ -171,6 +171,14 @@ export default function InventoryPanel({ showToast }) {
     },
     refetchInterval: 60000
   })
+  const { data: grnHistory = [], refetch: fetchGrnHistory } = useQuery({
+    queryKey: ['grnHistory'],
+    queryFn: async () => {
+      const data = await backendFetch('/grn')
+      return Array.isArray(data) ? data : []
+    },
+    refetchInterval: 60000
+  })
 
   useEffect(() => {
     setStats({
@@ -180,22 +188,34 @@ export default function InventoryPanel({ showToast }) {
       overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
       totalValue: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0)), 0),
       totalValueGstInc: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0) * (1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100)), 0),
-      supplierBreakdown: allItems.reduce((acc, i) => {
-        const supplier = i.supplier_name || 'Unknown Supplier';
-        const date = i.last_restocked || i.date_added || 'Unknown Date';
+      supplierBreakdown: grnHistory.reduce((acc, grn) => {
+        const supplier = grn.supplier || 'Unknown Supplier';
+        const date = grn.date || 'Unknown Date';
         const key = `${supplier}::${date}`;
-        const baseVal = ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0));
-        const cgstVal = baseVal * ((Number(i.cgst_percent) || 0) / 100);
-        const sgstVal = baseVal * ((Number(i.sgst_percent) || 0) / 100);
-        const totalVal = baseVal + cgstVal + sgstVal;
+        
+        let totalVal = 0;
+        (grn.items || []).forEach(i => {
+          if (i.total_amount) {
+            totalVal += Number(i.total_amount);
+          } else {
+            // Assume 18% GST if not provided as total_amount
+            totalVal += (Number(i.quantity) || 0) * (Number(i.unit_price) || 0) * 1.18;
+          }
+        });
+
         if (!acc[key]) acc[key] = { supplier, date, total: 0, cgst: 0, sgst: 0 };
         acc[key].total += totalVal;
-        acc[key].cgst += cgstVal;
-        acc[key].sgst += sgstVal;
+        
+        // Approximate CGST/SGST from total (assuming 18% GST total -> 9% CGST, 9% SGST)
+        // Base = Total / 1.18.  CGST = Base * 0.09.
+        const base = acc[key].total / 1.18;
+        acc[key].cgst = base * 0.09;
+        acc[key].sgst = base * 0.09;
+
         return acc;
       }, {})
     })
-  }, [allItems])
+  }, [allItems, grnHistory])
 
   const { data: rawInventory, isLoading: isInventoryLoading, refetch: fetchInventory } = useQuery({
     queryKey: ['inventory', pagination.currentPage, pagination.itemsPerPage, search, category, status, sortBy],
@@ -241,14 +261,7 @@ export default function InventoryPanel({ showToast }) {
     refetchInterval: 60000
   })
 
-  const { data: grnHistory = [], refetch: fetchGrnHistory } = useQuery({
-    queryKey: ['grnHistory'],
-    queryFn: async () => {
-      const data = await backendFetch('/grn')
-      return Array.isArray(data) ? data.slice(0, 5) : []
-    },
-    refetchInterval: 60000
-  })
+
 
   // Debounced Search triggers React Query by changing `search` state
   // We can just rely on the search state changing to trigger a refetch,
@@ -905,7 +918,7 @@ export default function InventoryPanel({ showToast }) {
 
       {/* GRN History Mini Table (Always visible if there's history) */}
       <GRNHistoryTable
-        grnHistory={grnHistory}
+        grnHistory={grnHistory.slice(0, 5)}
         grnData={grnData}
         expandedGrnId={expandedGrnId}
         setExpandedGrnId={setExpandedGrnId}
@@ -961,8 +974,10 @@ export default function InventoryPanel({ showToast }) {
                 </div>
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 4px', marginTop: '8px' }}>
-                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 16 }}>GRAND TOTAL</span>
-                <span style={{ fontWeight: 800, color: '#065F46', fontSize: 16 }}>₹{(stats.totalValueGstInc || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 16 }}>GRAND TOTAL PURCHASES</span>
+                <span style={{ fontWeight: 800, color: '#065F46', fontSize: 16 }}>
+                  ₹{Object.values(stats.supplierBreakdown || {}).reduce((sum, d) => sum + d.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
             </div>
           </div>
