@@ -289,7 +289,12 @@ router.get('/:sku/valuation-breakdown', auth, async (req, res) => {
       .eq('user_id', req.user.id);
       
     // The SKU might be the id in some cases, so we will try to match sku, hsn, or id
-    query = query.or(`sku.eq.${sku},hsn.eq.${sku},id.eq.${sku}`);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    let orQuery = `sku.eq.${sku},hsn.eq.${sku}`;
+    if (uuidRegex.test(sku)) {
+      orQuery += `,id.eq.${sku}`;
+    }
+    query = query.or(orQuery);
 
     const { data: item, error: itemErr } = await query.maybeSingle();
 
@@ -407,7 +412,7 @@ router.put('/:id', auth, async (req, res) => {
       'lead_time_days', 'location',
       'date_added', 'last_restocked',
       'restock_source', 'description',
-      'brand', 'hsn', 'cost_price'
+      'brand', 'hsn', 'cost_price', 'qty', 'total_qty'
     ]
 
     // Only update allowed fields

@@ -73,4 +73,38 @@ router.put('/', auth, async (req, res) => {
   });
 });
 
+// DELETE /api/company/wipe-data
+router.delete('/wipe-data', auth, async (req, res) => {
+  const userId = req.user.id;
+  const tables = [
+    'inventory',
+    'bills',
+    'grn',
+    'finance',
+    'breakdown_quotations',
+    'finalized_quotations',
+    'purchase_orders',
+    'customers',
+    'customer_tags',
+    'customer_contacts',
+    'report_history',
+    'activity_log',
+    'expenses'
+  ];
+
+  try {
+    for (const table of tables) {
+      const { error } = await supabase.from(table).delete().eq('user_id', userId);
+      if (error) {
+        console.error(`Error deleting from ${table}:`, error.message);
+        // Continue attempting to delete other tables even if one fails (e.g. if table doesn't exist)
+      }
+    }
+    res.json({ success: true, message: 'Data wiped successfully' });
+  } catch (err) {
+    console.error('Wipe data error:', err);
+    res.status(500).json({ error: 'Failed to wipe data.' });
+  }
+});
+
 module.exports = router;

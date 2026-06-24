@@ -30,7 +30,7 @@ class AnalyticsService {
       // 2. Fetch all inventory to map Cost Prices and Categories
       const { data: inventoryData, error: invError } = await supabase
         .from('inventory')
-        .select('id, name, sku, category, cost_price, rate, qty, min, max, last_restocked')
+        .select('id, name, sku, category, cost_price, rate, qty, min, max, last_restocked, cgst_percent, sgst_percent')
         .eq('user_id', userId);
 
       if (invError) throw invError;
@@ -308,6 +308,9 @@ class AnalyticsService {
         let qty = this.safeNumber(item.qty);
         const rate = this.safeNumber(item.rate);
         const min  = this.safeNumber(item.min);
+        const cgst = this.safeNumber(item.cgst_percent);
+        const sgst = this.safeNumber(item.sgst_percent);
+        const gstMultiplier = 1 + ((cgst + sgst) / 100);
 
         if (asOfDate) {
           const name = (item.name || '').toLowerCase();
@@ -315,7 +318,7 @@ class AnalyticsService {
           qty = Math.max(0, qty); // never go negative in historical view
         }
 
-        totalInventoryValue += (qty * rate);
+        totalInventoryValue += (qty * rate * gstMultiplier);
         if (qty === 0) outOfStockCount++;
         else if (qty <= min) lowStockCount++;
       });

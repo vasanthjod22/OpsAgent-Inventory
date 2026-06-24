@@ -165,7 +165,19 @@ router.get('/inventory/:id/valuation-breakdown', auth, async (req, res) => {
 // ─── POST /api/grn ───────────────────────────────────────────────────────────
 // Create GRN. If updateInventory=true, apply WEIGHTED AVERAGE COST to each item.
 router.post('/', auth, async (req, res) => {
-  const { supplier, date, items, updateInventory } = req.body;
+  let { supplier, date, items, updateInventory } = req.body;
+
+  // Normalize specific supplier typos
+  if (['STAYBRiIT TRADING CORPORATION', 'STAYBRiT TRADING CORPORATION', 'STAYBRIT TRADING CORPORATION'].includes(supplier)) {
+    supplier = 'STAYBRIIT TRADING CORPORATION';
+  }
+  if (supplier) {
+    const up = supplier.toUpperCase();
+    if (up.includes('JHONON') || up.includes('JHONSSON') || up.includes('JOHNSON')) {
+      if (up.includes('PIPE')) supplier = 'JOHNSON PIPES';
+      else supplier = 'JOHNSON ENTERPRISES';
+    }
+  }
 
   if (!supplier || !items || items.length === 0) {
     return res.status(400).json({ error: 'supplier and items are required' });
@@ -194,22 +206,26 @@ router.post('/', auth, async (req, res) => {
         if (nameMatches && nameMatches.length > 0) invMatch = nameMatches[0];
       }
 
-      // 2. Fallback: HSN match
-      if (!invMatch && item.hsn) {
-        const { data: hsnMatches } = await supabase
-          .from('inventory')
-          .select('*')
-          .eq('user_id', req.user.id)
-          .eq('hsn', item.hsn);
-        if (hsnMatches && hsnMatches.length > 0) invMatch = hsnMatches[0];
-      }
+      // 2. Fallback: HSN match - REMOVED
+      // Do not match purely by HSN because many different items can share the same HSN code.
 
       if (invMatch) {
         // ── WEIGHTED AVERAGE COST ─────────────────────────────────────────
         const existingQty  = Number(invMatch.qty)  || 0;
         const existingRate = Number(invMatch.rate) || 0;   // current avg cost
         const incomingQty  = Number(item.quantity)  || 0;
-        const incomingRate = Number(item.unit_price) || 0;
+        let incomingRate = Number(item.unit_price) || 0;
+        const totalAmount = Number(item.total_amount) || 0;
+
+        // Strip 18% GST for JOHNSON
+        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountExGst = totalAmount / 1.18;
+            incomingRate = amountExGst / incomingQty;
+          } else {
+            incomingRate = incomingRate / 1.18;
+          }
+        }
 
         const newAvgRate  = calculateWeightedAverageCost(existingQty, existingRate, incomingQty, incomingRate);
         const newQty      = existingQty + incomingQty;
@@ -256,21 +272,57 @@ router.post('/', auth, async (req, res) => {
       } else {
         // ── NEW ITEM – auto-create from GRN ─────────────────────────────
         const incomingQty  = Number(item.quantity)  || 0;
-        const incomingRate = Number(item.unit_price) || 0;
+        let incomingRate = Number(item.unit_price) || 0;
+        const totalAmount = Number(item.total_amount) || 0;
+
+        // Strip 18% GST for JOHNSON
+        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountExGst = totalAmount / 1.18;
+            incomingRate = amountExGst / incomingQty;
+          } else {
+            incomingRate = incomingRate / 1.18;
+          }
+        }
+
+        let defaultCat = 'General';
+        let defaultMin = 0;
+        let defaultMax = 0;
+        let defaultGst = 0;
+        let defaultCgst = 0;
+        let defaultSgst = 0;
+
+        if (supplier === 'STAYBRIIT TRADING CORPORATION') {
+          defaultCat = 'Pipe Fittings';
+          defaultMin = 5;
+          defaultMax = 75;
+          defaultGst = 18;
+          defaultCgst = 9;
+          defaultSgst = 9;
+        }
+
+        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES') {
+          defaultGst = 18;
+          defaultCgst = 9;
+          defaultSgst = 9;
+        }
 
         const { data: created } = await supabase.from('inventory').insert([{
           user_id:        req.user.id,
           hsn:            item.hsn       || '',
           name:           item.description || item.hsn || 'Unknown Item',
-          category:       item.category  || 'General',
+          category:       item.category  || defaultCat,
           qty:            incomingQty,
           total_qty:      incomingQty,
           opening_stock:  incomingQty,
           stock_in:       incomingQty,
           unit:           item.unit      || 'Nos',
           rate:           incomingRate,
-          min:            Number(item.min) || 0,
-          max:            Number(item.max) || 0,
+          min:            Number(item.min) || defaultMin,
+          max:            Number(item.max) || defaultMax,
+          gst:            defaultGst,
+          cgst_percent:   defaultCgst,
+          sgst_percent:   defaultSgst,
           date_added:     today,
           last_restocked: today,
           restock_source: grnId,
@@ -477,15 +529,8 @@ router.patch('/:id/status', auth, async (req, res) => {
         if (nameMatches && nameMatches.length > 0) invMatch = nameMatches[0];
       }
 
-      // 2. Fallback: HSN match
-      if (!invMatch && item.hsn) {
-        const { data: hsnMatches } = await supabase
-          .from('inventory')
-          .select('*')
-          .eq('user_id', req.user.id)
-          .eq('hsn', item.hsn);
-        if (hsnMatches && hsnMatches.length > 0) invMatch = hsnMatches[0];
-      }
+      // 2. Fallback: HSN match - REMOVED
+      // Do not match purely by HSN because many different items can share the same HSN code.
 
       if (invMatch) {
         // ── WEIGHTED AVERAGE COST ──────────────────────────────────────────
@@ -542,19 +587,38 @@ router.patch('/:id/status', auth, async (req, res) => {
         const incomingRate = Number(item.unit_price)  || 0;
         const today2       = grn.date || new Date().toISOString().split('T')[0];
 
+        let defaultCat = 'General';
+        let defaultMin = 0;
+        let defaultMax = 0;
+        let defaultGst = 0;
+        let defaultCgst = 0;
+        let defaultSgst = 0;
+
+        if (grn.supplier === 'STAYBRIIT TRADING CORPORATION') {
+          defaultCat = 'Pipe Fittings';
+          defaultMin = 5;
+          defaultMax = 75;
+          defaultGst = 18;
+          defaultCgst = 9;
+          defaultSgst = 9;
+        }
+
         const { data: created } = await supabase.from('inventory').insert([{
           user_id:        req.user.id,
           hsn:            item.hsn         || '',
           name:           item.description || item.hsn || 'Unknown Item',
-          category:       item.category    || 'General',
+          category:       item.category    || defaultCat,
           qty:            incomingQty,
           total_qty:      incomingQty,
           opening_stock:  incomingQty,
           stock_in:       incomingQty,
           unit:           item.unit        || 'Nos',
           rate:           incomingRate,
-          min:            Number(item.min) || 0,
-          max:            Number(item.max) || 0,
+          min:            Number(item.min) || defaultMin,
+          max:            Number(item.max) || defaultMax,
+          gst:            defaultGst,
+          cgst_percent:   defaultCgst,
+          sgst_percent:   defaultSgst,
           date_added:     today2,
           last_restocked: today2,
           restock_source: grn.id,
@@ -668,15 +732,11 @@ router.delete('/:id', auth, async (req, res) => {
       if (item.description) {
         const { data: nm } = await supabase.from('inventory').select('id, qty, total_qty').eq('user_id', req.user.id).ilike('name', item.description);
         if (nm && nm.length > 0) invMatch = nm[0];
-      } else if (item.hsn) {
-        const { data: hm } = await supabase.from('inventory').select('id, qty, total_qty').eq('user_id', req.user.id).eq('hsn', item.hsn);
-        if (hm && hm.length > 0) invMatch = hm[0];
       }
 
       if (invMatch) {
-        const newQty      = Math.max(0, (Number(invMatch.qty)       || 0) - (Number(item.quantity) || 0));
-        const newTotalQty = Math.max(0, (Number(invMatch.total_qty) || 0) - (Number(item.quantity) || 0));
-        await supabase.from('inventory').update({ qty: newQty, total_qty: newTotalQty }).eq('user_id', req.user.id).eq('id', invMatch.id);
+        // User requested: deleting a GRN should completely delete the items from the table
+        await supabase.from('inventory').delete().eq('user_id', req.user.id).eq('id', invMatch.id);
       }
     }
   }

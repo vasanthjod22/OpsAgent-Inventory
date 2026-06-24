@@ -123,8 +123,9 @@ router.post('/vision', auth, async (req, res) => {
   "supplier_name": "string or null",
   "po_number": "string or null",
   "date": "string or null",
-  "items": [{ "hsn": "string or null", "description": "string", "quantity": number, "unit_price": number or null }]
-}`,
+  "items": [{ "hsn": "string or null", "description": "string", "quantity": number, "unit_price": number or null, "total_amount": number or null }]
+}
+`,
                   },
                 ],
               },

@@ -82,6 +82,12 @@ export default function InventoryTable({
                   </div>
                 </div>
                 <div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Value (GST inc)</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#065F46', marginTop: 2 }}>
+                    ₹{(totalValue * (1 + ((Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0)) / 100)).toFixed(2)}
+                  </div>
+                </div>
+                <div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Sold</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#3B82F6', marginTop: 2 }}>{formatQty(Math.max(0, (item.total_qty ?? item.qty) - currentQty))}</div>
                 </div>
@@ -124,6 +130,7 @@ export default function InventoryTable({
             <th style={{ width: 70, padding: '12px 8px' }}><ColHeader label="SGST %" /></th>
             <th style={{ width: 80, padding: '12px 8px' }}><ColHeader label="GST %" tooltip="Total GST (CGST + SGST)" /></th>
             <th style={{ width: 110, padding: '12px 8px' }}><ColHeader label="Total Value" tooltip="Current Qty × Purchase Rate" /></th>
+            <th style={{ width: 130, padding: '12px 8px' }}><ColHeader label="Total Value (GST inc)" tooltip="Current Qty × Purchase Rate (Including GST)" /></th>
             <th style={{ width: 130, padding: '12px 8px' }}><ColHeader label="Supplier" /></th>
             <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Date Added" /></th>
             <th style={{ width: 100, padding: '12px 8px' }}><ColHeader label="Last Restock" /></th>
@@ -187,7 +194,7 @@ export default function InventoryTable({
                 <td style={{ padding: '4px 8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: 13, flexShrink: 0 }}>₹</span>
-                    <input type="number"
+                    <input type="number" step="any"
                       value={getValue(item, 'purchase_rate') || getValue(item, 'rate')}
                       onChange={e => handleFieldChange(item.id, 'purchase_rate', e.target.value)}
                       onBlur={() => saveFieldToBackend(item, 'purchase_rate')}
@@ -203,10 +210,6 @@ export default function InventoryTable({
                       });
                       let curRate = Number(getValue(item, 'purchase_rate') || getValue(item, 'rate')) || 0;
                       let prevRate = priceHist.find(p => p !== curRate) || (priceHist.length > 1 ? priceHist[1] : null);
-                      if (prevRate && curRate) {
-                        if (curRate > prevRate) return <span style={{ color: '#10B981', fontWeight: 'bold', flexShrink: 0 }} title={`Up from ₹${prevRate} in older GRN`}>↑</span>;
-                        if (curRate < prevRate) return <span style={{ color: '#EF4444', fontWeight: 'bold', flexShrink: 0 }} title={`Down from ₹${prevRate} in older GRN`}>↓</span>;
-                      }
                       return null;
                     })()}
                   </div>
@@ -243,6 +246,9 @@ export default function InventoryTable({
                     ₹{totalValue.toFixed(2)}
                     <Info size={14} color="#059669" />
                   </div>
+                </td>
+                <td style={{ color: '#065F46', padding: '12px 8px', fontWeight: 700 }}>
+                  ₹{(totalValue * (1 + ((Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0)) / 100)).toFixed(2)}
                 </td>
                 <td style={{ color: 'var(--text-muted)', padding: '12px 8px' }}>{item.supplier_name || '—'}</td>
                 <td style={{ color: 'var(--text-muted)', padding: '12px 8px', fontSize: 12 }}>

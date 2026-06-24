@@ -170,12 +170,21 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
   return (
     <div
       className={sliding ? 'animate-slideUp' : ''}
-      style={{ display: 'flex', minHeight: '100vh', width: '100vw', fontFamily: "'Outfit', sans-serif", overflow: 'hidden' }}
+      style={{ display: 'flex', minHeight: '100vh', width: '100vw', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}
     >
       {/* ── Left Dark Panel ── */}
       <div
-        className={`hidden md:flex flex-col justify-center auth-panel-transition ${leftPanel.mode === 'default' ? 'bg-mesh-premium' : ''}`}
-        style={{ width: '40%', background: leftPanel.mode !== 'default' ? leftPanel.bg : undefined, padding: '60px', position: 'relative', overflow: 'hidden' }}
+        className="hidden md:flex flex-col justify-center auth-panel-transition"
+        style={{ 
+          width: '40%', 
+          padding: '60px', 
+          position: 'relative', 
+          overflow: 'hidden',
+          background: leftPanel.mode !== 'default' ? leftPanel.bg : undefined,
+          backgroundImage: leftPanel.mode === 'default' ? `linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)), url('/auth_bg.png')` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
       >
         {/* Sparkles for signup success */}
         {leftPanel.mode === 'signupSuccess' && sparkles.map(s => (
@@ -188,8 +197,14 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
 
         {/* Logo */}
         <div style={{ position: 'absolute', top: '40px', left: '60px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '32px', height: '32px', background: 'var(--bg-card)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: '12px', height: '12px', background: '#2563EB', borderRadius: '4px' }} />
+          <div style={{
+            width: '36px', height: '36px',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'white',
+          }}>
+            <img src="/logo.png" alt="OpsAgent Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <span style={{ color: 'white', fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>OpsAgent</span>
         </div>
@@ -197,20 +212,12 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
         {/* Default content */}
         {leftPanel.mode === 'default' && (
           <div style={{ zIndex: 10 }} className="animate-fadein">
-            <h1 style={{ color: 'white', fontSize: '28px', fontWeight: 600, lineHeight: 1.3, marginBottom: '16px' }}>
-              Your AI-powered<br />back-office manager
+            <h1 style={{ color: 'white', fontSize: '36px', fontWeight: 700, lineHeight: 1.2, marginBottom: '20px', letterSpacing: '-0.5px' }}>
+              Premium Hardware &<br />Tile Inventory
             </h1>
-            <p style={{ color: '#94A3B8', fontSize: '15px', lineHeight: 1.5, marginBottom: '40px', maxWidth: '320px' }}>
-              Automate GRN processing, track inventory, and get instant financial insights.
+            <p style={{ color: '#94A3B8', fontSize: '16px', lineHeight: 1.6, maxWidth: '340px' }}>
+              Manage your stock, process purchase orders, and monitor your business performance all in one place.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '60px' }}>
-              {['AI-powered GRN OCR processing', 'Real-time inventory management', 'Smart financial analytics'].map((text, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', animation: `fadein 0.4s ease forwards ${i * 0.1 + 0.1}s`, opacity: 0 }}>
-                  <CheckCircle2 size={20} color="#2563EB" />
-                  <span style={{ color: '#CBD5E1', fontSize: '14px' }}>{text}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -254,28 +261,24 @@ export default function AuthPage({ onAuthSuccess, showToast }) {
           </div>
         )}
 
-        {/* Bottom trust badges (default only) */}
-        {leftPanel.mode === 'default' && (
-          <div style={{ position: 'absolute', bottom: '40px', left: '60px' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>Trusted by small businesses across India</p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {['KC','LB','GT'].map(initials => (
-                <div key={initials} style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: '11px', fontWeight: 600 }}>{initials}</div>
-              ))}
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* ── Right Form Panel ── */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-main)' }}>
         <div style={{ maxWidth: '480px', width: '100%', background: 'var(--bg-card)', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid var(--border)', position: 'relative', transition: 'box-shadow 0.4s ease' }}>
           {/* Mobile Logo */}
-          <div className="md:hidden flex items-center justify-center gap-2 mb-8">
-            <div style={{ width: '28px', height: '28px', background: '#2563EB', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: '10px', height: '10px', background: 'var(--bg-card)', borderRadius: '3px' }} />
+          <div className="md:hidden flex items-center justify-center gap-3 mb-8">
+            <div style={{
+              width: '32px', height: '32px',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'white',
+            }}>
+              <img src="/logo.png" alt="OpsAgent Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
-            <span style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700 }}>OpsAgent</span>
+            <span style={{ color: 'var(--text-primary)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.5px' }}>OpsAgent</span>
           </div>
 
           {view === 'login' && <LoginForm onAuthSuccess={handleAuthSuccess} onSwitch={() => setView('signup')} onForgot={() => setView('forgot')} onPanelChange={setPanel} showToast={showToast} />}
@@ -449,7 +452,7 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
           cursor: (phase === 'loading' || phase === 'typing') ? 'not-allowed' : 'pointer',
           boxShadow: '0 4px 12px rgba(37,99,235,0.2)', marginBottom: '24px',
           transition: 'background 0.3s ease',
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: "'Inter', sans-serif",
         }}
       >
         {phase === 'loading' ? (
@@ -483,7 +486,7 @@ function LoginForm({ onAuthSuccess, onSwitch, onForgot, onPanelChange, showToast
         type="button" onClick={handleDemo}
         disabled={phase !== 'idle'}
         className="btn-press"
-        style={{ width: '100%', height: '44px', background: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '8px', border: '1px solid var(--border)', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: phase !== 'idle' ? 'not-allowed' : 'pointer', marginBottom: '24px', fontFamily: "'Outfit', sans-serif" }}
+        style={{ width: '100%', height: '44px', background: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '8px', border: '1px solid var(--border)', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: phase !== 'idle' ? 'not-allowed' : 'pointer', marginBottom: '24px', fontFamily: "'Inter', sans-serif" }}
       >
         <Zap size={16} color="#F59E0B" /> Try Demo Account
       </button>
@@ -758,7 +761,7 @@ function SignupForm({ onAuthSuccess, onSwitch, onPanelChange, showToast }) {
         type="submit"
         disabled={!isReady || phase !== 'idle'}
         className="btn-press"
-        style={{ width: '100%', height: '44px', background: (!isReady || phase !== 'idle') ? '#94A3B8' : '#2563EB', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '14px', cursor: (!isReady || phase !== 'idle') ? 'not-allowed' : 'pointer', marginBottom: '20px', transition: 'background 0.2s', fontFamily: "'Outfit', sans-serif" }}
+        style={{ width: '100%', height: '44px', background: (!isReady || phase !== 'idle') ? '#94A3B8' : '#2563EB', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '14px', cursor: (!isReady || phase !== 'idle') ? 'not-allowed' : 'pointer', marginBottom: '20px', transition: 'background 0.2s', fontFamily: "'Inter', sans-serif" }}
       >
         {phase === 'loading' ? (
           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>

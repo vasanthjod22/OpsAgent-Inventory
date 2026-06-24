@@ -28,16 +28,39 @@ async function convertPdfToBase64Image(base64Pdf) {
 
 
   const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
-  const page = await pdf.getPage(1)
-
+  
   const scale = 2.0
-  const viewport = page.getViewport({ scale })
-  const canvas = document.createElement('canvas')
-  canvas.width = viewport.width
-  canvas.height = viewport.height
+  let totalHeight = 0
+  let maxWidth = 0
+  const pages = []
 
+  // Gather dimensions for all pages
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const viewport = page.getViewport({ scale })
+    totalHeight += viewport.height
+    if (viewport.width > maxWidth) maxWidth = viewport.width
+    pages.push({ page, viewport })
+  }
+
+  // Create a single tall canvas to hold all pages
+  const canvas = document.createElement('canvas')
+  canvas.width = maxWidth
+  canvas.height = totalHeight
   const ctx = canvas.getContext('2d')
-  await page.render({ canvasContext: ctx, viewport }).promise
+
+  // Render each page and draw it onto the main canvas
+  let currentY = 0
+  for (const { page, viewport } of pages) {
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width = viewport.width
+    pageCanvas.height = viewport.height
+    const pageCtx = pageCanvas.getContext('2d')
+
+    await page.render({ canvasContext: pageCtx, viewport }).promise
+    ctx.drawImage(pageCanvas, 0, currentY)
+    currentY += viewport.height
+  }
 
   const dataUrl = canvas.toDataURL('image/png')
   return dataUrl.split(',')[1]
@@ -84,7 +107,7 @@ export default function InventoryPanel({ showToast }) {
         body: JSON.stringify({ [field]: Number(localVal) })
       })
       
-      refetchInventory()
+      fetchInventory()
       fetchAllForAutocomplete()
     } catch (err) {
       showToast?.(err.message, 'error')
@@ -117,11 +140,15 @@ export default function InventoryPanel({ showToast }) {
   const [newItem, setNewItem] = useState({ hsn: '', name: '', category: 'Raw Materials', total_qty: '', qty: '', unit: '', min: '', max: '', cost_price: '', rate: '', gst: '18' })
   const [confirmModal, setConfirmModal] = useState(null)
   const [showImport, setShowImport] = useState(false)
+  const [showSupplierBreakdown, setShowSupplierBreakdown] = useState(false)
   
   // GRN States
   const [grnExpanded, setGrnExpanded] = useState(false)
   const grnFileRef = useRef()
   const [grnDragging, setGrnDragging] = useState(false)
+  const [showLiveCamera, setShowLiveCamera] = useState(false)
+  const liveVideoRef = useRef(null)
+  const liveCanvasRef = useRef(null)
   const [grnFile, setGrnFile] = useState(null)
   const [grnBase64, setGrnBase64] = useState('')
   const [grnFileType, setGrnFileType] = useState('')
@@ -151,7 +178,22 @@ export default function InventoryPanel({ showToast }) {
       lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
       outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
       overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
-      totalValue: Math.round(allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || 0)), 0))
+      totalValue: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0)), 0),
+      totalValueGstInc: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0) * (1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100)), 0),
+      supplierBreakdown: allItems.reduce((acc, i) => {
+        const supplier = i.supplier_name || 'Unknown Supplier';
+        const date = i.last_restocked || i.date_added || 'Unknown Date';
+        const key = `${supplier}::${date}`;
+        const baseVal = ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0));
+        const cgstVal = baseVal * ((Number(i.cgst_percent) || 0) / 100);
+        const sgstVal = baseVal * ((Number(i.sgst_percent) || 0) / 100);
+        const totalVal = baseVal + cgstVal + sgstVal;
+        if (!acc[key]) acc[key] = { supplier, date, total: 0, cgst: 0, sgst: 0 };
+        acc[key].total += totalVal;
+        acc[key].cgst += cgstVal;
+        acc[key].sgst += sgstVal;
+        return acc;
+      }, {})
     })
   }, [allItems])
 
@@ -299,6 +341,7 @@ export default function InventoryPanel({ showToast }) {
         try {
           await backendFetch(`/grn/${grn.id}`, { method: 'DELETE' })
           showToast?.('GRN deleted & stock reversed', 'success')
+          setGrnExpanded(false)
           fetchGrnHistory()
           fetchInventory()
           fetchAllForAutocomplete()
@@ -351,6 +394,41 @@ export default function InventoryPanel({ showToast }) {
   }
 
   // GRN Logic
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      setShowLiveCamera(true)
+      setTimeout(() => {
+        if (liveVideoRef.current) liveVideoRef.current.srcObject = stream
+      }, 100)
+    } catch (err) {
+      showToast?.('Camera access denied or unavailable', 'error')
+    }
+  }
+
+  const stopCamera = () => {
+    if (liveVideoRef.current && liveVideoRef.current.srcObject) {
+      liveVideoRef.current.srcObject.getTracks().forEach(t => t.stop())
+    }
+    setShowLiveCamera(false)
+  }
+
+  const capturePhoto = () => {
+    if (!liveVideoRef.current || !liveCanvasRef.current) return
+    const video = liveVideoRef.current
+    const canvas = liveCanvasRef.current
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    
+    canvas.toBlob((blob) => {
+      const f = new File([blob], "Camera-Capture.jpg", { type: "image/jpeg" })
+      processGrnFile(f)
+      stopCamera()
+    }, 'image/jpeg')
+  }
+
   const processGrnFile = (f) => {
     if (!f) return
     if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
@@ -433,7 +511,7 @@ export default function InventoryPanel({ showToast }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
 
       {/* SECTION 2: STAT CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
         <div style={{ padding: '20px', background: '#EFF6FF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase' }}>Total Items</span>
@@ -462,6 +540,13 @@ export default function InventoryPanel({ showToast }) {
           </div>
           <TrendingUp size={32} color="#16A34A" style={{ opacity: 0.2 }} />
         </div>
+        <div onClick={() => setShowSupplierBreakdown(true)} style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#16A34A', textTransform: 'uppercase' }}>Total Value (GST INC)</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{(stats.totalValueGstInc || 0).toLocaleString()}</span>
+          </div>
+          <TrendingUp size={32} color="#16A34A" style={{ opacity: 0.2 }} />
+        </div>
       </div>
       
       {/* GRN UPLOAD MODAL */}
@@ -473,21 +558,48 @@ export default function InventoryPanel({ showToast }) {
                 <div style={{ width: 32, height: 32, background: '#EFF6FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Upload size={16} color="#2563EB" /></div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Upload Goods Receipt Note (GRN)</h3>
               </div>
-              <button onClick={() => setGrnExpanded(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
+              <button onClick={() => { setGrnExpanded(false); stopCamera(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
             </div>
             <div style={{ padding: 24 }}>
-            {!grnFile && (
+            {!grnFile && !showLiveCamera && (
               <div
                 onDragOver={e => { e.preventDefault(); setGrnDragging(true) }}
                 onDragLeave={() => setGrnDragging(false)}
                 onDrop={e => { e.preventDefault(); setGrnDragging(false); processGrnFile(e.dataTransfer.files[0]) }}
-                onClick={() => grnFileRef.current?.click()}
-                style={{ border: `2px dashed ${grnDragging ? '#2563EB' : '#CBD5E1'}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center', cursor: 'pointer', background: grnDragging ? '#EFF6FF' : '#FAFBFC' }}
+                style={{ border: `2px dashed ${grnDragging ? '#2563EB' : '#CBD5E1'}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center', background: grnDragging ? '#EFF6FF' : '#FAFBFC' }}
               >
                 <CloudUpload size={40} color={grnDragging ? '#2563EB' : '#94A3B8'} style={{ margin: '0 auto 12px auto' }} />
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Drop GRN photo or PDF here</div>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 4 }}>Accepts jpg, png, pdf</div>
+                
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
+                  <button onClick={() => grnFileRef.current?.click()} style={{ padding: '8px 16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <FileImage size={16} /> Upload File
+                  </button>
+                  <button onClick={startCamera} style={{ padding: '8px 16px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                    <Camera size={16} /> Take Photo
+                  </button>
+                </div>
+
                 <input ref={grnFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => processGrnFile(e.target.files[0])} style={{ display: 'none' }} />
+              </div>
+            )}
+
+            {showLiveCamera && !grnFile && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: '100%', maxWidth: 600, background: '#000', borderRadius: 12, overflow: 'hidden', position: 'relative', aspectRatio: '4/3' }}>
+                  <video ref={liveVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <canvas ref={liveCanvasRef} style={{ display: 'none' }} />
+                  <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(255,255,255,0.2)', pointerEvents: 'none' }}>
+                    <div style={{ position: 'absolute', top: '10%', left: '10%', right: '10%', bottom: '10%', border: '2px dashed rgba(255,255,255,0.5)', borderRadius: 8 }}></div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={stopCamera} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+                  <button onClick={capturePhoto} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                    <ScanLine size={18} /> Capture Document
+                  </button>
+                </div>
               </div>
             )}
 
@@ -533,6 +645,7 @@ export default function InventoryPanel({ showToast }) {
                         <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Description</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Qty</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Unit Price</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Total Amt</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Unit</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Category</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600, fontSize: 13 }}>Min</th>
@@ -554,6 +667,9 @@ export default function InventoryPanel({ showToast }) {
                             <td style={{ padding: 8 }}><input type="number" value={it.quantity || ''} onChange={e => handleChange('quantity', e.target.value)} style={{ width: '60px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
                             <td style={{ padding: 8 }}>
                               <input type="number" value={it.unit_price || ''} onChange={e => handleChange('unit_price', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} />
+                            </td>
+                            <td style={{ padding: 8 }}>
+                              <input type="number" value={it.total_amount || ''} onChange={e => handleChange('total_amount', e.target.value)} style={{ width: '80px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} />
                             </td>
                             <td style={{ padding: 8 }}><input type="text" list="grn-unit-list" value={it.unit || ''} onChange={e => handleChange('unit', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
                             <td style={{ padding: 8 }}><input type="text" list="grn-cat-list" value={it.category || ''} onChange={e => handleChange('category', e.target.value)} style={{ width: '100px', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }} /></td>
@@ -614,7 +730,7 @@ export default function InventoryPanel({ showToast }) {
             <button onClick={() => exportCSV(items)} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: 'var(--bg-card)', color: '#16A34A', border: '1.5px solid #16A34A', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Upload size={16} /> Export CSV
             </button>
-            <button onClick={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', total_qty: '', qty: '', unit: prev?.unit || '', min: '', max: '', cost_price: '', rate: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst || '' })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button onClick={() => { document.getElementById('main-scroll-area')?.firstElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setNewItem(prev => ({ hsn: '', name: '', category: prev?.category || 'General', total_qty: '', qty: '', unit: prev?.unit || '', min: '', max: '', cost_price: '', rate: '', date_added: prev?.date_added || '', last_restocked: prev?.last_restocked || '', gst: prev?.gst ?? 18, cgst_percent: prev?.cgst_percent ?? 9, sgst_percent: prev?.sgst_percent ?? 9 })); setEditingItemId(null); setAdding(true) }} style={{ height: 36, padding: '0 16px', borderRadius: 8, background: '#2563EB', color: 'white', border: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
               <Plus size={16} /> Add Item
             </button>
           </div>
@@ -781,7 +897,7 @@ export default function InventoryPanel({ showToast }) {
               totalItems={activePagination.totalItems}
               itemsPerPage={activePagination.itemsPerPage}
               onPageChange={handlePageChange}
-              onLimitChange={limit => { setPagination(p => ({ ...p, itemsPerPage: limit, currentPage: 1 })); refetchInventory(); }}
+              onLimitChange={limit => { setPagination(p => ({ ...p, itemsPerPage: limit, currentPage: 1 })); fetchInventory(); }}
             />
           )}
         </div>
@@ -807,12 +923,51 @@ export default function InventoryPanel({ showToast }) {
         handleAdd={handleAdd}
         fetchCategories={fetchCategories}
         fetchUnits={fetchUnits}
-        FormAutocomplete={CategoryAutocomplete}
+        FormAutocomplete={FormAutocomplete}
       />
 
       {/* Confirm Modal */}
       {confirmModal && <ConfirmModal {...confirmModal} onCancel={() => setConfirmModal(null)} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} fetchInventory={() => {fetchInventory(); fetchCategories()}} showToast={showToast} />}
+      
+      {showSupplierBreakdown && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: '100%', maxWidth: 500, overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Supplier Breakdown (GST Inc)</h3>
+              <button onClick={() => setShowSupplierBreakdown(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: 24, maxHeight: '60vh', overflowY: 'auto' }}>
+              {Object.entries(stats.supplierBreakdown || {})
+                .sort((a,b) => {
+                  const dA = new Date(a[1].date).getTime() || 0;
+                  const dB = new Date(b[1].date).getTime() || 0;
+                  if (dB !== dA) return dA - dB;
+                  return b[1].total - a[1].total;
+                })
+                .map(([key, data]) => (
+                <div key={key} style={{ padding: '12px 0', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }} className="group cursor-pointer">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', transition: 'color 0.2s' }} className="group-hover:text-blue-600">{data.supplier}</span>
+                      {data.date !== 'Unknown Date' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(data.date)}</span>}
+                    </div>
+                    <span style={{ fontWeight: 700, color: '#065F46' }}>₹{data.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: '6px' }} className="hidden justify-between group-hover:flex">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3B82F6' }}/> CGST: <span style={{ fontWeight: 600 }}>₹{data.cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6' }}/> SGST: <span style={{ fontWeight: 600 }}>₹{data.sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 4px', marginTop: '8px' }}>
+                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 16 }}>GRAND TOTAL</span>
+                <span style={{ fontWeight: 800, color: '#065F46', fontSize: 16 }}>₹{(stats.totalValueGstInc || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

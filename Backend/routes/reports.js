@@ -371,7 +371,7 @@ router.get('/inventory', auth, async (req, res) => {
       daysIdle: Math.floor(
         (new Date() - new Date(i.last_restocked || i.created_at || new Date())) / (1000 * 60 * 60 * 24)
       ),
-      valueLocked: (Number(i.qty) || 0) * (Number(i.rate) || 0)
+      valueLocked: (Number(i.qty) || 0) * (Number(i.rate) || 0) * (1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100)
     })).sort((a,b) => b.daysIdle - a.daysIdle);
 
     // Category value
@@ -381,7 +381,8 @@ router.get('/inventory', auth, async (req, res) => {
       if (!catMap[cat]) {
         catMap[cat] = { category: cat, value: 0, items: 0 };
       }
-      catMap[cat].value += (Number(i.qty) || 0) * (Number(i.rate) || 0);
+      const gstMult = 1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100;
+      catMap[cat].value += (Number(i.qty) || 0) * (Number(i.rate) || 0) * gstMult;
       catMap[cat].items++;
     });
 

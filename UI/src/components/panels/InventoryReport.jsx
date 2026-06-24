@@ -131,9 +131,10 @@ export default function InventoryReport({ onBack }) {
   const handleExportPDF = () => {
     if (!data) return
     const headers = ['HSN', 'Product', 'Category', 'Current Qty', 'Min Level', 'Value']
-    const rows = data.lowStockItems.map(o => [
-      o.hsn || '-', o.name, o.category || '-', o.qty, o.min || 0, formatCurrency(o.qty * o.rate)
-    ])
+    const rows = data.lowStockItems.map(o => {
+      const gstMult = 1 + ((Number(o.cgst_percent) || 0) + (Number(o.sgst_percent) || 0)) / 100;
+      return [o.hsn || '-', o.name, o.category || '-', o.qty, o.min || 0, formatCurrency(o.qty * o.rate * gstMult)]
+    })
     exportToPDF(`Inventory Low Stock - ${period}`, headers, rows, `Inventory_Low_Stock`)
   }
 
@@ -150,9 +151,10 @@ export default function InventoryReport({ onBack }) {
       const wb = XLSX.utils.book_new()
       
       // Sheet 1: Low Stock
-      const wsLow = XLSX.utils.json_to_sheet(data.lowStockItems.map(i => ({
-        HSN: i.hsn, Product: i.name, Category: i.category, Qty: i.qty, Min: i.min, Value: i.qty * i.rate
-      })))
+      const wsLow = XLSX.utils.json_to_sheet(data.lowStockItems.map(i => {
+        const gstMult = 1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100;
+        return { HSN: i.hsn, Product: i.name, Category: i.category, Qty: i.qty, Min: i.min, Value: i.qty * i.rate * gstMult }
+      }))
       XLSX.utils.book_append_sheet(wb, wsLow, "Low Stock")
 
       // Sheet 2: Dead Stock
@@ -396,7 +398,7 @@ export default function InventoryReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.category || 'Steel Bars'}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 700, color: '#D97706' }}>{formatQty(o.qty)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatQty(o.min)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(o.qty * o.rate)}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(o.qty * o.rate * (1 + ((Number(o.cgst_percent)||0) + (Number(o.sgst_percent)||0))/100))}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '4px 8px', borderRadius: 4 }}>
                           Low Stock

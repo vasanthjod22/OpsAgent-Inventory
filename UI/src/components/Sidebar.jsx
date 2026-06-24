@@ -2,44 +2,42 @@ import React, { useState, useEffect } from 'react'
 import ConfirmModal from './ConfirmModal'
 import { SignOutAnimation } from './ui/SignOutAnimation'
 import {
-  LayoutDashboard,
-  DollarSign,
-  Upload,
-  Package,
-  FileText,
-  Receipt,
-  MessageSquare,
+  AppWindow,
+  Activity,
+  Wallet,
+  Truck,
+  Contact,
+  Layers,
+  ScrollText,
+  CreditCard,
+  Bot,
   Settings,
-  LogOut,
-  BarChart2,
-  Users,
-  ShoppingCart,
-  Sparkles,
+  LogOut
 } from 'lucide-react'
 
 const navGroups = [
   {
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard',  icon: LayoutDashboard },
-      { id: 'reports',   label: 'Reports',    icon: BarChart2 },
-      { id: 'finance',   label: 'Finance',    icon: DollarSign },
+      { id: 'dashboard', label: 'Dashboard',  icon: AppWindow },
+      { id: 'reports',   label: 'Reports',    icon: Activity },
+      { id: 'finance',   label: 'Finance',    icon: Wallet },
     ]
   },
   {
     label: 'Operations',
     items: [
-      { id: 'purchase_orders', label: 'Purchase Orders', icon: ShoppingCart },
-      { id: 'customers', label: 'Customers',  icon: Users },
-      { id: 'inventory', label: 'Inventory',  icon: Package },
-      { id: 'quotation', label: 'Quotation',  icon: FileText },
-      { id: 'billing',   label: 'Billing',    icon: Receipt },
+      { id: 'purchase_orders', label: 'Purchase Orders', icon: Truck },
+      { id: 'customers', label: 'Customers',  icon: Contact },
+      { id: 'inventory', label: 'Inventory',  icon: Layers },
+      { id: 'quotation', label: 'Quotation',  icon: ScrollText },
+      { id: 'billing',   label: 'Billing',    icon: CreditCard },
     ]
   },
   {
     label: 'AI Assistant',
     items: [
-      { id: 'chat',      label: 'OpsAgent AI',       icon: Sparkles },
+      { id: 'chat',      label: 'OpsAgent AI',       icon: Bot },
     ]
   }
 ]
@@ -128,17 +126,18 @@ export default function Sidebar({ active, onNavigate, mobile, currentUser, onLog
         borderBottom: '1px solid rgba(255,255,255,0.1)',
       }}>
         <div style={{
-          width: '28px', height: '28px',
-          background: 'rgba(255,255,255,0.1)',
-          borderRadius: '7px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '32px', height: '32px',
           marginRight: '10px', flexShrink: 0,
+          borderRadius: '8px',
+          overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'white',
         }}>
-          <div style={{ width: '10px', height: '10px', background: 'var(--bg-card)', borderRadius: '3px' }} />
+          <img src="/logo.png" alt="OpsAgent Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         <div>
           <div style={{ fontWeight: 700, color: 'white', fontSize: '15px', lineHeight: 1.2, letterSpacing: '-0.3px' }}>OpsAgent</div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.2, marginTop: '1px' }}>Back-Office Manager</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.2, marginTop: '1px' }}>Hardware & Tiles</div>
         </div>
       </div>
 

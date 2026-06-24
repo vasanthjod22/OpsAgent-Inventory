@@ -19,20 +19,20 @@ export default function InventoryItemModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: '100%', maxWidth: 640, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: '100%', maxWidth: 640, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editingItemId ? 'Edit Item' : 'Add New Item'}</h3>
           <button onClick={() => setAdding(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
         </div>
-        <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
+        <div style={{ padding: 24, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
           {/* Row 1 */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>HSN / SKU</label>
-            <input type="text" value={newItem.hsn || newItem.sku || ''} onChange={e => setNewItem({ ...newItem, hsn: e.target.value.toUpperCase() })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="text" value={newItem.hsn || newItem.sku || ''} onChange={e => setNewItem({ ...newItem, hsn: e.target.value.toUpperCase() })} className="input-base" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Item Name</label>
-            <input type="text" value={newItem.name || ''} onChange={e => setNewItem({ ...newItem, name: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="text" value={newItem.name || ''} onChange={e => setNewItem({ ...newItem, name: e.target.value })} className="input-base" />
           </div>
           
           {/* Row 2 */}
@@ -53,13 +53,13 @@ export default function InventoryItemModal({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Supplier</label>
-            <input type="text" value={newItem.supplier_name || ''} onChange={e => setNewItem({ ...newItem, supplier_name: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} placeholder="Supplier Name" />
+            <input type="text" value={newItem.supplier_name || ''} onChange={e => setNewItem({ ...newItem, supplier_name: e.target.value })} className="input-base" placeholder="Supplier Name" />
           </div>
 
           {/* Row 3 */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Total / Opening Stock</label>
-            <input type="number" value={newItem.total_qty ?? newItem.qty ?? ''} onChange={e => setNewItem({ ...newItem, total_qty: e.target.value, qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} disabled={!!editingItemId} />
+            <input type="number" value={newItem.total_qty ?? newItem.qty ?? ''} onChange={e => setNewItem({ ...newItem, total_qty: e.target.value, qty: e.target.value })} className="input-base" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Unit</label>
@@ -80,36 +80,36 @@ export default function InventoryItemModal({
           {/* Row 4 */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Min Level</label>
-            <input type="number" value={newItem.min ?? ''} onChange={e => setNewItem({ ...newItem, min: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="number" value={newItem.min ?? ''} onChange={e => setNewItem({ ...newItem, min: e.target.value })} className="input-base" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Max Level</label>
-            <input type="number" value={newItem.max ?? ''} onChange={e => setNewItem({ ...newItem, max: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="number" value={newItem.max ?? ''} onChange={e => setNewItem({ ...newItem, max: e.target.value })} className="input-base" />
           </div>
 
           {/* Row 5 */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Reorder Qty</label>
-            <input type="number" value={newItem.reorder_qty || ''} onChange={e => setNewItem({ ...newItem, reorder_qty: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="number" value={newItem.reorder_qty || ''} onChange={e => setNewItem({ ...newItem, reorder_qty: e.target.value })} className="input-base" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Date Added</label>
-            <input type="text" placeholder="DD-MM-YYYY or YYYY-MM-DD" value={newItem.date_added || ''} onChange={e => setNewItem({ ...newItem, date_added: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="text" placeholder="DD-MM-YYYY or YYYY-MM-DD" value={newItem.date_added || ''} onChange={e => setNewItem({ ...newItem, date_added: e.target.value })} className="input-base" />
           </div>
 
           {/* Row 6 */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>Purchase Rate (₹)</label>
-            <input type="number" value={newItem.rate || newItem.purchase_rate || ''} onChange={e => setNewItem({ ...newItem, rate: e.target.value, purchase_rate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="number" step="any" value={newItem.rate || newItem.purchase_rate || ''} onChange={e => setNewItem({ ...newItem, rate: e.target.value, purchase_rate: e.target.value })} className="input-base" />
           </div>
           {/* Row 7 */}
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>CGST (%)</label>
-            <input type="number" value={newItem.cgst_percent || ''} onChange={e => setNewItem({ ...newItem, cgst_percent: e.target.value, gst: Number(e.target.value || 0) + Number(newItem.sgst_percent || 0) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="number" value={newItem.cgst_percent || ''} onChange={e => setNewItem({ ...newItem, cgst_percent: e.target.value, gst: Number(e.target.value || 0) + Number(newItem.sgst_percent || 0) })} className="input-base" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 6 }}>SGST (%)</label>
-            <input type="number" value={newItem.sgst_percent || ''} onChange={e => setNewItem({ ...newItem, sgst_percent: e.target.value, gst: Number(newItem.cgst_percent || 0) + Number(e.target.value || 0) })} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }} />
+            <input type="number" value={newItem.sgst_percent || ''} onChange={e => setNewItem({ ...newItem, sgst_percent: e.target.value, gst: Number(newItem.cgst_percent || 0) + Number(e.target.value || 0) })} className="input-base" />
           </div>
 
           {/* Row 8 */}
@@ -118,7 +118,7 @@ export default function InventoryItemModal({
             <select value={newItem.gst || ''} onChange={e => {
               const val = Number(e.target.value);
               setNewItem({ ...newItem, gst: val, cgst_percent: val/2, sgst_percent: val/2 });
-            }} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', outlineColor: '#2563EB', fontSize: 13 }}>
+            }} className="input-base">
               <option value="">None (0%)</option>
               <option value="5">5%</option>
               <option value="12">12%</option>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Save, Database, Trash2, FileCode2, Building2, Image, X, Moon, Sun, RefreshCw, CheckCircle } from 'lucide-react'
+import { Save, Database, Trash2, FileCode2, Building2, Image, X, Moon, Sun, RefreshCw, CheckCircle, AlertOctagon, AlertTriangle, FileText, FileSpreadsheet } from 'lucide-react'
 import { backendFetch } from '../../utils/backend'
 import { useAppStore } from '../../store/appStore'
 
@@ -9,6 +9,9 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
   const [logoPreview, setLogoPreview] = useState(null)
   const [reconciling, setReconciling] = useState(false)
   const [reconcileResult, setReconcileResult] = useState(null)
+  const [showWipeModal, setShowWipeModal] = useState(false)
+  const [wipeConfirmText, setWipeConfirmText] = useState('')
+  const [wiping, setWiping] = useState(false)
   const logoInputRef = useRef(null)
 
   useEffect(() => {
@@ -81,6 +84,25 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
       showToast?.(e.message, 'error');
     } finally {
       setReconciling(false);
+    }
+  };
+
+  const handleWipeData = async () => {
+    if (wipeConfirmText !== 'DELETE') {
+      showToast?.('Please type DELETE to confirm', 'error');
+      return;
+    }
+    setWiping(true);
+    try {
+      await backendFetch('/company/wipe-data', { method: 'DELETE' });
+      showToast?.('All transactional data has been securely wiped.', 'success', 'Cloud Database Wiped');
+      setShowWipeModal(false);
+      setWipeConfirmText('');
+      setTimeout(() => window.location.reload(), 1500); // Reload to fetch empty state
+    } catch (e) {
+      showToast?.(e.message, 'error');
+    } finally {
+      setWiping(false);
     }
   };
 
@@ -392,21 +414,128 @@ export default function SettingsPanel({ onClearAll, onLoadDemo, showToast }) {
           </div>
         </div>
         <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #FECACA', borderRadius: '8px', background: '#FEF2F2' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #FECACA', borderRadius: '8px', background: '#FEF2F2', marginBottom: '16px' }}>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#991B1B' }}>Clear All Data</p>
-              <p style={{ fontSize: '13px', color: '#B91C1C', marginTop: '2px' }}>Clears local chat data. Contact support to wipe cloud database.</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#991B1B' }}>Clear Local Chat</p>
+              <p style={{ fontSize: '13px', color: '#B91C1C', marginTop: '2px' }}>Clears local browser chat history only. Safe operation.</p>
             </div>
             <button 
               onClick={handleClear}
               className="btn-press"
               style={{ height: '36px', padding: '0 16px', borderRadius: '8px', background: 'transparent', color: '#DC2626', border: '1px solid #DC2626', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              <Trash2 size={16} /> Clear All Data
+              <Trash2 size={16} /> Clear Chat
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1px solid #991B1B', borderRadius: '8px', background: '#7F1D1D' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#FEF2F2' }}>Wipe Cloud Database (Fresh Start)</p>
+              <p style={{ fontSize: '13px', color: '#FECACA', marginTop: '2px' }}>Deletes all inventory entries, GRN, bills, quotations, and expenses. Keeps categories & units.</p>
+            </div>
+            <button 
+              onClick={() => setShowWipeModal(true)}
+              className="btn-press"
+              style={{ height: '36px', padding: '0 16px', borderRadius: '8px', background: '#DC2626', color: 'white', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(220,38,38,0.4)' }}
+            >
+              <AlertOctagon size={16} /> Wipe Database
             </button>
           </div>
         </div>
       </div>
+
+      {/* Custom Wipe Confirmation Modal */}
+      {showWipeModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)', width: '100%', maxWidth: '440px', borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', overflow: 'hidden'
+          }}>
+            {wiping ? (
+              <div style={{ padding: '40px', textAlign: 'center' }}>
+                <div style={{ position: 'relative', width: '80px', height: '100px', margin: '0 auto 24px' }}>
+                  <div className="animate-fly-trash-1" style={{ position: 'absolute', left: '10px', top: '0', color: '#64748B' }}>
+                    <FileText size={24} />
+                  </div>
+                  <div className="animate-fly-trash-2" style={{ position: 'absolute', right: '10px', top: '0', color: '#64748B' }}>
+                    <FileSpreadsheet size={24} />
+                  </div>
+                  <div className="animate-fly-trash-3" style={{ position: 'absolute', left: '30px', top: '10px', color: '#64748B' }}>
+                    <Database size={24} />
+                  </div>
+                  <div className="animate-trash-shake" style={{ position: 'absolute', bottom: '0', left: '20px', color: '#DC2626' }}>
+                    <Trash2 size={40} />
+                  </div>
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#991B1B', marginBottom: '8px' }}>
+                  Wiping Database...
+                </h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  Permanently deleting all transactional data. Please wait.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{ padding: '24px', textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{
+                    width: '56px', height: '56px', borderRadius: '50%', background: '#FEF2F2',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+                  }}>
+                    <AlertTriangle size={28} color="#DC2626" />
+                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#991B1B', marginBottom: '8px' }}>
+                    Destructive Action
+                  </h3>
+                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    You are about to permanently delete all transactional data (inventory quantities, bills, GRNs, expenses, quotations, and customers). This will give you a fresh start.
+                  </p>
+                </div>
+                
+                <div style={{ padding: '24px', background: 'var(--bg-main)' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                    Type <strong style={{ color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '4px' }}>DELETE</strong> to confirm
+                  </label>
+                  <input 
+                    type="text" 
+                    value={wipeConfirmText}
+                    onChange={e => setWipeConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    style={{
+                      width: '100%', padding: '12px 16px', borderRadius: '8px', border: '2px solid #FECACA',
+                      fontSize: '15px', fontWeight: 700, outline: 'none', background: 'white', color: '#991B1B',
+                      textAlign: 'center', letterSpacing: '2px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ padding: '16px 24px', display: 'flex', gap: '12px', borderTop: '1px solid var(--border)' }}>
+                  <button
+                    onClick={() => { setShowWipeModal(false); setWipeConfirmText(''); }}
+                    style={{ flex: 1, height: '44px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleWipeData}
+                    disabled={wipeConfirmText !== 'DELETE'}
+                    style={{
+                      flex: 1, height: '44px', borderRadius: '8px', border: 'none',
+                      background: wipeConfirmText === 'DELETE' ? '#DC2626' : '#FCA5A5',
+                      color: 'white', fontWeight: 700, cursor: wipeConfirmText === 'DELETE' ? 'pointer' : 'not-allowed',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                  >
+                    <AlertOctagon size={16} /> Confirm Wipe
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   )

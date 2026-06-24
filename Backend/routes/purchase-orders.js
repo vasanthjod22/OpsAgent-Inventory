@@ -51,11 +51,16 @@ router.get('/', auth, async (req, res) => {
 
 // POST /api/purchase-orders
 router.post('/', auth, async (req, res) => {
-  const { 
+  let { 
     supplierName, supplierPhone, supplierEmail, supplierAddress, 
     expectedDate, items, subtotal, taxAmount, grandTotal, 
     notes, paymentTerms, status 
   } = req.body;
+
+  // Normalize specific supplier typos
+  if (['STAYBRiIT TRADING CORPORATION', 'STAYBRiT TRADING CORPORATION', 'STAYBRIT TRADING CORPORATION'].includes(supplierName)) {
+    supplierName = 'STAYBRIIT TRADING CORPORATION';
+  }
 
   // Generate PO Number
   const { count, error: countErr } = await supabase

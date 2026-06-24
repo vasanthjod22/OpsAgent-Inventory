@@ -15,7 +15,7 @@ export function ValuationBreakdownModal({ item, onClose }) {
     if (!item) return;
     setLoading(true);
     setError(null);
-    backendFetch(`/inventory/${item.sku || item.hsn || item.id}/valuation-breakdown`)
+    backendFetch(`/inventory/${item.id}/valuation-breakdown`)
       .then(d => setData(d))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
