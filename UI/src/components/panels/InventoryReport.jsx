@@ -131,10 +131,9 @@ export default function InventoryReport({ onBack }) {
   const handleExportPDF = () => {
     if (!data) return
     const headers = ['HSN', 'Product', 'Category', 'Current Qty', 'Min Level', 'Value']
-    const rows = data.lowStockItems.map(o => {
-      const gstMult = 1 + ((Number(o.cgst_percent) || 0) + (Number(o.sgst_percent) || 0)) / 100;
-      return [o.hsn || '-', o.name, o.category || '-', o.qty, o.min || 0, formatCurrency(o.qty * o.rate * gstMult)]
-    })
+    const rows = data.lowStockItems.map(o => [
+      o.hsn || '-', o.name, o.category || '-', o.qty, o.min || 0, formatCurrency(o.qty * o.rate)
+    ])
     exportToPDF(`Inventory Low Stock - ${period}`, headers, rows, `Inventory_Low_Stock`)
   }
 
@@ -151,10 +150,9 @@ export default function InventoryReport({ onBack }) {
       const wb = XLSX.utils.book_new()
       
       // Sheet 1: Low Stock
-      const wsLow = XLSX.utils.json_to_sheet(data.lowStockItems.map(i => {
-        const gstMult = 1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100;
-        return { HSN: i.hsn, Product: i.name, Category: i.category, Qty: i.qty, Min: i.min, Value: i.qty * i.rate * gstMult }
-      }))
+      const wsLow = XLSX.utils.json_to_sheet(data.lowStockItems.map(i => ({
+        HSN: i.hsn, Product: i.name, Category: i.category, Qty: i.qty, Min: i.min, Value: i.qty * i.rate
+      })))
       XLSX.utils.book_append_sheet(wb, wsLow, "Low Stock")
 
       // Sheet 2: Dead Stock
@@ -208,7 +206,7 @@ export default function InventoryReport({ onBack }) {
       </div>
 
       <div style={{ padding: '12px 16px', background: '#EFF6FF', color: '#1E3A8A', borderRadius: 8, marginBottom: 24, fontSize: 13, border: '1px solid #BFDBFE' }}>
-        <strong>Note:</strong> Total Purchase Value and the Category chart represent your <strong>lifetime purchases</strong> and do not change with the date filter. The date filter applies to Fast/Slow Moving and Dead Stock analysis.
+        <strong>Note:</strong> Total Inventory Value, Low Stock, and the Category chart represent your <strong>current stock snapshot</strong> and do not change with the date filter. The date filter applies to Fast/Slow Moving and Dead Stock analysis.
       </div>
 
       {loading || !data ? (
@@ -224,8 +222,8 @@ export default function InventoryReport({ onBack }) {
                   <Package size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Purchase Value (GST Inc)</div>
-                  <div style={{ fontSize: 11, color: '#94A3B8' }}>Lifetime purchases</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Inventory Value</div>
+                  <div style={{ fontSize: 11, color: '#94A3B8' }}>Current stock value</div>
                 </div>
               </div>
               <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(data.kpis.totalValue)}</div>
@@ -291,14 +289,14 @@ export default function InventoryReport({ onBack }) {
 
           {/* ── CHARTS ── */}
           <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 12, border: '1px solid var(--border)' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Purchase Value by Category</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Inventory Value by Category</h3>
             {data.categoryValue && data.categoryValue.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={data.categoryValue}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="category" {...axisStyle} />
                   <YAxis {...axisStyle} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                  <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Purchase Value']} />
+                  <Tooltip {...tooltipStyle} formatter={(v) => [formatCurrency(v), 'Stock Value']} />
                   <Bar isAnimationActive={true} animationDuration={1500} animationEasing="ease-out" dataKey="value" radius={[4,4,0,0]}>
                     {data.categoryValue.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -398,7 +396,7 @@ export default function InventoryReport({ onBack }) {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: '#374151' }}>{o.category || 'Steel Bars'}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 700, color: '#D97706' }}>{formatQty(o.qty)}</td>
                       <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatQty(o.min)}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(o.qty * o.rate * (1 + ((Number(o.cgst_percent)||0) + (Number(o.sgst_percent)||0))/100))}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-muted)' }}>{formatCurrency(o.qty * o.rate)}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#D97706', background: '#FFFBEB', padding: '4px 8px', borderRadius: 4 }}>
                           Low Stock

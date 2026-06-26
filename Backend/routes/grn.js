@@ -168,14 +168,15 @@ router.post('/', auth, async (req, res) => {
   let { supplier, date, items, updateInventory } = req.body;
 
   // Normalize specific supplier typos
-  if (['STAYBRiIT TRADING CORPORATION', 'STAYBRiT TRADING CORPORATION', 'STAYBRIT TRADING CORPORATION'].includes(supplier)) {
-    supplier = 'STAYBRIIT TRADING CORPORATION';
-  }
   if (supplier) {
     const up = supplier.toUpperCase();
-    if (up.includes('JHONON') || up.includes('JHONSSON') || up.includes('JOHNSON')) {
-      if (up.includes('PIPE')) supplier = 'JOHNSON PIPES';
-      else supplier = 'JOHNSON ENTERPRISES';
+    if (up.includes('STAYBR')) {
+      supplier = 'STAYBRIIT TRADING CORPORATION';
+    } else if (up.includes('JHONON') || up.includes('JHONSSON') || up.includes('JOHNSON')) {
+      supplier = up.includes('PIPE') ? 'JOHNSON PIPES' : 'JOHNSON ENTERPRISES';
+    }
+    if (up.includes('KUMAR STEEL')) {
+      supplier = 'KUMAR STEELS';
     }
   }
 
@@ -217,13 +218,20 @@ router.post('/', auth, async (req, res) => {
         let incomingRate = Number(item.unit_price) || 0;
         const totalAmount = Number(item.total_amount) || 0;
 
-        // Strip 18% GST for JOHNSON
-        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES') {
+        // Strip 18% GST for suppliers whose invoice total_amount is GST-inclusive (Net Amt column)
+        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES' || supplier === 'STAYBRIIT TRADING CORPORATION') {
           if (totalAmount > 0 && incomingQty > 0) {
             const amountExGst = totalAmount / 1.18;
             incomingRate = amountExGst / incomingQty;
           } else {
             incomingRate = incomingRate / 1.18;
+          }
+        } else if (supplier === "KHUMAR'S CERAMICS" || supplier === 'M/S.SHANTHINI POLYMERS') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountWithGst = totalAmount * 1.18;
+            incomingRate = amountWithGst / incomingQty;
+          } else {
+            incomingRate = incomingRate * 1.18;
           }
         }
 
@@ -275,13 +283,20 @@ router.post('/', auth, async (req, res) => {
         let incomingRate = Number(item.unit_price) || 0;
         const totalAmount = Number(item.total_amount) || 0;
 
-        // Strip 18% GST for JOHNSON
-        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES') {
+        // Strip 18% GST for suppliers whose invoice total_amount is GST-inclusive (Net Amt column)
+        if (supplier === 'JOHNSON ENTERPRISES' || supplier === 'JOHNSON PIPES' || supplier === 'STAYBRIIT TRADING CORPORATION') {
           if (totalAmount > 0 && incomingQty > 0) {
             const amountExGst = totalAmount / 1.18;
             incomingRate = amountExGst / incomingQty;
           } else {
             incomingRate = incomingRate / 1.18;
+          }
+        } else if (supplier === "KHUMAR'S CERAMICS" || supplier === 'M/S.SHANTHINI POLYMERS') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountWithGst = totalAmount * 1.18;
+            incomingRate = amountWithGst / incomingQty;
+          } else {
+            incomingRate = incomingRate * 1.18;
           }
         }
 
@@ -537,7 +552,24 @@ router.patch('/:id/status', auth, async (req, res) => {
         const existingQty  = Number(invMatch.qty)        || 0;
         const existingRate = Number(invMatch.rate)       || 0;
         const incomingQty  = Number(item.quantity)       || 0;
-        const incomingRate = Number(item.unit_price)     || 0;
+        let incomingRate = Number(item.unit_price)     || 0;
+        const totalAmount = Number(item.total_amount) || 0;
+
+        if (grn.supplier === 'JOHNSON ENTERPRISES' || grn.supplier === 'JOHNSON PIPES') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountExGst = totalAmount / 1.18;
+            incomingRate = amountExGst / incomingQty;
+          } else {
+            incomingRate = incomingRate / 1.18;
+          }
+        } else if (grn.supplier === "KHUMAR'S CERAMICS" || grn.supplier === 'M/S.SHANTHINI POLYMERS') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountWithGst = totalAmount * 1.18;
+            incomingRate = amountWithGst / incomingQty;
+          } else {
+            incomingRate = incomingRate * 1.18;
+          }
+        }
 
         const newAvgRate  = calculateWeightedAverageCost(existingQty, existingRate, incomingQty, incomingRate);
         const newQty      = existingQty + incomingQty;
@@ -584,8 +616,25 @@ router.patch('/:id/status', auth, async (req, res) => {
       } else {
         // ── NEW ITEM – auto-create from GRN approval ───────────────────────
         const incomingQty  = Number(item.quantity)   || 0;
-        const incomingRate = Number(item.unit_price)  || 0;
+        let incomingRate = Number(item.unit_price)  || 0;
+        const totalAmount = Number(item.total_amount) || 0;
         const today2       = grn.date || new Date().toISOString().split('T')[0];
+
+        if (grn.supplier === 'JOHNSON ENTERPRISES' || grn.supplier === 'JOHNSON PIPES') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountExGst = totalAmount / 1.18;
+            incomingRate = amountExGst / incomingQty;
+          } else {
+            incomingRate = incomingRate / 1.18;
+          }
+        } else if (grn.supplier === "KHUMAR'S CERAMICS" || grn.supplier === 'M/S.SHANTHINI POLYMERS') {
+          if (totalAmount > 0 && incomingQty > 0) {
+            const amountWithGst = totalAmount * 1.18;
+            incomingRate = amountWithGst / incomingQty;
+          } else {
+            incomingRate = incomingRate * 1.18;
+          }
+        }
 
         let defaultCat = 'General';
         let defaultMin = 0;

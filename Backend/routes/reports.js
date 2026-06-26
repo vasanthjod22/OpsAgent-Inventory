@@ -371,33 +371,19 @@ router.get('/inventory', auth, async (req, res) => {
       daysIdle: Math.floor(
         (new Date() - new Date(i.last_restocked || i.created_at || new Date())) / (1000 * 60 * 60 * 24)
       ),
-      valueLocked: (Number(i.qty) || 0) * (Number(i.rate) || 0) * (1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100)
+      valueLocked: (Number(i.qty) || 0) * (Number(i.rate) || 0)
     })).sort((a,b) => b.daysIdle - a.daysIdle);
 
-    // Category value (purchases)
-    const { data: grns } = await supabase.from('grn').select('*').eq('user_id', userId);
-    let totalPurchaseValue = 0;
+    // Category value
     const catMap = {};
-    
-    (grns || []).forEach(grn => {
-      (grn.items || []).forEach(item => {
-        let val = 0;
-        if (item.total_amount) {
-          val = Number(item.total_amount);
-        } else {
-          val = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0) * 1.18;
-        }
-        totalPurchaseValue += val;
-
-        const cat = item.category || 'Uncategorized';
-        if (!catMap[cat]) {
-          catMap[cat] = { category: cat, value: 0, items: 0 };
-        }
-        catMap[cat].value += val;
-        catMap[cat].items++;
-      });
+    items.forEach(i => {
+      const cat = i.category || 'Uncategorized';
+      if (!catMap[cat]) {
+        catMap[cat] = { category: cat, value: 0, items: 0 };
+      }
+      catMap[cat].value += (Number(i.qty) || 0) * (Number(i.rate) || 0);
+      catMap[cat].items++;
     });
-
 
     // Fast moving
     const fastMoving = Object.values(periodMetrics.productMap)
@@ -418,7 +404,7 @@ router.get('/inventory', auth, async (req, res) => {
     res.json({
       success: true,
       kpis: {
-        totalValue: totalPurchaseValue,
+        totalValue: inventoryStatus.totalInventoryValue,
         lowStockCount: inventoryStatus.lowStockCount,
         outOfStockCount: inventoryStatus.outOfStockCount,
         deadStockCount: deadStock.length

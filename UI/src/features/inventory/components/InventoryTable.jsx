@@ -46,7 +46,11 @@ export default function InventoryTable({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 16px', background: 'var(--bg-main)' }}>
         {displayedItems.map((item, index) => {
           const currentQty = item.qty || 0;
-          const totalValue = currentQty * (item.purchase_rate || item.rate || 0);
+          let totalValue = currentQty * (item.purchase_rate || item.rate || 0);
+          const isSpecialSupplier = item.supplier_name === "KHUMAR'S CERAMICS" || item.supplier_name === 'M/S.SHANTHINI POLYMERS';
+          if (isSpecialSupplier) {
+            totalValue = totalValue / 1.18;
+          }
           const statBadge = getStatus(currentQty, item.min || 0, item.max || 0);
 
           return (
@@ -84,7 +88,7 @@ export default function InventoryTable({
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Value (GST inc)</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#065F46', marginTop: 2 }}>
-                    ₹{(totalValue * (1 + ((Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0)) / 100)).toFixed(2)}
+                    ₹{(isSpecialSupplier ? (totalValue * 1.18) : (totalValue * (1 + ((Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0)) / 100))).toFixed(2)}
                   </div>
                 </div>
                 <div>
@@ -141,7 +145,11 @@ export default function InventoryTable({
         <tbody>
           {displayedItems.map((item, index) => {
             const currentQty = item.qty || 0
-            const totalValue = currentQty * (item.purchase_rate || item.rate || 0)
+            let totalValue = currentQty * (item.purchase_rate || item.rate || 0)
+            const isSpecialSupplier = item.supplier_name === "KHUMAR'S CERAMICS" || item.supplier_name === 'M/S.SHANTHINI POLYMERS';
+            if (isSpecialSupplier) {
+              totalValue = totalValue / 1.18;
+            }
             const statBadge = getStatus(currentQty, item.min || 0, item.max || 0)
 
             return (
@@ -247,8 +255,8 @@ export default function InventoryTable({
                     <Info size={14} color="#059669" />
                   </div>
                 </td>
-                <td style={{ color: '#065F46', padding: '12px 8px', fontWeight: 700 }}>
-                  ₹{(totalValue * (1 + ((Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0)) / 100)).toFixed(2)}
+                <td style={{ padding: '12px 8px', fontWeight: 700, color: '#065F46' }}>
+                  ₹{(isSpecialSupplier ? (totalValue * 1.18) : (totalValue * (1 + ((Number(item.cgst_percent) || 0) + (Number(item.sgst_percent) || 0)) / 100))).toFixed(2)}
                 </td>
                 <td style={{ color: 'var(--text-muted)', padding: '12px 8px' }}>{item.supplier_name || '—'}</td>
                 <td style={{ color: 'var(--text-muted)', padding: '12px 8px', fontSize: 12 }}>

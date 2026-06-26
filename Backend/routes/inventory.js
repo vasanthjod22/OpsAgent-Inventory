@@ -151,7 +151,7 @@ router.get('/', auth, async (req, res) => {
       .eq('user_id', req.user.id)
 
     if (search && search.trim()) {
-      query = query.or(`name.ilike.%${search}%,hsn.ilike.%${search}%,category.ilike.%${search}%`)
+      query = query.or(`name.ilike.%${search}%,hsn.ilike.%${search}%,category.ilike.%${search}%,supplier_name.ilike.%${search}%`)
     }
 
     if (category && category !== 'all') {

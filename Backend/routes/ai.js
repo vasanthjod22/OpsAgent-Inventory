@@ -5,7 +5,7 @@ const router = express.Router();
 
 const GROQ_MODELS = [
   'llama3-70b-8192',
-  'llama-3.1-8b-instant',
+  'gpt-oss-20b',
   'meta-llama/llama-4-scout-17b-16e-instruct',
 ];
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -78,14 +78,22 @@ router.post('/chat', auth, async (req, res) => {
  * Body: { base64Image, mimeType }
  */
 router.post('/vision', auth, async (req, res) => {
-  const { base64Image, mimeType } = req.body;
+  const { base64Image, mimeType, images } = req.body;
   const apiKey = req.headers['x-groq-api-key'] || process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     return res.status(503).json({ error: 'AI service not configured. Set GROQ_API_KEY env variable or configure in Settings.' });
   }
-  if (!base64Image || !mimeType) {
-    return res.status(400).json({ error: 'base64Image and mimeType are required' });
+
+  let imageList = [];
+  if (images && Array.isArray(images) && images.length > 0) {
+    imageList = images;
+  } else if (base64Image && mimeType) {
+    imageList = [{ base64Image, mimeType }];
+  }
+
+  if (imageList.length === 0) {
+    return res.status(400).json({ error: 'base64Image/mimeType or images array is required' });
   }
 
   const VISION_MODELS = [
@@ -112,26 +120,76 @@ router.post('/vision', auth, async (req, res) => {
               {
                 role: 'user',
                 content: [
-                  {
+                  ...imageList.map(img => ({
                     type: 'image_url',
-                    image_url: { url: `data:${mimeType};base64,${base64Image}` },
-                  },
+                    image_url: { url: `data:${img.mimeType};base64,${img.base64Image}` },
+                  })),
                   {
                     type: 'text',
-                    text: `Extract all data from this Goods Receipt Note (GRN) or delivery document. Return ONLY valid JSON:
+                    text: `You are an expert document parser specializing in Indian invoices, Goods Receipt Notes (GRNs), and delivery challans.
+
+Your task is to carefully extract structured data from the document image provided and return it as ONLY valid JSON.
+
+---
+## STEP 1: IDENTIFY THE DOCUMENT HEADER
+Look for the following fields anywhere on the document (usually at the top):
+- **Supplier / Vendor Name**: The company that is SELLING the goods (not the buyer). Look for labels like "From:", "Supplier:", "Vendor:", or the bold company name at the top.
+- **PO Number / Invoice Number**: Look for "PO No.", "Invoice No.", "Bill No.", "Ref No.", etc.
+- **Date**: The invoice or delivery date. Format it as YYYY-MM-DD. If only day/month/year is shown (e.g., "20/08/2021"), convert to "2021-08-20".
+
+---
+## STEP 2: EXTRACT EVERY LINE ITEM FROM THE TABLE (VERY IMPORTANT)
+The document will have a table of items. Scan EVERY row from top to bottom. DO NOT SKIP any row.
+For EACH row, extract:
+- **hsn**: The HSN/SAC code (a 4-8 digit number). May be in a column labelled "HSN", "HSN/SAC", "SAC Code", etc.
+- **description**: The full product name/description. Include brand, size, color, model if visible.
+- **quantity**: The number of units received. Look for columns labelled "Qty", "Quantity", "Nos", "Pcs", etc. Must be a NUMBER.
+- **unit_price**: The price per unit BEFORE tax. Look for "Rate", "Unit Price", "Price/Unit", "MRP". Must be a NUMBER or null.
+- **total_amount**: The total value for that line item. This is usually the last numeric column. It may be BEFORE or AFTER tax depending on the document. Must be a NUMBER or null.
+
+---
+## STEP 3: VALIDATION RULES (Apply these before returning)
+1. **Math Check**: If you have all three values (quantity, unit_price, total_amount), verify that quantity × unit_price ≈ total_amount (allow ±2% for rounding). If the math does NOT check out, the most likely culprits are:
+   a. The total_amount includes tax (GST 18%) → Try: unit_price × quantity × 1.18 ≈ total_amount
+   b. You misread a digit → Re-examine the image for that row carefully.
+   c. There is a discount applied → Note this in the description if visible.
+2. **Quantity must be a positive number**. If you see "-" or blank, set it to null.
+3. **Unit price must be a positive number**. If only total_amount is visible and not unit_price, calculate: unit_price = total_amount / quantity (if quantity > 0), else set to null.
+4. **Never invent or guess data**. If a value is truly not visible, use null.
+5. **Remove commas from numbers**: "1,234.56" → 1234.56. "2,374.70" → 2374.70.
+6. **Handle merged cells and summary rows**: Rows that say "Total", "Sub Total", "Grand Total", "CGST", "SGST", "Freight", "Discount" are NOT line items — exclude them from the items array.
+
+---
+## STEP 4: EDGE CASES
+- If the document is a multi-page invoice and you can only see one page, extract what is visible.
+- If the supplier name appears twice (e.g., letterhead and body), use the one associated with "Bill From" or "Supplier".
+- Indian company names often have suffixes like "Pvt. Ltd.", "Ltd.", "& Co.", "Enterprises", "Traders", "M/s." — keep them exactly as printed.
+- Dates in Indian format: DD/MM/YYYY → convert to YYYY-MM-DD (e.g., 15/03/2024 → 2024-03-15).
+- HSN codes for ceramics/sanitary ware are typically 6910xxxx. Plumbing pipes are 3917xxxx or 7304xxxx.
+
+---
+## OUTPUT FORMAT
+Return ONLY this JSON structure with NO extra text, NO markdown, NO explanation:
 {
   "supplier_name": "string or null",
   "po_number": "string or null",
-  "date": "string or null",
-  "items": [{ "hsn": "string or null", "description": "string", "quantity": number, "unit_price": number or null, "total_amount": number or null }]
-}
-`,
+  "date": "YYYY-MM-DD string or null",
+  "items": [
+    {
+      "hsn": "string or null",
+      "description": "Full product description",
+      "quantity": number,
+      "unit_price": number or null,
+      "total_amount": number or null
+    }
+  ]
+}`,
                   },
                 ],
               },
             ],
             temperature: 0.1,
-            max_tokens: 2048,
+            max_tokens: 4096,
             response_format: { type: 'json_object' }
           }),
         });
@@ -170,6 +228,52 @@ router.post('/vision', auth, async (req, res) => {
 
         try {
           const parsed = JSON.parse(clean);
+
+          // ─── POST-PROCESSING: Auto-correct & sanitise AI output ───────────────
+          if (Array.isArray(parsed.items)) {
+            const SUMMARY_ROW_KEYWORDS = /^(total|sub.?total|grand.?total|cgst|sgst|igst|tax|freight|discount|charges?|round.?off|advance|balance|amount|narration|description)$/i;
+
+            parsed.items = parsed.items
+              .filter(item => {
+                // Remove summary/tax rows — they have no real product description
+                const desc = (item.description || '').trim();
+                return desc && !SUMMARY_ROW_KEYWORDS.test(desc);
+              })
+              .map(item => {
+                const qty   = parseFloat(item.quantity)    || null;
+                const rate  = parseFloat(item.unit_price)  || null;
+                const total = parseFloat(item.total_amount)|| null;
+
+                // If unit_price is missing but we have qty and total, derive it
+                if (!rate && qty && qty > 0 && total) {
+                  item.unit_price = parseFloat((total / qty).toFixed(4));
+                }
+
+                // If total_amount is missing but we have qty and rate, derive it
+                if (!total && qty && rate) {
+                  item.total_amount = parseFloat((qty * rate).toFixed(2));
+                }
+
+                // Ensure numbers are numbers, not strings
+                if (item.quantity)    item.quantity    = parseFloat(item.quantity);
+                if (item.unit_price)  item.unit_price  = parseFloat(item.unit_price);
+                if (item.total_amount)item.total_amount = parseFloat(item.total_amount);
+
+                return item;
+              });
+          }
+
+          // Normalise date: accept DD/MM/YYYY or DD-MM-YYYY → YYYY-MM-DD
+          if (parsed.date && typeof parsed.date === 'string') {
+            const dmyMatch = parsed.date.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+            if (dmyMatch) {
+              const [, d, m, y] = dmyMatch;
+              const fullYear = y.length === 2 ? '20' + y : y;
+              parsed.date = `${fullYear}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+            }
+          }
+          // ─────────────────────────────────────────────────────────────────────
+
           return res.json(parsed);
         } catch (parseErr) {
           console.error("JSON parse error with model", model, ":", parseErr, "Raw Text:", clean);

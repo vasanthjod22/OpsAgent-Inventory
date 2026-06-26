@@ -168,7 +168,7 @@ router.post('/ask', auth, async (req, res) => {
           'Authorization': `Bearer ${actualKey}`
         },
         body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
+          model: 'gpt-oss-20b',
           messages: [
             {
               role: 'system',

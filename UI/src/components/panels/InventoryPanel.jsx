@@ -15,6 +15,7 @@ import ImportModal from '../../features/inventory/components/ImportModal'
 import InventoryItemModal from '../../features/inventory/components/InventoryItemModal'
 import InventoryTable from '../../features/inventory/components/InventoryTable'
 import GRNHistoryTable from '../../features/inventory/components/GRNHistoryTable'
+import PurchaseBreakdownModal from '../../features/inventory/components/PurchaseBreakdownModal'
 import { ActionBtn, ColHeader, Pagination } from '../../features/inventory/components/InventoryShared'
 import { InventoryAutocomplete, CategoryAutocomplete, FilterSelect, FilterChip, FormAutocomplete } from '../../features/inventory/components/InventoryFilters'
 
@@ -149,9 +150,7 @@ export default function InventoryPanel({ showToast }) {
   const [showLiveCamera, setShowLiveCamera] = useState(false)
   const liveVideoRef = useRef(null)
   const liveCanvasRef = useRef(null)
-  const [grnFile, setGrnFile] = useState(null)
-  const [grnBase64, setGrnBase64] = useState('')
-  const [grnFileType, setGrnFileType] = useState('')
+  const [grnFiles, setGrnFiles] = useState([])
   const [grnLoading, setGrnLoading] = useState(false)
   const [grnData, setGrnData] = useState(null)
   const [grnError, setGrnError] = useState(null)
@@ -171,6 +170,7 @@ export default function InventoryPanel({ showToast }) {
     },
     refetchInterval: 60000
   })
+
   const { data: grnHistory = [], refetch: fetchGrnHistory } = useQuery({
     queryKey: ['grnHistory'],
     queryFn: async () => {
@@ -186,34 +186,101 @@ export default function InventoryPanel({ showToast }) {
       lowStock: allItems.filter(i => Number(i.qty) <= Number(i.min) && Number(i.qty) > 0).length,
       outOfStock: allItems.filter(i => Number(i.qty) === 0).length,
       overstock: allItems.filter(i => Number(i.qty) > Number(i.max)).length,
-      totalValue: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0)), 0),
-      totalValueGstInc: allItems.reduce((sum, i) => sum + ((Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0) * (1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100)), 0),
-      supplierBreakdown: grnHistory.reduce((acc, grn) => {
-        const supplier = grn.supplier || 'Unknown Supplier';
-        const date = grn.date || 'Unknown Date';
-        const key = `${supplier}::${date}`;
+      totalValue: allItems.reduce((sum, i) => {
+        let val = (Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0);
+        if (i.supplier_name === "KHUMAR'S CERAMICS" || i.supplier_name === 'M/S.SHANTHINI POLYMERS') val /= 1.18;
+        return sum + val;
+      }, 0),
+      totalValueGstInc: allItems.reduce((sum, i) => {
+        let val = (Number(i.qty) || 0) * (Number(i.rate) || Number(i.purchase_rate) || 0);
+        if (i.supplier_name !== "KHUMAR'S CERAMICS" && i.supplier_name !== 'M/S.SHANTHINI POLYMERS') {
+          val *= (1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100);
+        }
+        return sum + val;
+      }, 0),
+      supplierBreakdown: (() => {
+        const breakdown = {};
+        let totalPurchases = 0;
         
-        let totalVal = 0;
-        (grn.items || []).forEach(i => {
-          if (i.total_amount) {
-            totalVal += Number(i.total_amount);
-          } else {
-            // Assume 18% GST if not provided as total_amount
-            totalVal += (Number(i.quantity) || 0) * (Number(i.unit_price) || 0) * 1.18;
+        // 1. Add all GRN purchases
+        const normalizeSupplier = (name) => {
+          if (!name) return 'Unknown Supplier';
+          const up = name.toUpperCase();
+          if (up.includes('STAYBR')) return 'STAYBRIIT TRADING CORPORATION';
+          if (up.includes('JHONON') || up.includes('JHONSSON') || up.includes('JOHNSON')) {
+            return up.includes('PIPE') ? 'JOHNSON PIPES' : 'JOHNSON ENTERPRISES';
+          }
+          if (up.includes('KUMAR STEEL')) return 'KUMAR STEELS';
+          return name;
+        };
+
+        grnHistory.forEach(grn => {
+          const supplier = normalizeSupplier(grn.supplier);
+          const date = grn.date || 'Unknown Date';
+          const key = `${supplier}::${date}`;
+          
+          let totalVal = 0;
+          (grn.items || []).forEach(i => {
+            if (i.total_amount) {
+              totalVal += Number(i.total_amount);
+            } else {
+              totalVal += (Number(i.quantity) || 0) * (Number(i.unit_price) || 0) * 1.18;
+            }
+          });
+
+          if (supplier === "KHUMAR'S CERAMICS" || supplier === 'M/S.SHANTHINI POLYMERS') {
+            totalVal *= 1.18;
+          }
+
+          if (!breakdown[key]) breakdown[key] = { supplier, date, total: 0, cgst: 0, sgst: 0 };
+          breakdown[key].total += totalVal;
+          const base = totalVal / 1.18;
+          breakdown[key].cgst += base * 0.09;
+          breakdown[key].sgst += base * 0.09;
+          totalPurchases += totalVal;
+        });
+
+        // 2. Add manual items without GRNs
+        allItems.forEach(i => {
+          const opStock = Number(i.opening_stock) || 0;
+          if (opStock > 0) {
+            const supplier = normalizeSupplier(i.supplier_name);
+            const date = i.date_added ? i.date_added.split('T')[0] : 'Unknown Date';
+            const key = `${supplier}::${date}`;
+            
+            // Fix double counting: items created via GRN have their opening_stock = incomingQty
+            // and date_added = grn.date. If we see a GRN for this supplier on this date,
+            // assume this opening_stock is already counted in the GRN history loop.
+            const hasGrnOnSameDate = grnHistory.some(g => g.supplier === supplier && (g.date === date || g.date?.startsWith(date)));
+            if (hasGrnOnSameDate) return;
+            
+            const isSpecialSupplier = supplier === "KHUMAR'S CERAMICS" || supplier === 'M/S.SHANTHINI POLYMERS';
+            
+            const gstMult = 1 + ((Number(i.cgst_percent) || 0) + (Number(i.sgst_percent) || 0)) / 100;
+            // opStock * rate is ALREADY gst inc for these suppliers
+            let totalVal = opStock * (Number(i.purchase_rate) || Number(i.rate) || 0);
+            if (!isSpecialSupplier) {
+              totalVal *= gstMult;
+            }
+            
+            if (!breakdown[key]) breakdown[key] = { supplier, date, total: 0, cgst: 0, sgst: 0 };
+            breakdown[key].total += totalVal;
+            
+            const cgstPercent = (Number(i.cgst_percent) || 0) / 100;
+            const sgstPercent = (Number(i.sgst_percent) || 0) / 100;
+            let baseVal = opStock * (Number(i.purchase_rate) || Number(i.rate) || 0);
+            if (isSpecialSupplier) {
+              baseVal /= 1.18;
+            }
+            
+            breakdown[key].cgst += baseVal * cgstPercent;
+            breakdown[key].sgst += baseVal * sgstPercent;
+            totalPurchases += totalVal;
           }
         });
 
-        if (!acc[key]) acc[key] = { supplier, date, total: 0, cgst: 0, sgst: 0 };
-        acc[key].total += totalVal;
-        
-        // Approximate CGST/SGST from total (assuming 18% GST total -> 9% CGST, 9% SGST)
-        // Base = Total / 1.18.  CGST = Base * 0.09.
-        const base = acc[key].total / 1.18;
-        acc[key].cgst = base * 0.09;
-        acc[key].sgst = base * 0.09;
-
-        return acc;
-      }, {})
+        return breakdown;
+      })()
     })
   }, [allItems, grnHistory])
 
@@ -437,36 +504,58 @@ export default function InventoryPanel({ showToast }) {
     
     canvas.toBlob((blob) => {
       const f = new File([blob], "Camera-Capture.jpg", { type: "image/jpeg" })
-      processGrnFile(f)
+      processGrnFiles([f])
       stopCamera()
     }, 'image/jpeg')
   }
 
-  const processGrnFile = (f) => {
-    if (!f) return
-    if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
-      setGrnError('Please upload a PDF, JPG, PNG, or WEBP file.')
-      showToast?.('Invalid file format', 'error')
-      return
+  const processGrnFiles = async (filesList) => {
+    if (!filesList || filesList.length === 0) return
+    const newFiles = Array.from(filesList)
+    
+    for (const f of newFiles) {
+      if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+        setGrnError('Please upload PDF, JPG, PNG, or WEBP files.')
+        showToast?.('Invalid file format', 'error')
+        return
+      }
     }
-    setGrnFile(f); setGrnFileType(f.type); setGrnData(null); setGrnError(null);
-    const reader = new FileReader()
-    reader.onload = (e) => setGrnBase64(e.target.result.split(',')[1])
-    reader.readAsDataURL(f)
+
+    setGrnData(null); setGrnError(null);
+    
+    const processed = await Promise.all(newFiles.map(f => {
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve({
+          file: f,
+          type: f.type,
+          base64: e.target.result.split(',')[1],
+          name: f.name
+        })
+        reader.readAsDataURL(f)
+      })
+    }))
+
+    setGrnFiles(prev => [...prev, ...processed])
   }
 
   const extractGrnData = async () => {
-    if (!grnBase64) return
+    if (grnFiles.length === 0) return
     setGrnLoading(true); setGrnError(null); setGrnData(null);
     try {
-      let imageBase64 = grnBase64
-      let imageMime = grnFileType
-      if (grnFileType === 'application/pdf') {
-        showToast?.('Converting PDF to image...', 'info')
-        imageBase64 = await convertPdfToBase64Image(grnBase64)
-        imageMime = 'image/png'
+      const payloadImages = []
+      
+      for (const item of grnFiles) {
+        if (item.type === 'application/pdf') {
+          showToast?.('Converting PDF to image...', 'info')
+          const pdfBase64 = await convertPdfToBase64Image(item.base64)
+          payloadImages.push({ base64Image: pdfBase64, mimeType: 'image/png' })
+        } else {
+          payloadImages.push({ base64Image: item.base64, mimeType: item.type })
+        }
       }
-      const parsed = await callVisionAI(null, imageBase64, imageMime)
+
+      const parsed = await callVisionAI(null, payloadImages)
       if (!parsed.items) parsed.items = []
       
       parsed.items.sort((a, b) => {
@@ -501,7 +590,7 @@ export default function InventoryPanel({ showToast }) {
       })
       showToast?.('Stock updated from GRN', 'success')
       setGrnExpanded(false)
-      setGrnFile(null); setGrnBase64(''); setGrnData(null);
+      setGrnFiles([]); setGrnData(null);
       fetchInventory()
       fetchAllForAutocomplete()
       fetchGrnHistory()
@@ -546,17 +635,17 @@ export default function InventoryPanel({ showToast }) {
           </div>
           <AlertTriangle size={32} color="#DC2626" style={{ opacity: 0.2 }} />
         </div>
-        <div style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div onClick={() => setShowSupplierBreakdown('exclusive')} style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#16A34A', textTransform: 'uppercase' }}>Total Value</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{(stats.totalValue || 0).toLocaleString()}</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{Number(stats.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           <TrendingUp size={32} color="#16A34A" style={{ opacity: 0.2 }} />
         </div>
-        <div onClick={() => setShowSupplierBreakdown(true)} style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+        <div onClick={() => setShowSupplierBreakdown('gst_inc')} style={{ padding: '20px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#16A34A', textTransform: 'uppercase' }}>Total Value (GST INC)</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{(stats.totalValueGstInc || 0).toLocaleString()}</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#065F46' }}>₹{Number(stats.totalValueGstInc || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           <TrendingUp size={32} color="#16A34A" style={{ opacity: 0.2 }} />
         </div>
@@ -574,11 +663,11 @@ export default function InventoryPanel({ showToast }) {
               <button onClick={() => { setGrnExpanded(false); stopCamera(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
             </div>
             <div style={{ padding: 24 }}>
-            {!grnFile && !showLiveCamera && (
+            {grnFiles.length === 0 && !showLiveCamera && (
               <div
                 onDragOver={e => { e.preventDefault(); setGrnDragging(true) }}
                 onDragLeave={() => setGrnDragging(false)}
-                onDrop={e => { e.preventDefault(); setGrnDragging(false); processGrnFile(e.dataTransfer.files[0]) }}
+                onDrop={e => { e.preventDefault(); setGrnDragging(false); processGrnFiles(e.dataTransfer.files) }}
                 style={{ border: `2px dashed ${grnDragging ? '#2563EB' : '#CBD5E1'}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center', background: grnDragging ? '#EFF6FF' : '#FAFBFC' }}
               >
                 <CloudUpload size={40} color={grnDragging ? '#2563EB' : '#94A3B8'} style={{ margin: '0 auto 12px auto' }} />
@@ -594,11 +683,11 @@ export default function InventoryPanel({ showToast }) {
                   </button>
                 </div>
 
-                <input ref={grnFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => processGrnFile(e.target.files[0])} style={{ display: 'none' }} />
+                <input ref={grnFileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => processGrnFiles(e.target.files)} style={{ display: 'none' }} />
               </div>
             )}
 
-            {showLiveCamera && !grnFile && (
+            {showLiveCamera && grnFiles.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
                 <div style={{ width: '100%', maxWidth: 600, background: '#000', borderRadius: 12, overflow: 'hidden', position: 'relative', aspectRatio: '4/3' }}>
                   <video ref={liveVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -616,13 +705,19 @@ export default function InventoryPanel({ showToast }) {
               </div>
             )}
 
-            {grnFile && !grnData && (
+            {grnFiles.length > 0 && !grnData && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '20px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-main)' }}>
-                <FileImage size={40} color="#2563EB" />
-                <div style={{ fontWeight: 600 }}>{grnFile.name}</div>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {grnFiles.map((f, idx) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: 12, background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <FileImage size={32} color="#2563EB" />
+                      <div style={{ fontWeight: 600, fontSize: 13, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                    </div>
+                  ))}
+                </div>
                 {grnError && <div style={{ color: '#DC2626', fontSize: 13 }}>{grnError}</div>}
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setGrnFile(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => setGrnFiles([])} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer' }}>Cancel</button>
                   <button onClick={extractGrnData} disabled={grnLoading} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#2563EB', color: 'white', fontWeight: 600, cursor: grnLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                     {grnLoading ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
                     {grnLoading ? 'Extracting...' : 'Extract Data with AI'}
@@ -903,7 +998,7 @@ export default function InventoryPanel({ showToast }) {
         
         {/* Pagination Wrapper */}
         <div style={{ padding: '0 24px' }}>
-          {!search && items.length > 0 && (
+          {items.length > 0 && (
             <Pagination
               currentPage={activePagination.currentPage}
               totalPages={activePagination.totalPages}
@@ -918,7 +1013,7 @@ export default function InventoryPanel({ showToast }) {
 
       {/* GRN History Mini Table (Always visible if there's history) */}
       <GRNHistoryTable
-        grnHistory={grnHistory.slice(0, 5)}
+        grnHistory={grnHistory.slice(0,5)}
         grnData={grnData}
         expandedGrnId={expandedGrnId}
         setExpandedGrnId={setExpandedGrnId}
@@ -944,44 +1039,11 @@ export default function InventoryPanel({ showToast }) {
       {showImport && <ImportModal onClose={() => setShowImport(false)} fetchInventory={() => {fetchInventory(); fetchCategories()}} showToast={showToast} />}
       
       {showSupplierBreakdown && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ background: 'var(--bg-card)', borderRadius: 12, width: '100%', maxWidth: 500, overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Supplier Breakdown (GST Inc)</h3>
-              <button onClick={() => setShowSupplierBreakdown(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
-            </div>
-            <div style={{ padding: 24, maxHeight: '60vh', overflowY: 'auto' }}>
-              {Object.entries(stats.supplierBreakdown || {})
-                .sort((a,b) => {
-                  const dA = new Date(a[1].date).getTime() || 0;
-                  const dB = new Date(b[1].date).getTime() || 0;
-                  if (dB !== dA) return dA - dB;
-                  return b[1].total - a[1].total;
-                })
-                .map(([key, data]) => (
-                <div key={key} style={{ padding: '12px 0', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }} className="group cursor-pointer">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', transition: 'color 0.2s' }} className="group-hover:text-blue-600">{data.supplier}</span>
-                      {data.date !== 'Unknown Date' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(data.date)}</span>}
-                    </div>
-                    <span style={{ fontWeight: 700, color: '#065F46' }}>₹{data.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: '6px' }} className="hidden justify-between group-hover:flex">
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3B82F6' }}/> CGST: <span style={{ fontWeight: 600 }}>₹{data.cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6' }}/> SGST: <span style={{ fontWeight: 600 }}>₹{data.sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
-                  </div>
-                </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 4px', marginTop: '8px' }}>
-                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 16 }}>GRAND TOTAL PURCHASES</span>
-                <span style={{ fontWeight: 800, color: '#065F46', fontSize: 16 }}>
-                  ₹{Object.values(stats.supplierBreakdown || {}).reduce((sum, d) => sum + d.total, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PurchaseBreakdownModal
+          grnHistory={grnHistory}
+          clickedCard={showSupplierBreakdown}
+          onClose={() => setShowSupplierBreakdown(false)}
+        />
       )}
     </div>
   )

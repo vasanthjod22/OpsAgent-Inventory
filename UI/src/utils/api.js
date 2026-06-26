@@ -15,14 +15,18 @@ export const callAI = async (apiKey, messages, systemPrompt, tools = undefined) 
   }
 }
 
-export const callVisionAI = async (apiKey, base64Image, mimeType) => {
+export const callVisionAI = async (apiKey, base64ImageOrArray, mimeType) => {
   try {
+    const payload = Array.isArray(base64ImageOrArray)
+      ? { images: base64ImageOrArray }
+      : { base64Image: base64ImageOrArray, mimeType }
+
     return await backendFetch('/ai/vision', {
       method: 'POST',
       headers: {
         'x-groq-api-key': apiKey || localStorage.getItem('opsagent_groq_key') || ''
       },
-      body: JSON.stringify({ base64Image, mimeType })
+      body: JSON.stringify(payload)
     })
   } catch (err) {
     throw new Error(err.message || 'Vision API failed')

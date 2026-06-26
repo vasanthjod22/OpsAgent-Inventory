@@ -114,7 +114,7 @@ export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, 
           onChange={e => onLimitChange(Number(e.target.value))}
           style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-primary)', outline: 'none' }}
         >
-          {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+          {[12, 24, 48, 96].map(n => <option key={n} value={n}>{n}</option>)}
         </select>
         <span style={{ fontSize: 13, color: 'var(--text-primary)', marginLeft: 4 }}>Go to:</span>
         <input

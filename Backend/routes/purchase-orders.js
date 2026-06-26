@@ -58,8 +58,15 @@ router.post('/', auth, async (req, res) => {
   } = req.body;
 
   // Normalize specific supplier typos
-  if (['STAYBRiIT TRADING CORPORATION', 'STAYBRiT TRADING CORPORATION', 'STAYBRIT TRADING CORPORATION'].includes(supplierName)) {
-    supplierName = 'STAYBRIIT TRADING CORPORATION';
+  if (supplierName) {
+    const up = supplierName.toUpperCase();
+    if (up.includes('STAYBR')) {
+      supplierName = 'STAYBRIIT TRADING CORPORATION';
+    } else if (up.includes('JHONON') || up.includes('JHONSSON') || up.includes('JOHNSON')) {
+      supplierName = up.includes('PIPE') ? 'JOHNSON PIPES' : 'JOHNSON ENTERPRISES';
+    } else if (up.includes('KUMAR STEEL')) {
+      supplierName = 'KUMAR STEELS';
+    }
   }
 
   // Generate PO Number
