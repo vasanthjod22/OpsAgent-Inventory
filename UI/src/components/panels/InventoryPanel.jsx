@@ -1041,6 +1041,7 @@ export default function InventoryPanel({ showToast }) {
       {showSupplierBreakdown && (
         <PurchaseBreakdownModal
           grnHistory={grnHistory}
+          allItems={allItems}
           clickedCard={showSupplierBreakdown}
           onClose={() => setShowSupplierBreakdown(false)}
         />

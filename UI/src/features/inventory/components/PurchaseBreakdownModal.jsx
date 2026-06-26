@@ -94,7 +94,7 @@ const applyFormulaToItem = (item, supplierName) => {
 };
 
 // ─── Group GRN history by date + supplier ─────────────────────────────────────
-const groupGRNByDateAndSupplier = (grnHistory) => {
+const groupGRNByDateAndSupplier = (grnHistory, allItems = []) => {
   const groups = {};
 
   grnHistory.forEach((grn) => {
@@ -130,17 +130,68 @@ const groupGRNByDateAndSupplier = (grnHistory) => {
     groups[key].grnRefs.push(String(grn.grn_number || grn.id || ''));
   });
 
+  // Also include manual items that don't have a GRN
+  allItems.forEach((i) => {
+    const opStock = Number(i.opening_stock) || 0;
+    if (opStock > 0) {
+      const supplierRaw = (i.supplier_name || 'Unknown').trim();
+      const supplierDisplay = normalizeSupplierName(supplierRaw);
+      const supplierKey = supplierDisplay.toUpperCase();
+      const rawDate = i.date_added ? i.date_added.split('T')[0] : 'Unknown';
+      const date = normalizeDate(rawDate);
+      
+      // Fix double counting: check if there's already a GRN for this supplier on this date
+      const hasGrnOnSameDate = grnHistory.some((g) => {
+        const gSupplier = normalizeSupplierName(g.supplier || g.supplier_name);
+        const gDate = normalizeDate(g.date || g.grn_date || g.created_at);
+        return gSupplier === supplierDisplay && gDate === date;
+      });
+      if (hasGrnOnSameDate) return;
+
+      const key = `${date}__${supplierKey}`;
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          date,
+          supplier: supplierDisplay,
+          totalAmountExclGST: 0,
+          totalAmountInclGST: 0,
+          grnCount: 0,
+          grnRefs: [],
+          items: [],
+        };
+      }
+
+      // Convert manual item to a "pseudo GRN item" for formula
+      const totalAmt = opStock * (Number(i.purchase_rate) || Number(i.rate) || 0);
+      const { amountExclGST, amountInclGST } = applyFormulaToItem(
+        { total_amount: totalAmt, description: i.name },
+        supplierDisplay
+      );
+
+      groups[key].totalAmountExclGST += amountExclGST;
+      groups[key].totalAmountInclGST += amountInclGST;
+      groups[key].items.push({
+        description: i.name,
+        total_amount: totalAmt,
+        _grnRef: 'Manual Entry',
+        _supplier: supplierDisplay
+      });
+      groups[key].grnCount += 1; // treat as a separate manual entry
+    }
+  });
+
   return Object.values(groups).sort((a, b) => parseDateDDMMYYYY(a.date) - parseDateDDMMYYYY(b.date));
 };
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
-export default function PurchaseBreakdownModal({ grnHistory, clickedCard, onClose }) {
+export default function PurchaseBreakdownModal({ grnHistory, allItems, clickedCard, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showMergedOnly, setShowMergedOnly] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
 
-  const groupedData = useMemo(() => groupGRNByDateAndSupplier(grnHistory || []), [grnHistory]);
+  const groupedData = useMemo(() => groupGRNByDateAndSupplier(grnHistory || [], allItems || []), [grnHistory, allItems]);
 
   const filteredData = useMemo(() => {
     return groupedData.filter((row) => {
