@@ -132,8 +132,8 @@ const groupGRNByDateAndSupplier = (grnHistory, allItems = []) => {
 
   // Also include manual items that don't have a GRN
   allItems.forEach((i) => {
-    const opStock = Number(i.opening_stock) || 0;
-    if (opStock > 0) {
+    const pseudoStock = Number(i.qty) > 0 ? Number(i.qty) : (Number(i.opening_stock) || 0);
+    if (pseudoStock > 0) {
       const supplierRaw = (i.supplier_name || 'Unknown').trim();
       const supplierDisplay = normalizeSupplierName(supplierRaw);
       const supplierKey = supplierDisplay.toUpperCase();
@@ -163,17 +163,28 @@ const groupGRNByDateAndSupplier = (grnHistory, allItems = []) => {
       }
 
       // Convert manual item to a "pseudo GRN item" for formula
-      const totalAmt = opStock * (Number(i.purchase_rate) || Number(i.rate) || 0);
-      const { amountExclGST, amountInclGST } = applyFormulaToItem(
-        { total_amount: totalAmt, description: i.name },
-        supplierDisplay
-      );
+      const totalAmt = pseudoStock * (Number(i.purchase_rate) || Number(i.rate) || 0);
+      
+      const itemCgst = Number(i.cgst_percent) || 0;
+      const itemSgst = Number(i.sgst_percent) || 0;
+      const gstMult = 1 + (itemCgst + itemSgst) / 100;
+      
+      let amountExclGST = totalAmt;
+      let amountInclGST = totalAmt;
+      
+      if (isGstInclusiveSupplier(supplierDisplay)) {
+        amountExclGST = totalAmt / gstMult;
+      } else if (isRateAlreadyGstIncluded(supplierDisplay)) {
+        amountExclGST = totalAmt / gstMult;
+      } else {
+        amountInclGST = totalAmt * gstMult;
+      }
 
       groups[key].totalAmountExclGST += amountExclGST;
       groups[key].totalAmountInclGST += amountInclGST;
       groups[key].items.push({
         description: i.name,
-        total_amount: totalAmt,
+        total_amount: isRateAlreadyGstIncluded(supplierDisplay) || isGstInclusiveSupplier(supplierDisplay) ? totalAmt : amountInclGST,
         _grnRef: 'Manual Entry',
         _supplier: supplierDisplay
       });
