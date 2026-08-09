@@ -159,41 +159,60 @@ router.post('/ask', auth, async (req, res) => {
       return res.status(503).json({ error: 'AI service not configured.' });
     }
 
-    const response = await fetch(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${actualKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-oss-20b',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are OpsAgent AI, a friendly business assistant for a hardware shop. CRITICAL RULE: If the user\'s message is a simple greeting (like "hi", "hello", "bye", "hey"), completely IGNORE the provided business data context and just reply with a short, friendly 1-2 sentence greeting. Do NOT use any special formatting. ONLY if the user explicitly asks a question about their business, sales, or data, you must analyze the provided context and structure your response strictly with "Observation", "Reason", and "Recommendation" sections.'
-            },
-            {
-              role: 'user',
-              content: context
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 1024
-        })
-      }
-    )
+    const GROQ_MODELS = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'llama3-70b-8192'
+    ];
 
-    const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data.error?.message || `Groq API Error: ${response.status} ${response.statusText}`)
+    let answer = null;
+    let lastError = null;
+
+    for (const model of GROQ_MODELS) {
+      try {
+        const response = await fetch(
+          'https://api.groq.com/openai/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${actualKey}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are OpsAgent AI, a friendly business assistant for a hardware shop. CRITICAL RULE: If the user\'s message is a simple greeting (like "hi", "hello", "bye", "hey"), completely IGNORE the provided business data context and just reply with a short, friendly 1-2 sentence greeting. Do NOT use any special formatting. ONLY if the user explicitly asks a question about their business, sales, or data, you must analyze the provided context and structure your response strictly with "Observation", "Reason", and "Recommendation" sections.'
+                },
+                {
+                  role: 'user',
+                  content: context
+                }
+              ],
+              temperature: 0.3,
+              max_tokens: 1024
+            })
+          }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+          lastError = new Error(data.error?.message || `Groq API Error: ${response.status} ${response.statusText}`);
+          continue;
+        }
+
+        answer = data.choices?.[0]?.message?.content;
+        if (answer) {
+          break;
+        }
+      } catch (err) {
+        lastError = err;
+      }
     }
 
-    const answer = data.choices?.[0]?.message?.content
-
     if (!answer) {
-      throw new Error('Empty response from AI')
+      throw lastError || new Error('Empty response from AI');
     }
 
     res.json({ success: true, answer })
