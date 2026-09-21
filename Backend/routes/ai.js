@@ -6,7 +6,7 @@ const router = express.Router();
 const GROQ_MODELS = [
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
-  'llama3-70b-8192',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
 ];
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
